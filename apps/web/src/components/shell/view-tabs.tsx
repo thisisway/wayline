@@ -11,7 +11,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { AvatarGroup, Tabs, TabsList, TabsTrigger, Button } from "@wayline/ui";
-import { activeListName, clients, docBrief } from "@/mock/data";
+import { clients, docBrief } from "@/mock/data";
 
 const views = [
   { id: "chat", label: "Chat", icon: <MessageSquare /> },
@@ -24,9 +24,11 @@ const views = [
 export function ViewTabs({
   value,
   onValueChange,
+  listName,
 }: {
   value: string;
   onValueChange: (v: string) => void;
+  listName: string;
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -38,7 +40,7 @@ export function ViewTabs({
         >
           M
         </span>
-        <span className="text-ui font-semibold">{activeListName}</span>
+        <span className="text-ui font-semibold">{listName}</span>
       </div>
 
       <div className="h-5 w-px bg-border" />

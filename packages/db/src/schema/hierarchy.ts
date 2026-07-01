@@ -5,11 +5,12 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { clients, organizations } from "./core";
+import { clients, organizations, users } from "./core";
 import { idColumn, softDelete, statusKind, taskPriority, timestamps } from "./_shared";
 
 /**
@@ -112,6 +113,12 @@ export const tasks = pgTable(
     position: integer("position").notNull().default(0),
     completed: boolean("completed").notNull().default(false),
 
+    // Tags com cor — atalho pragmático (JSONB) na Fase 1.1; pode virar
+    // tags/task_tags normalizadas depois se a busca por tag exigir.
+    tags: jsonb("tags")
+      .$type<Array<{ label: string; color: string }>>()
+      .notNull()
+      .default([]),
     // Campos custom "frios" (colunas quentes ficam tipadas acima).
     custom: jsonb("custom").notNull().default({}),
     ...timestamps,
@@ -123,6 +130,26 @@ export const tasks = pgTable(
     index("tasks_status_idx").on(t.statusId),
     index("tasks_client_idx").on(t.clientId),
     index("tasks_parent_idx").on(t.parentId),
+  ],
+);
+
+/** Responsáveis múltiplos por tarefa (M:N). */
+export const taskAssignees = pgTable(
+  "task_assignees",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.userId] }),
+    index("task_assignees_task_idx").on(t.taskId),
   ],
 );
 
@@ -160,4 +187,10 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   client: one(clients, { fields: [tasks.clientId], references: [clients.id] }),
   parent: one(tasks, { fields: [tasks.parentId], references: [tasks.id], relationName: "subtasks" }),
   subtasks: many(tasks, { relationName: "subtasks" }),
+  assignees: many(taskAssignees),
+}));
+
+export const taskAssigneesRelations = relations(taskAssignees, ({ one }) => ({
+  task: one(tasks, { fields: [taskAssignees.taskId], references: [tasks.id] }),
+  user: one(users, { fields: [taskAssignees.userId], references: [users.id] }),
 }));

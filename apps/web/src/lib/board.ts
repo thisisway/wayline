@@ -1,0 +1,57 @@
+import type { BoardData } from "@wayline/db";
+import type { BoardColumn, TaskCard } from "@/mock/types";
+
+/**
+ * Mapeia o board vindo do Postgres (@wayline/db) para o view-model que os
+ * renderizadores já consomem. Campos ainda sem tabela (anexos/comentários)
+ * ficam em 0 e o card os oculta — entram na Fase 1.2.
+ */
+
+const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+function startOfDay(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+function formatDue(due: Date | null, completed: boolean): { label?: string; overdue: boolean } {
+  if (!due) return { overdue: false };
+  const today = startOfDay(new Date());
+  const target = startOfDay(due);
+  const diffDays = Math.round((target - today) / 86_400_000);
+  const overdue = !completed && diffDays < 0;
+  let label: string;
+  if (diffDays === 0) label = "Hoje";
+  else if (diffDays === 1) label = "Amanhã";
+  else label = `${due.getUTCDate()} ${MONTHS[due.getUTCMonth()]}`;
+  return { label, overdue };
+}
+
+function mapTask(t: BoardData["columns"][number]["tasks"][number]): TaskCard {
+  const { label, overdue } = formatDue(t.dueDate, t.completed);
+  return {
+    id: t.id,
+    title: t.title,
+    client: t.client ?? undefined,
+    assignees: t.assignees.map((a) => ({
+      id: a.id,
+      name: a.name,
+      avatarUrl: a.avatarUrl ?? undefined,
+    })),
+    priority: t.priority,
+    dueLabel: label,
+    overdue,
+    tags: t.tags,
+    attachments: 0,
+    comments: 0,
+  };
+}
+
+export function mapBoard(data: BoardData): BoardColumn[] {
+  return data.columns.map((col) => ({
+    id: col.id,
+    name: col.name,
+    kind: /review/i.test(col.name) ? "review" : col.kind,
+    color: col.color,
+    cards: col.tasks.map(mapTask),
+  }));
+}

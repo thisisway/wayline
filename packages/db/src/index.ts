@@ -8,6 +8,8 @@
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
 
+export { getDefaultBoard, type BoardData, type BoardColumnDTO, type BoardTaskDTO } from "./queries/board";
+
 import type {
   organizations,
   users,
@@ -18,6 +20,7 @@ import type {
   lists,
   statuses,
   tasks,
+  taskAssignees,
 } from "./schema";
 
 // Tipos de leitura (select) inferidos do schema.
@@ -30,3 +33,4 @@ export type Folder = typeof folders.$inferSelect;
 export type List = typeof lists.$inferSelect;
 export type Status = typeof statuses.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
+export type TaskAssignee = typeof taskAssignees.$inferSelect;
