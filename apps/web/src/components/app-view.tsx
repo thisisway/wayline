@@ -6,7 +6,7 @@ import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
-import { BoardColumn } from "@/components/board/board-column";
+import { DndBoard } from "@/components/board/dnd-board";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { PresenceLayer } from "@/components/panels/presence-layer";
@@ -38,11 +38,7 @@ export function AppView({
             <div className="relative min-h-0 flex-1">
               <PresenceLayer />
 
-              <div className="flex h-full gap-5 overflow-x-auto px-4 py-5">
-                {board.map((column) => (
-                  <BoardColumn key={column.id} column={column} />
-                ))}
-              </div>
+              <DndBoard initialColumns={board} />
 
               {hasData && (
                 <>

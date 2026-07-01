@@ -9,6 +9,7 @@ export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
 
 export { getDefaultBoard, type BoardData, type BoardColumnDTO, type BoardTaskDTO } from "./queries/board";
+export { saveBoardOrder, type BoardOrderInput } from "./queries/mutations";
 
 import type {
   organizations,
