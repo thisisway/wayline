@@ -1,7 +1,8 @@
 # Wayline — imagem de produção do app web (monorepo pnpm + Turborepo).
 # Build a partir da RAIZ do repositório. Alvo: Easypanel (Dockerfile build).
 
-FROM node:20-alpine AS base
+# Node 22: exigido pelo pnpm 11.8 (usa node:sqlite, ausente no Node 20).
+FROM node:22-alpine AS base
 # sharp e alguns binários precisam do shim de libc no Alpine.
 RUN apk add --no-cache libc6-compat
 RUN corepack enable
