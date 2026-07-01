@@ -6,6 +6,7 @@
  * adicionamos aqui o `drizzle(pool, { schema })` e a injeção do `org_id` (RLS).
  */
 export * as schema from "./schema";
+export { getDb, closeDb, type Database } from "./client";
 
 import type {
   organizations,

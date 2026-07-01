@@ -96,8 +96,14 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: ^0.38.3
-        version: 0.38.4(@types/react@19.2.17)(react@19.2.7)
+        version: 0.38.4(@types/react@19.2.17)(postgres@3.4.9)(react@19.2.7)
+      postgres:
+        specifier: ^3.4.5
+        version: 3.4.9
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.0
       '@wayline/config':
         specifier: workspace:*
         version: link:../config
@@ -1512,6 +1518,10 @@ packages:
     resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postgres@3.4.9:
+    resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
+    engines: {node: '>=12'}
+
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -2361,9 +2371,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.38.4(@types/react@19.2.17)(react@19.2.7):
+  drizzle-orm@0.38.4(@types/react@19.2.17)(postgres@3.4.9)(react@19.2.7):
     optionalDependencies:
       '@types/react': 19.2.17
+      postgres: 3.4.9
       react: 19.2.7
 
   electron-to-chromium@1.5.382: {}
@@ -2806,6 +2817,8 @@ snapshots:
       nanoid: 3.3.15
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postgres@3.4.9: {}
 
   prelude-ls@1.2.1: {}
 
