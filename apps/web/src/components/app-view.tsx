@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Database, LayoutGrid } from "lucide-react";
+import type { BoardData } from "@wayline/db";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { Topbar } from "@/components/shell/topbar";
@@ -10,17 +11,9 @@ import { DndBoard } from "@/components/board/dnd-board";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { PresenceLayer } from "@/components/panels/presence-layer";
-import type { BoardColumn as BoardColumnType } from "@/mock/types";
 
-export function AppView({
-  board,
-  listName,
-}: {
-  board: BoardColumnType[];
-  listName: string;
-}) {
+export function AppView({ data, listName }: { data: BoardData | null; listName: string }) {
   const [view, setView] = React.useState("board");
-  const hasData = board.some((c) => c.cards.length > 0);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
@@ -32,15 +25,15 @@ export function AppView({
         <ViewTabs value={view} onValueChange={setView} listName={listName} />
 
         {view === "board" ? (
-          board.length === 0 ? (
+          !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
             <div className="relative min-h-0 flex-1">
               <PresenceLayer />
 
-              <DndBoard initialColumns={board} />
+              <DndBoard data={data} />
 
-              {hasData && (
+              {data.columns.some((c) => c.tasks.length > 0) && (
                 <>
                   <div className="pointer-events-none absolute bottom-5 left-4 z-20">
                     <DocPanel />
@@ -69,8 +62,8 @@ function EmptyBoard() {
       <div>
         <p className="font-display text-h3 font-bold">Board vazio</p>
         <p className="mt-1 max-w-sm text-ui text-muted">
-          Sem tarefas no Postgres ainda. Rode o seed (<code>pnpm --filter @wayline/db db:seed</code>)
-          ou verifique a conexão com o banco.
+          Sem lista/colunas no Postgres ainda. Rode o seed (
+          <code>pnpm --filter @wayline/db db:seed</code>) ou verifique a conexão com o banco.
         </p>
       </div>
     </div>

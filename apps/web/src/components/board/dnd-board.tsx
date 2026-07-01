@@ -6,6 +6,7 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -18,22 +19,44 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { cn } from "@wayline/ui";
-import type { BoardColumn as BoardColumnType, TaskCard as TaskCardType } from "@/mock/types";
+import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { TaskCard } from "./task-card";
-import { saveBoard } from "@/actions/board";
+import { TaskModal } from "./task-modal";
+import {
+  createTaskAction,
+  deleteTaskAction,
+  saveBoard,
+  updateTaskAction,
+} from "@/actions/board";
+import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
 
-/** Board Kanban com drag-and-drop (dnd-kit) e persistência no Postgres. */
-export function DndBoard({ initialColumns }: { initialColumns: BoardColumnType[] }) {
-  const [columns, setColumns] = React.useState(initialColumns);
+interface UIColumn {
+  id: string;
+  name: string;
+  color: string;
+  cards: BoardTaskDTO[];
+}
+
+type ModalState =
+  | { mode: "create"; statusId: string }
+  | { mode: "edit"; task: BoardTaskDTO }
+  | null;
+
+/** Board Kanban com drag-and-drop, persistência e CRUD de tarefas. */
+export function DndBoard({ data }: { data: BoardData }) {
+  const [columns, setColumns] = React.useState<UIColumn[]>(() =>
+    data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, cards: c.tasks })),
+  );
   const columnsRef = React.useRef(columns);
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [modal, setModal] = React.useState<ModalState>(null);
+  const [submitting, setSubmitting] = React.useState(false);
   const [, startTransition] = React.useTransition();
 
-  const commit = React.useCallback((next: BoardColumnType[]) => {
+  const commit = React.useCallback((next: UIColumn[]) => {
     columnsRef.current = next;
     setColumns(next);
   }, []);
@@ -48,7 +71,7 @@ export function DndBoard({ initialColumns }: { initialColumns: BoardColumnType[]
     return cur.find((c) => c.cards.some((card) => card.id === id))?.id;
   }, []);
 
-  const activeCard: TaskCardType | undefined = React.useMemo(() => {
+  const activeCard = React.useMemo(() => {
     if (!activeId) return undefined;
     for (const c of columns) {
       const found = c.cards.find((card) => card.id === activeId);
@@ -57,6 +80,7 @@ export function DndBoard({ initialColumns }: { initialColumns: BoardColumnType[]
     return undefined;
   }, [activeId, columns]);
 
+  // --- Drag & drop ---------------------------------------------------------
   function onDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
   }
@@ -131,32 +155,114 @@ export function DndBoard({ initialColumns }: { initialColumns: BoardColumnType[]
     });
   }
 
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
-    >
-      <div className="flex h-full gap-5 overflow-x-auto px-4 py-5">
-        {columns.map((column) => (
-          <Column key={column.id} column={column} />
-        ))}
-      </div>
+  // --- CRUD ----------------------------------------------------------------
+  function upsertCard(dto: BoardTaskDTO) {
+    const cur = columnsRef.current;
+    const cleaned = cur.map((c) => ({ ...c, cards: c.cards.filter((x) => x.id !== dto.id) }));
+    commit(
+      cleaned.map((c) => (c.id === dto.statusId ? { ...c, cards: [...c.cards, dto] } : c)),
+    );
+  }
 
-      <DragOverlay dropAnimation={null}>
-        {activeCard ? (
-          <div className="w-80 rotate-2 cursor-grabbing">
-            <TaskCard card={activeCard} />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+  async function handleSubmit(input: TaskFormInput) {
+    if (!modal) return;
+    setSubmitting(true);
+    try {
+      const dto =
+        modal.mode === "create"
+          ? await createTaskAction(input)
+          : await updateTaskAction(modal.task.id, input);
+      if (dto) upsertCard(dto);
+      setModal(null);
+    } catch (err) {
+      console.error("Falha ao salvar a tarefa:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (modal?.mode !== "edit") return;
+    const id = modal.task.id;
+    setSubmitting(true);
+    try {
+      await deleteTaskAction(id);
+      commit(columnsRef.current.map((c) => ({ ...c, cards: c.cards.filter((x) => x.id !== id) })));
+      setModal(null);
+    } catch (err) {
+      console.error("Falha ao excluir a tarefa:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const modalInitial: TaskFormInput =
+    modal?.mode === "edit"
+      ? dtoToForm(modal.task)
+      : {
+          statusId: modal?.mode === "create" ? modal.statusId : (columns[0]?.id ?? ""),
+          title: "",
+          priority: "normal",
+          clientId: null,
+          dueDate: null,
+          assigneeIds: [],
+        };
+
+  return (
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex h-full gap-5 overflow-x-auto px-4 py-5">
+          {columns.map((column) => (
+            <Column
+              key={column.id}
+              column={column}
+              onCreate={() => setModal({ mode: "create", statusId: column.id })}
+              onEdit={(task) => setModal({ mode: "edit", task })}
+            />
+          ))}
+        </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeCard ? (
+            <div className="w-80 rotate-2 cursor-grabbing">
+              <TaskCard card={mapTaskDTO(activeCard)} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {modal && (
+        <TaskModal
+          mode={modal.mode}
+          columns={columns.map((c) => ({ id: c.id, name: c.name }))}
+          clients={data.clients}
+          members={data.members}
+          initial={modalInitial}
+          submitting={submitting}
+          onClose={() => setModal(null)}
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+        />
+      )}
+    </>
   );
 }
 
-function Column({ column }: { column: BoardColumnType }) {
+function Column({
+  column,
+  onCreate,
+  onEdit,
+}: {
+  column: UIColumn;
+  onCreate: () => void;
+  onEdit: (task: BoardTaskDTO) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -172,6 +278,7 @@ function Column({ column }: { column: BoardColumnType }) {
         <div className="ml-auto flex items-center gap-0.5">
           <button
             type="button"
+            onClick={onCreate}
             aria-label="Adicionar tarefa"
             className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
           >
@@ -196,11 +303,12 @@ function Column({ column }: { column: BoardColumnType }) {
           )}
         >
           {column.cards.map((card) => (
-            <SortableCard key={card.id} card={card} />
+            <SortableCard key={card.id} card={card} onEdit={onEdit} />
           ))}
 
           <button
             type="button"
+            onClick={onCreate}
             className="flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 h-9 text-dense font-medium text-muted transition-colors hover:border-brand-40 hover:text-foreground"
           >
             <Plus className="size-4" />
@@ -212,7 +320,7 @@ function Column({ column }: { column: BoardColumnType }) {
   );
 }
 
-function SortableCard({ card }: { card: TaskCardType }) {
+function SortableCard({ card, onEdit }: { card: BoardTaskDTO; onEdit: (task: BoardTaskDTO) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
   });
@@ -222,10 +330,13 @@ function SortableCard({ card }: { card: TaskCardType }) {
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn("touch-none", isDragging && "opacity-40")}
+      onClick={() => {
+        if (!isDragging) onEdit(card);
+      }}
       {...attributes}
       {...listeners}
     >
-      <TaskCard card={card} />
+      <TaskCard card={mapTaskDTO(card)} />
     </div>
   );
 }

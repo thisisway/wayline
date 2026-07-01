@@ -8,8 +8,24 @@
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
 
-export { getDefaultBoard, type BoardData, type BoardColumnDTO, type BoardTaskDTO } from "./queries/board";
-export { saveBoardOrder, type BoardOrderInput } from "./queries/mutations";
+export {
+  getDefaultBoard,
+  getTaskCard,
+  type BoardData,
+  type BoardColumnDTO,
+  type BoardTaskDTO,
+  type BoardClientDTO,
+  type BoardMemberDTO,
+} from "./queries/board";
+export {
+  saveBoardOrder,
+  createTask,
+  updateTask,
+  deleteTask,
+  type BoardOrderInput,
+  type CreateTaskInput,
+  type UpdateTaskInput,
+} from "./queries/mutations";
 
 import type {
   organizations,

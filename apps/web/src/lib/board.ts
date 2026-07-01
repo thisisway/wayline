@@ -1,4 +1,4 @@
-import type { BoardData } from "@wayline/db";
+import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import type { BoardColumn, TaskCard } from "@/mock/types";
 
 /**
@@ -26,7 +26,7 @@ function formatDue(due: Date | null, completed: boolean): { label?: string; over
   return { label, overdue };
 }
 
-function mapTask(t: BoardData["columns"][number]["tasks"][number]): TaskCard {
+export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
   const { label, overdue } = formatDue(t.dueDate, t.completed);
   return {
     id: t.id,
@@ -46,12 +46,34 @@ function mapTask(t: BoardData["columns"][number]["tasks"][number]): TaskCard {
   };
 }
 
+/** Payload do formulário de tarefa (serializável; dueDate como yyyy-mm-dd). */
+export interface TaskFormInput {
+  statusId: string;
+  title: string;
+  priority: "urgent" | "high" | "normal" | "low";
+  clientId: string | null;
+  dueDate: string | null;
+  assigneeIds: string[];
+}
+
+/** Valores iniciais do form a partir de um card existente (modo edição). */
+export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
+  return {
+    statusId: dto.statusId ?? "",
+    title: dto.title,
+    priority: dto.priority,
+    clientId: dto.client?.id ?? null,
+    dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,
+    assigneeIds: dto.assignees.map((a) => a.id),
+  };
+}
+
 export function mapBoard(data: BoardData): BoardColumn[] {
   return data.columns.map((col) => ({
     id: col.id,
     name: col.name,
     kind: /review/i.test(col.name) ? "review" : col.kind,
     color: col.color,
-    cards: col.tasks.map(mapTask),
+    cards: col.tasks.map(mapTaskDTO),
   }));
 }
