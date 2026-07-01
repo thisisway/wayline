@@ -1,0 +1,22 @@
+{
+  "name": "wayline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wayline — sistema operacional de trabalho nativo para agências",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "rimraf": "^6.0.1"
+  }
+}

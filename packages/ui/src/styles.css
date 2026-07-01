@@ -1,0 +1,33 @@
+/**
+ * Way Cloud — camada de tokens de superfície/texto.
+ *
+ * Cores de marca (brand, success, warning, danger) vivem no preset do Tailwind.
+ * Aqui ficam apenas os tokens que mudam entre light e dark, expostos como
+ * canais RGB para funcionarem com `<alpha-value>` no Tailwind.
+ *
+ * Importado por `apps/web/app/globals.css`.
+ */
+
+:root {
+  /* Light */
+  --wc-canvas: 247 249 252; /* #F7F9FC */
+  --wc-surface: 255 255 255; /* #FFFFFF */
+  --wc-elevated: 255 255 255; /* #FFFFFF */
+  --wc-border: 226 232 240; /* #E2E8F0 */
+  --wc-ring: 29 102 255; /* brand */
+  --wc-foreground: 11 16 35; /* #0B1023 */
+  --wc-muted: 100 116 139; /* #64748B */
+  --wc-subtle: 148 163 184; /* #94A3B8 */
+}
+
+.dark {
+  /* Dark Way */
+  --wc-canvas: 11 16 35; /* #0B1023 */
+  --wc-surface: 17 24 45; /* #11182D */
+  --wc-elevated: 24 32 56; /* #182038 */
+  --wc-border: 39 48 74; /* #27304A */
+  --wc-ring: 127 171 255; /* brand-40 */
+  --wc-foreground: 237 241 249; /* #EDF1F9 */
+  --wc-muted: 148 163 184; /* #94A3B8 */
+  --wc-subtle: 100 116 139; /* #64748B */
+}

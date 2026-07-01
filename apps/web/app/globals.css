@@ -1,0 +1,45 @@
+/* Tokens de superfície/texto (light + dark) do design system Way Cloud. */
+@import "@wayline/ui/styles.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-canvas text-foreground font-sans antialiased;
+    font-size: 14px;
+  }
+
+  ::selection {
+    @apply bg-brand/25;
+  }
+
+  /* Scrollbar discreta, coerente com o dark premium. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--wc-border)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-pill;
+    background-color: rgb(var(--wc-border));
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--wc-subtle));
+  }
+}

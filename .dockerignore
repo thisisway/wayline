@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/out
+.git
+.gitignore
+**/*.log
+**/.env*
+**/coverage
+Dockerfile
+.dockerignore
+README.md
+DEPLOY.md
+wayline-blueprint.md

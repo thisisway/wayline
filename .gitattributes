@@ -1,0 +1,11 @@
+# Normaliza para LF no repositório (builds rodam em Linux).
+* text=auto eol=lf
+
+# Binários — não mexer.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
