@@ -1,80 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import {
-  CalendarDays,
-  ChevronDown,
-  MessageSquare,
-  Plus,
-} from "lucide-react";
+import { CalendarDays, ChevronDown, MessageSquare, Plus } from "lucide-react";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { AvatarGroup, cn } from "@wayline/ui";
-import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
-import {
-  createTaskAction,
-  deleteTaskAction,
-  updateTaskAction,
-} from "@/actions/board";
-import { pokeList } from "@/actions/live";
+import { mapTaskDTO } from "@/lib/board";
+import { useTaskEditor } from "@/lib/use-task-editor";
 import { priorityMeta } from "@/components/board/task-card";
-import { TaskModal } from "@/components/board/task-modal";
-
-type ModalState =
-  | { mode: "create"; statusId: string }
-  | { mode: "edit"; task: BoardTaskDTO }
-  | null;
 
 /** Renderizador em LISTA sobre os mesmos dados do board (engine de views). */
 export function ListView({ data }: { data: BoardData }) {
-  const router = useRouter();
-  const [modal, setModal] = React.useState<ModalState>(null);
-  const [submitting, setSubmitting] = React.useState(false);
+  const editor = useTaskEditor(data);
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-
-  async function handleSubmit(input: TaskFormInput) {
-    if (!modal) return;
-    setSubmitting(true);
-    try {
-      if (modal.mode === "create") await createTaskAction(data.orgId, input);
-      else await updateTaskAction(data.orgId, modal.task.id, input);
-      void pokeList(data.listId);
-      setModal(null);
-      router.refresh();
-    } catch (err) {
-      console.error("Falha ao salvar a tarefa:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (modal?.mode !== "edit") return;
-    setSubmitting(true);
-    try {
-      await deleteTaskAction(data.orgId, modal.task.id);
-      void pokeList(data.listId);
-      setModal(null);
-      router.refresh();
-    } catch (err) {
-      console.error("Falha ao excluir a tarefa:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const modalInitial: TaskFormInput =
-    modal?.mode === "edit"
-      ? dtoToForm(modal.task)
-      : {
-          statusId: modal?.mode === "create" ? modal.statusId : (data.columns[0]?.id ?? ""),
-          title: "",
-          priority: "normal",
-          clientId: null,
-          dueDate: null,
-          assigneeIds: [],
-          tags: [],
-        };
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -108,16 +45,11 @@ export function ListView({ data }: { data: BoardData }) {
               {open && (
                 <div className="overflow-hidden rounded-lg border border-border">
                   {column.tasks.map((dto, i) => (
-                    <Row
-                      key={dto.id}
-                      dto={dto}
-                      first={i === 0}
-                      onClick={() => setModal({ mode: "edit", task: dto })}
-                    />
+                    <Row key={dto.id} dto={dto} first={i === 0} onClick={() => editor.openEdit(dto)} />
                   ))}
                   <button
                     type="button"
-                    onClick={() => setModal({ mode: "create", statusId: column.id })}
+                    onClick={() => editor.openCreate(column.id)}
                     className={cn(
                       "flex w-full items-center gap-1.5 px-3 h-9 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground",
                       column.tasks.length > 0 && "border-t border-border",
@@ -133,22 +65,7 @@ export function ListView({ data }: { data: BoardData }) {
         })}
       </div>
 
-      {modal && (
-        <TaskModal
-          mode={modal.mode}
-          orgId={data.orgId}
-          currentUserId={data.currentUserId}
-          taskId={modal.mode === "edit" ? modal.task.id : undefined}
-          columns={data.columns.map((c) => ({ id: c.id, name: c.name }))}
-          clients={data.clients}
-          members={data.members}
-          initial={modalInitial}
-          submitting={submitting}
-          onClose={() => setModal(null)}
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-        />
-      )}
+      {editor.modal}
     </div>
   );
 }

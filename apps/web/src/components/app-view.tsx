@@ -9,6 +9,7 @@ import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
 import { ListView } from "@/components/board/list-view";
+import { CalendarView } from "@/components/board/calendar-view";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
@@ -72,6 +73,12 @@ export function AppView({
             <EmptyBoard />
           ) : (
             <ListView data={data} />
+          )
+        ) : view === "calendar" ? (
+          !data || data.columns.length === 0 ? (
+            <EmptyBoard />
+          ) : (
+            <CalendarView data={data} />
           )
         ) : (
           <PlaceholderView view={view} />
