@@ -11,8 +11,10 @@ import {
   Reply,
   type LucideIcon,
 } from "lucide-react";
+import type { NavSpace } from "@wayline/db";
 import { SidebarItem, cn } from "@wayline/ui";
-import { activeListName, activeSpaceId, homeItems, spaces } from "@/mock/data";
+import { switchList } from "@/actions/org";
+import { homeItems } from "@/mock/data";
 import type { HomeItem } from "@/mock/types";
 
 const homeIcon: Record<HomeItem["icon"], LucideIcon> = {
@@ -29,10 +31,16 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function HomePanel() {
-  const [open, setOpen] = React.useState<Record<string, boolean>>({
-    [activeSpaceId]: true,
-  });
+export function HomePanel({ nav, activeListId }: { nav: NavSpace[]; activeListId: string }) {
+  const [, startTransition] = React.useTransition();
+  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
+
+  function selectList(id: string) {
+    if (id === activeListId) return;
+    startTransition(() => {
+      void switchList(id);
+    });
+  }
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
@@ -63,13 +71,17 @@ export function HomePanel() {
 
         <SectionLabel>Spaces</SectionLabel>
 
-        {spaces.map((space) => {
-          const isOpen = open[space.id] ?? false;
+        {nav.length === 0 && (
+          <p className="px-2.5 py-2 text-dense text-subtle">Nenhum space ainda.</p>
+        )}
+
+        {nav.map((space) => {
+          const isOpen = !collapsed[space.id];
           return (
             <div key={space.id}>
               <button
                 type="button"
-                onClick={() => setOpen((s) => ({ ...s, [space.id]: !isOpen }))}
+                onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}
                 className="group flex w-full items-center gap-2 rounded-md px-2.5 h-8 text-dense font-semibold text-foreground transition-colors hover:bg-elevated"
               >
                 <ChevronDown
@@ -82,21 +94,25 @@ export function HomePanel() {
                   className="flex size-4 items-center justify-center rounded text-[10px] font-bold text-white"
                   style={{ backgroundColor: space.color }}
                 >
-                  {space.name[0]}
+                  {space.icon ?? space.name[0]}
                 </span>
                 <span className="flex-1 truncate text-left">{space.name}</span>
                 <Plus className="size-3.5 text-subtle opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
 
               {isOpen &&
-                space.lists.map((list) => (
-                  <SidebarItem
-                    key={list.id}
-                    label={list.name}
-                    count={list.count}
-                    indent
-                    active={list.name === activeListName}
-                  />
+                (space.lists.length === 0 ? (
+                  <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>
+                ) : (
+                  space.lists.map((list) => (
+                    <SidebarItem
+                      key={list.id}
+                      label={list.name}
+                      indent
+                      active={list.id === activeListId}
+                      onClick={() => selectList(list.id)}
+                    />
+                  ))
                 ))}
             </div>
           );

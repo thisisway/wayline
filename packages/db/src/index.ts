@@ -12,11 +12,14 @@ export {
   getDefaultBoard,
   getBoardForOrg,
   getTaskCard,
+  getWorkspaceNav,
   type BoardData,
   type BoardColumnDTO,
   type BoardTaskDTO,
   type BoardClientDTO,
   type BoardMemberDTO,
+  type NavSpace,
+  type NavList,
 } from "./queries/board";
 export {
   getUserByEmail,

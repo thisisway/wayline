@@ -1,6 +1,6 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
-import { clients, comments, lists, organizations, statuses, tasks } from "../schema";
+import { clients, comments, lists, organizations, spaces, statuses, tasks } from "../schema";
 
 /**
  * Query do Board (Fase 1.x).
@@ -85,17 +85,30 @@ function toDTO(t: TaskRow): BoardTaskDTO {
 }
 
 /** Monta o board da org corrente (assume app.current_org já setado no tx). */
-async function buildBoard(tx: Tx, orgId: string): Promise<Omit<BoardData, "currentUserId"> | null> {
-  const list =
+/** Lista alvo: a preferida (se existir na org, via RLS) ou o padrão. */
+async function resolveList(tx: Tx, preferredListId?: string | null) {
+  if (preferredListId) {
+    const l = await tx.query.lists.findFirst({
+      where: and(eq(lists.id, preferredListId), isNull(lists.deletedAt)),
+    });
+    if (l) return l;
+  }
+  return (
     (await tx.query.lists.findFirst({
       where: and(eq(lists.name, "Launch Campaign"), isNull(lists.deletedAt)),
     })) ??
     (await tx.query.lists.findFirst({
       where: isNull(lists.deletedAt),
       orderBy: [asc(lists.createdAt)],
-    }));
-  if (!list) return null;
+    }))
+  );
+}
 
+async function buildBoard(
+  tx: Tx,
+  orgId: string,
+  list: { id: string; name: string },
+): Promise<Omit<BoardData, "currentUserId">> {
   // Sequencial: uma única conexão na transação.
   const cols = await tx.query.statuses.findMany({
     where: eq(statuses.listId, list.id),
@@ -154,14 +167,17 @@ async function buildBoard(tx: Tx, orgId: string): Promise<Omit<BoardData, "curre
   };
 }
 
-/** Board de uma org específica (a da sessão), com o usuário logado como corrente. */
+/** Board de uma org (a da sessão) numa lista específica (ou a padrão). */
 export async function getBoardForOrg(
   orgId: string,
   currentUserId: string | null,
+  listId?: string | null,
 ): Promise<BoardData | null> {
   return withOrg(orgId, async (tx) => {
-    const b = await buildBoard(tx, orgId);
-    return b ? { ...b, currentUserId } : null;
+    const list = await resolveList(tx, listId);
+    if (!list) return null;
+    const b = await buildBoard(tx, orgId, list);
+    return { ...b, currentUserId };
   });
 }
 
@@ -174,8 +190,9 @@ export async function getDefaultBoard(): Promise<BoardData | null> {
   });
   if (!org) return null;
   return withOrg(org.id, async (tx) => {
-    const b = await buildBoard(tx, org.id);
-    if (!b) return null;
+    const list = await resolveList(tx);
+    if (!list) return null;
+    const b = await buildBoard(tx, org.id, list);
     return { ...b, currentUserId: b.members[0]?.id ?? null };
   });
 }
@@ -194,5 +211,38 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       and(eq(comments.taskId, id), isNull(comments.deletedAt)),
     );
     return dto;
+  });
+}
+
+export interface NavList {
+  id: string;
+  name: string;
+}
+export interface NavSpace {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  lists: NavList[];
+}
+
+/** Spaces + Lists da org (para a navegação lateral). */
+export async function getWorkspaceNav(orgId: string): Promise<NavSpace[]> {
+  return withOrg(orgId, async (tx) => {
+    const sp = await tx.query.spaces.findMany({
+      where: isNull(spaces.deletedAt),
+      orderBy: [asc(spaces.createdAt)],
+    });
+    const ls = await tx.query.lists.findMany({
+      where: isNull(lists.deletedAt),
+      orderBy: [asc(lists.createdAt)],
+    });
+    return sp.map((s) => ({
+      id: s.id,
+      name: s.name,
+      color: s.color,
+      icon: s.icon,
+      lists: ls.filter((l) => l.spaceId === s.id).map((l) => ({ id: l.id, name: l.name })),
+    }));
   });
 }
