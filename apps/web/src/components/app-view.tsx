@@ -43,7 +43,8 @@ export function AppView({
             <div className="relative min-h-0 flex-1">
               <PresenceLayer />
 
-              <DndBoard data={data} />
+              {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
+              <DndBoard key={data.listId} data={data} />
 
               {data.columns.some((c) => c.tasks.length > 0) && (
                 <>
