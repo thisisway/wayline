@@ -18,6 +18,23 @@ export async function getUserByEmail(email: string): Promise<AuthUser | null> {
     : null;
 }
 
+/** Cria um usuário (signup). Retorna null se o email já existe. */
+export async function createUser(
+  name: string,
+  email: string,
+  passwordHash: string,
+): Promise<string | null> {
+  const db = getDb();
+  const normalized = email.toLowerCase().trim();
+  const existing = await db.query.users.findFirst({ where: eq(users.email, normalized) });
+  if (existing) return null;
+  const [u] = await db
+    .insert(users)
+    .values({ name: name.trim(), email: normalized, passwordHash })
+    .returning();
+  return u?.id ?? null;
+}
+
 /**
  * Resolve a org "corrente" do usuário (primeira membership). Roda com
  * `app.current_user` setado para passar pela RLS de memberships.

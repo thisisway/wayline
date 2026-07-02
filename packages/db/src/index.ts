@@ -23,6 +23,7 @@ export {
 } from "./queries/board";
 export {
   getUserByEmail,
+  createUser,
   resolveUserOrg,
   getUserOrgs,
   type AuthUser,
