@@ -1,11 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Bell, Check, ChevronsUpDown, Command, LogOut, Search, Sparkles } from "lucide-react";
+import {
+  Bell,
+  Check,
+  ChevronsUpDown,
+  Command,
+  LogOut,
+  Plus,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 import type { UserOrg } from "@wayline/db";
-import { Avatar, Badge, Button, cn } from "@wayline/ui";
-import { switchOrg } from "@/actions/org";
+import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
+import { createWorkspace, switchOrg } from "@/actions/org";
 
 export function Topbar({
   userName,
@@ -63,6 +72,7 @@ export function Topbar({
 
 function WorkspaceSwitcher({ orgs, activeOrgId }: { orgs: UserOrg[]; activeOrgId: string }) {
   const [open, setOpen] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const active = orgs.find((o) => o.id === activeOrgId) ?? orgs[0];
   const ref = React.useRef<HTMLDivElement>(null);
@@ -128,8 +138,89 @@ function WorkspaceSwitcher({ orgs, activeOrgId }: { orgs: UserOrg[]; activeOrgId
               </button>
             );
           })}
+
+          <div className="my-1 h-px bg-border" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setCreating(true);
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+          >
+            <span className="flex size-6 items-center justify-center rounded-md border border-dashed border-border">
+              <Plus className="size-3.5" />
+            </span>
+            Criar workspace
+          </button>
         </div>
       )}
+
+      {creating && <CreateWorkspaceModal onClose={() => setCreating(false)} />}
+    </div>
+  );
+}
+
+function CreateWorkspaceModal({ onClose }: { onClose: () => void }) {
+  const [name, setName] = React.useState("");
+  const [pending, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function submit() {
+    const trimmed = name.trim();
+    if (!trimmed || pending) return;
+    startTransition(async () => {
+      await createWorkspace(trimmed);
+      onClose();
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-border px-5 py-3.5">
+          <h2 className="font-display text-h3 font-bold">Novo workspace</h2>
+        </div>
+        <div className="space-y-3 p-5">
+          <div className="space-y-1.5">
+            <label className="text-label uppercase text-subtle" htmlFor="ws-name">
+              Nome
+            </label>
+            <Input
+              id="ws-name"
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submit()}
+              placeholder="Ex.: Minha Agência"
+            />
+          </div>
+          <p className="text-dense text-subtle">
+            Cria um espaço isolado com um board padrão (colunas A fazer / Fazendo / Feito).
+          </p>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="secondary" onClick={onClose} disabled={pending}>
+              Cancelar
+            </Button>
+            <Button onClick={submit} disabled={!name.trim() || pending}>
+              {pending ? "Criando…" : "Criar"}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
