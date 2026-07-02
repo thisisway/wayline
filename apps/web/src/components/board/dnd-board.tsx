@@ -32,6 +32,8 @@ import {
   updateTaskAction,
 } from "@/actions/board";
 import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
+import { pokeList } from "@/actions/live";
+import { useLiveList } from "@/lib/use-live-list";
 
 interface UIColumn {
   id: string;
@@ -61,6 +63,20 @@ export function DndBoard({ data }: { data: BoardData }) {
     columnsRef.current = next;
     setColumns(next);
   }, []);
+
+  const poke = React.useCallback(() => void pokeList(data.listId), [data.listId]);
+
+  // Realtime: escuta mudanças da lista e refetcha (router.refresh no hook).
+  useLiveList(data.listId);
+
+  // Reconcilia o estado local com os dados novos do servidor (refetch), exceto
+  // durante um drag ativo. `data` só muda de referência num refetch/navegação.
+  React.useEffect(() => {
+    if (activeId) return;
+    commit(
+      data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, cards: c.tasks })),
+    );
+  }, [data]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -152,7 +168,9 @@ export function DndBoard({ data }: { data: BoardData }) {
       taskIds: c.cards.map((card) => card.id),
     }));
     startTransition(() => {
-      saveBoard(orgId, order).catch((err) => console.error("Falha ao salvar o board:", err));
+      saveBoard(orgId, order)
+        .then(poke)
+        .catch((err) => console.error("Falha ao salvar o board:", err));
     });
   }
 
@@ -175,6 +193,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           : await updateTaskAction(orgId, modal.task.id, input);
       if (dto) upsertCard(dto);
       setModal(null);
+      poke();
     } catch (err) {
       console.error("Falha ao salvar a tarefa:", err);
     } finally {
@@ -189,6 +208,7 @@ export function DndBoard({ data }: { data: BoardData }) {
         cards: c.cards.map((card) => (card.id === taskId ? { ...card, commentCount } : card)),
       })),
     );
+    poke();
   }
 
   async function handleDelete() {
@@ -199,6 +219,7 @@ export function DndBoard({ data }: { data: BoardData }) {
       await deleteTaskAction(orgId, id);
       commit(columnsRef.current.map((c) => ({ ...c, cards: c.cards.filter((x) => x.id !== id) })));
       setModal(null);
+      poke();
     } catch (err) {
       console.error("Falha ao excluir a tarefa:", err);
     } finally {
