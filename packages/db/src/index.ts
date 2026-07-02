@@ -26,6 +26,13 @@ export {
   type CreateTaskInput,
   type UpdateTaskInput,
 } from "./queries/mutations";
+export {
+  getTaskComments,
+  addComment,
+  deleteComment,
+  type CommentDTO,
+  type AddCommentInput,
+} from "./queries/comments";
 
 import type {
   organizations,

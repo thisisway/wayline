@@ -42,7 +42,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     overdue,
     tags: t.tags,
     attachments: 0,
-    comments: 0,
+    comments: t.commentCount,
   };
 }
 

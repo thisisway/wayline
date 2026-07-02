@@ -1,6 +1,6 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, withOrg } from "../client";
-import { clients, lists, organizations, statuses, tasks } from "../schema";
+import { clients, comments, lists, organizations, statuses, tasks } from "../schema";
 
 /**
  * Query do Board (Fase 1.x).
@@ -20,6 +20,7 @@ export interface BoardTaskDTO {
   client: { id: string; name: string; color: string } | null;
   assignees: Array<{ id: string; name: string; avatarUrl: string | null }>;
   tags: Array<{ label: string; color: string }>;
+  commentCount: number;
 }
 
 export interface BoardColumnDTO {
@@ -48,6 +49,8 @@ export interface BoardData {
   columns: BoardColumnDTO[];
   clients: BoardClientDTO[];
   members: BoardMemberDTO[];
+  /** Usuário "corrente" (owner da org) enquanto não há auth — autor dos comentários. */
+  currentUserId: string | null;
 }
 
 type TaskRow = {
@@ -77,6 +80,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
       avatarUrl: a.user.avatarUrl,
     })),
     tags: t.tags,
+    commentCount: 0,
   };
 }
 
@@ -119,13 +123,27 @@ export async function getDefaultBoard(): Promise<BoardData | null> {
     });
     const memberRows = await tx.query.memberships.findMany({ with: { user: true } });
 
+    const taskIds = rows.map((r) => r.id);
+    const countRows = taskIds.length
+      ? await tx
+          .select({ taskId: comments.taskId, n: count() })
+          .from(comments)
+          .where(and(inArray(comments.taskId, taskIds), isNull(comments.deletedAt)))
+          .groupBy(comments.taskId)
+      : [];
+    const commentCounts = new Map(countRows.map((r) => [r.taskId, r.n]));
+
     const byStatus = new Map<string, BoardTaskDTO[]>();
     for (const t of rows) {
       if (!t.statusId) continue;
+      const dto = toDTO(t);
+      dto.commentCount = commentCounts.get(t.id) ?? 0;
       const bucket = byStatus.get(t.statusId);
-      if (bucket) bucket.push(toDTO(t));
-      else byStatus.set(t.statusId, [toDTO(t)]);
+      if (bucket) bucket.push(dto);
+      else byStatus.set(t.statusId, [dto]);
     }
+
+    const owner = memberRows.find((m) => m.role === "owner") ?? memberRows[0];
 
     const columns: BoardColumnDTO[] = cols.map((c) => ({
       id: c.id,
@@ -146,6 +164,7 @@ export async function getDefaultBoard(): Promise<BoardData | null> {
         name: m.user.name,
         avatarUrl: m.user.avatarUrl,
       })),
+      currentUserId: owner?.user.id ?? null,
     };
   });
 }
@@ -157,6 +176,12 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       where: eq(tasks.id, id),
       with: { client: true, assignees: { with: { user: true } } },
     });
-    return t ? toDTO(t) : null;
+    if (!t) return null;
+    const dto = toDTO(t);
+    dto.commentCount = await tx.$count(
+      comments,
+      and(eq(comments.taskId, id), isNull(comments.deletedAt)),
+    );
+    return dto;
   });
 }

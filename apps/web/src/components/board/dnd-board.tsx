@@ -182,6 +182,15 @@ export function DndBoard({ data }: { data: BoardData }) {
     }
   }
 
+  function updateCommentCount(taskId: string, commentCount: number) {
+    commit(
+      columnsRef.current.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => (card.id === taskId ? { ...card, commentCount } : card)),
+      })),
+    );
+  }
+
   async function handleDelete() {
     if (modal?.mode !== "edit") return;
     const id = modal.task.id;
@@ -241,6 +250,9 @@ export function DndBoard({ data }: { data: BoardData }) {
       {modal && (
         <TaskModal
           mode={modal.mode}
+          orgId={orgId}
+          currentUserId={data.currentUserId}
+          taskId={modal.mode === "edit" ? modal.task.id : undefined}
           columns={columns.map((c) => ({ id: c.id, name: c.name }))}
           clients={data.clients}
           members={data.members}
@@ -249,6 +261,11 @@ export function DndBoard({ data }: { data: BoardData }) {
           onClose={() => setModal(null)}
           onSubmit={handleSubmit}
           onDelete={handleDelete}
+          onCommentCountChange={
+            modal.mode === "edit"
+              ? (count) => updateCommentCount(modal.task.id, count)
+              : undefined
+          }
         />
       )}
     </>

@@ -1,13 +1,17 @@
 "use server";
 
 import {
+  addComment,
   createTask,
+  deleteComment,
   deleteTask,
   getTaskCard,
+  getTaskComments,
   saveBoardOrder,
   updateTask,
   type BoardOrderInput,
   type BoardTaskDTO,
+  type CommentDTO,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
@@ -43,5 +47,26 @@ export async function updateTaskAction(
 
 export async function deleteTaskAction(orgId: string, id: string): Promise<void> {
   await deleteTask(orgId, id);
+  revalidatePath("/app");
+}
+
+// --- Comentários -----------------------------------------------------------
+export async function listCommentsAction(orgId: string, taskId: string): Promise<CommentDTO[]> {
+  return getTaskComments(orgId, taskId);
+}
+
+export async function addCommentAction(
+  orgId: string,
+  taskId: string,
+  authorId: string,
+  body: string,
+): Promise<CommentDTO> {
+  const created = await addComment(orgId, { taskId, authorId, body });
+  revalidatePath("/app");
+  return created;
+}
+
+export async function deleteCommentAction(orgId: string, id: string): Promise<void> {
+  await deleteComment(orgId, id);
   revalidatePath("/app");
 }

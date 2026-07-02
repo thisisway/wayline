@@ -8,3 +8,4 @@
 export * from "./_shared";
 export * from "./core";
 export * from "./hierarchy";
+export * from "./collaboration";
