@@ -10,7 +10,7 @@ import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
-import { PresenceLayer } from "@/components/panels/presence-layer";
+import { useBoardLive } from "@/lib/use-board-live";
 
 export function AppView({
   data,
@@ -30,6 +30,7 @@ export function AppView({
   userName: string;
 }) {
   const [view, setView] = React.useState("board");
+  const viewers = useBoardLive(data?.listId ?? "");
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
@@ -38,15 +39,18 @@ export function AppView({
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />
-        <ViewTabs value={view} onValueChange={setView} listName={listName} />
+        <ViewTabs
+          value={view}
+          onValueChange={setView}
+          listName={listName}
+          viewers={viewers}
+        />
 
         {view === "board" ? (
           !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
             <div className="relative min-h-0 flex-1">
-              <PresenceLayer />
-
               {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
               <DndBoard key={data.listId} data={data} />
 

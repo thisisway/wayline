@@ -1,12 +1,11 @@
 /**
- * Pub/sub em memória para updates ao vivo do board (SSE).
+ * Pub/sub em memória para SSE (updates de board + presença) por listId.
  *
- * Funciona porque o app roda numa ÚNICA instância Node (route handlers e server
- * actions compartilham o mesmo processo/módulo). Para escalar horizontalmente,
- * trocar por Redis pub/sub. Sem dados sensíveis no canal — só um "ping" por
- * listId sinalizando "algo mudou, refetch".
+ * Funciona por rodar numa ÚNICA instância Node (route handlers e server actions
+ * compartilham o processo). Escalar horizontalmente = trocar por Redis pub/sub.
+ * Eventos nomeados: `board` (algo mudou, refetch) e `presence` (lista de viewers).
  */
-type Subscriber = (payload: string) => void;
+type Subscriber = (chunk: string) => void;
 
 const channels = new Map<string, Set<Subscriber>>();
 
@@ -23,9 +22,10 @@ export function subscribe(listId: string, sub: Subscriber): () => void {
   };
 }
 
-export function publish(listId: string): void {
+/** Envia um evento SSE nomeado para todos os inscritos na lista. */
+export function send(listId: string, event: string, data: string): void {
   const set = channels.get(listId);
   if (!set || set.size === 0) return;
-  const payload = `data: ${Date.now()}\n\n`;
-  for (const sub of set) sub(payload);
+  const chunk = `event: ${event}\ndata: ${data}\n\n`;
+  for (const sub of set) sub(chunk);
 }

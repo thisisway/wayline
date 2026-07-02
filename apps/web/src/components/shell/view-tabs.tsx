@@ -10,8 +10,9 @@ import {
   SlidersHorizontal,
   UserPlus,
 } from "lucide-react";
+import type { Viewer } from "@/lib/presence";
 import { AvatarGroup, Tabs, TabsList, TabsTrigger, Button } from "@wayline/ui";
-import { clients, docBrief } from "@/mock/data";
+import { clients } from "@/mock/data";
 
 const views = [
   { id: "chat", label: "Chat", icon: <MessageSquare /> },
@@ -25,10 +26,12 @@ export function ViewTabs({
   value,
   onValueChange,
   listName,
+  viewers,
 }: {
   value: string;
   onValueChange: (v: string) => void;
   listName: string;
+  viewers: Viewer[];
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -56,7 +59,15 @@ export function ViewTabs({
       </Tabs>
 
       <div className="ml-auto flex items-center gap-2">
-        <AvatarGroup people={docBrief.collaborators} size="sm" />
+        {viewers.length > 0 && (
+          <span
+            className="flex items-center gap-2"
+            title={`${viewers.length} online: ${viewers.map((v) => v.name).join(", ")}`}
+          >
+            <span className="size-2 rounded-full bg-success" />
+            <AvatarGroup people={viewers.map((v) => ({ name: v.name }))} size="sm" />
+          </span>
+        )}
         <div className="h-5 w-px bg-border" />
         <Button variant="ghost" size="icon" aria-label="Filtrar">
           <Filter />

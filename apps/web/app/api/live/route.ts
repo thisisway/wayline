@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { subscribe } from "@/lib/live";
+import { viewers } from "@/lib/presence";
 
 export const dynamic = "force-dynamic";
 // Precisa do runtime Node (stream de longa duração + módulo compartilhado).
@@ -16,6 +17,10 @@ export async function GET(req: Request) {
   const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode("retry: 3000\n\n"));
+      // snapshot inicial de presença para quem acabou de conectar
+      controller.enqueue(
+        encoder.encode(`event: presence\ndata: ${JSON.stringify(viewers(listId))}\n\n`),
+      );
       const unsub = subscribe(listId, (payload) => {
         try {
           controller.enqueue(encoder.encode(payload));

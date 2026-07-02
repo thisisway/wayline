@@ -33,7 +33,6 @@ import {
 } from "@/actions/board";
 import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
 import { pokeList } from "@/actions/live";
-import { useLiveList } from "@/lib/use-live-list";
 
 interface UIColumn {
   id: string;
@@ -65,9 +64,6 @@ export function DndBoard({ data }: { data: BoardData }) {
   }, []);
 
   const poke = React.useCallback(() => void pokeList(data.listId), [data.listId]);
-
-  // Realtime: escuta mudanças da lista e refetcha (router.refresh no hook).
-  useLiveList(data.listId);
 
   // Reconcilia o estado local com os dados novos do servidor (refetch), exceto
   // durante um drag ativo. `data` só muda de referência num refetch/navegação.
