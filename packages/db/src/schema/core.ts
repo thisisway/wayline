@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   avatarUrl: text("avatar_url"),
+  // Auth.js (Credentials): hash bcrypt. Nulo p/ usuários ainda sem senha.
+  passwordHash: text("password_hash"),
   ...timestamps,
 });
 

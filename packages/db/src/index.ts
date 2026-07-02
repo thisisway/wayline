@@ -10,6 +10,7 @@ export { getDb, closeDb, type Database } from "./client";
 
 export {
   getDefaultBoard,
+  getBoardForOrg,
   getTaskCard,
   type BoardData,
   type BoardColumnDTO,
@@ -17,6 +18,7 @@ export {
   type BoardClientDTO,
   type BoardMemberDTO,
 } from "./queries/board";
+export { getUserByEmail, resolveUserOrg, type AuthUser } from "./queries/auth";
 export {
   saveBoardOrder,
   createTask,

@@ -1,10 +1,11 @@
 "use client";
 
-import { Bell, ChevronsUpDown, Command, Search, Sparkles } from "lucide-react";
+import { Bell, ChevronsUpDown, Command, LogOut, Search, Sparkles } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { Avatar, Badge, Button } from "@wayline/ui";
-import { activeWorkspace, currentUser } from "@/mock/data";
+import { activeWorkspace } from "@/mock/data";
 
-export function Topbar() {
+export function Topbar({ userName }: { userName: string }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       {/* Seletor de workspace */}
@@ -48,7 +49,16 @@ export function Topbar() {
           <Bell className="size-4.5" />
           <span className="absolute right-2 top-2 size-2 rounded-full bg-danger ring-2 ring-surface" />
         </button>
-        <Avatar name={currentUser.name} size="md" />
+        <Avatar name={userName} size="md" title={userName} />
+        <button
+          type="button"
+          onClick={() => signOut({ redirectTo: "/login" })}
+          aria-label="Sair"
+          title="Sair"
+          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-danger"
+        >
+          <LogOut className="size-4.5" />
+        </button>
       </div>
     </header>
   );

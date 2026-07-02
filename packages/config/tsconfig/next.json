@@ -7,6 +7,8 @@
     "module": "ESNext",
     "jsx": "preserve",
     "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
     "allowJs": true,
     "plugins": [{ "name": "next" }],
     "verbatimModuleSyntax": false

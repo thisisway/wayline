@@ -5,6 +5,7 @@
  * Idempotente: apaga a org pelo slug (cascade) e recria do zero.
  * Rodar: DATABASE_URL="..." pnpm --filter @wayline/db db:seed
  */
+import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb, withOrg } from "./client";
 import {
@@ -55,10 +56,12 @@ async function main() {
     { key: "felipe", name: "Felipe Souza", email: "felipe@wayline.studio" },
   ] as const;
 
+  // Senha de demo para todos os usuários (troque em produção).
+  const passwordHash = await bcrypt.hash(process.env.SEED_PASSWORD ?? "wayline123", 10);
   const insertedUsers = await db
     .insert(users)
-    .values(people.map((p) => ({ name: p.name, email: p.email })))
-    .onConflictDoNothing()
+    .values(people.map((p) => ({ name: p.name, email: p.email, passwordHash })))
+    .onConflictDoUpdate({ target: users.email, set: { passwordHash } })
     .returning();
 
   // Garante que temos os ids mesmo se algum email já existia de um seed anterior.

@@ -49,6 +49,19 @@ export async function withOrg<T>(orgId: string, fn: (tx: Tx) => Promise<T>): Pro
   });
 }
 
+/**
+ * Como `withOrg`, mas seta `app.current_user` — usado no login, quando ainda
+ * não há org no contexto, para o usuário ler as próprias memberships (a policy
+ * de memberships permite `user_id = app.current_user`).
+ */
+export async function withUser<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const db = getDb();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.current_user', ${userId}, true)`);
+    return fn(tx);
+  });
+}
+
 /** Fecha a conexão (útil em scripts/testes). */
 export async function closeDb(): Promise<void> {
   if (cached) {

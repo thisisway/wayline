@@ -29,6 +29,13 @@
       "when": 1782955246196,
       "tag": "0003_fuzzy_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782999049583,
+      "tag": "0004_massive_santa_claus",
+      "breakpoints": true
     }
   ]
 }

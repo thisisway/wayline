@@ -1,5 +1,5 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
-import { getDb, withOrg } from "../client";
+import { getDb, withOrg, type Tx } from "../client";
 import { clients, comments, lists, organizations, statuses, tasks } from "../schema";
 
 /**
@@ -84,88 +84,99 @@ function toDTO(t: TaskRow): BoardTaskDTO {
   };
 }
 
-/** Board da lista "Launch Campaign" (ou a primeira lista da primeira org). */
+/** Monta o board da org corrente (assume app.current_org já setado no tx). */
+async function buildBoard(tx: Tx, orgId: string): Promise<Omit<BoardData, "currentUserId"> | null> {
+  const list =
+    (await tx.query.lists.findFirst({
+      where: and(eq(lists.name, "Launch Campaign"), isNull(lists.deletedAt)),
+    })) ??
+    (await tx.query.lists.findFirst({
+      where: isNull(lists.deletedAt),
+      orderBy: [asc(lists.createdAt)],
+    }));
+  if (!list) return null;
+
+  // Sequencial: uma única conexão na transação.
+  const cols = await tx.query.statuses.findMany({
+    where: eq(statuses.listId, list.id),
+    orderBy: [asc(statuses.position)],
+  });
+  const rows = await tx.query.tasks.findMany({
+    where: and(eq(tasks.listId, list.id), isNull(tasks.deletedAt)),
+    orderBy: [asc(tasks.position)],
+    with: { client: true, assignees: { with: { user: true } } },
+  });
+  const clientRows = await tx.query.clients.findMany({
+    where: isNull(clients.deletedAt),
+    orderBy: [asc(clients.name)],
+  });
+  const memberRows = await tx.query.memberships.findMany({ with: { user: true } });
+
+  const taskIds = rows.map((r) => r.id);
+  const countRows = taskIds.length
+    ? await tx
+        .select({ taskId: comments.taskId, n: count() })
+        .from(comments)
+        .where(and(inArray(comments.taskId, taskIds), isNull(comments.deletedAt)))
+        .groupBy(comments.taskId)
+    : [];
+  const commentCounts = new Map(countRows.map((r) => [r.taskId, r.n]));
+
+  const byStatus = new Map<string, BoardTaskDTO[]>();
+  for (const t of rows) {
+    if (!t.statusId) continue;
+    const dto = toDTO(t);
+    dto.commentCount = commentCounts.get(t.id) ?? 0;
+    const bucket = byStatus.get(t.statusId);
+    if (bucket) bucket.push(dto);
+    else byStatus.set(t.statusId, [dto]);
+  }
+
+  const columns: BoardColumnDTO[] = cols.map((c) => ({
+    id: c.id,
+    name: c.name,
+    kind: c.kind,
+    color: c.color,
+    tasks: byStatus.get(c.id) ?? [],
+  }));
+
+  return {
+    orgId,
+    listId: list.id,
+    listName: list.name,
+    columns,
+    clients: clientRows.map((c) => ({ id: c.id, name: c.name, color: c.color })),
+    members: memberRows.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      avatarUrl: m.user.avatarUrl,
+    })),
+  };
+}
+
+/** Board de uma org específica (a da sessão), com o usuário logado como corrente. */
+export async function getBoardForOrg(
+  orgId: string,
+  currentUserId: string | null,
+): Promise<BoardData | null> {
+  return withOrg(orgId, async (tx) => {
+    const b = await buildBoard(tx, orgId);
+    return b ? { ...b, currentUserId } : null;
+  });
+}
+
+/** Board da primeira org (uso em scripts/sem auth). */
 export async function getDefaultBoard(): Promise<BoardData | null> {
   const db = getDb();
-
-  // organizations não tem org_id (raiz do tenant) → leitura fora do escopo RLS.
   const org = await db.query.organizations.findFirst({
     where: isNull(organizations.deletedAt),
     orderBy: [asc(organizations.createdAt)],
   });
   if (!org) return null;
-
-  // A partir daqui tudo roda com app.current_org setado (RLS ativa).
   return withOrg(org.id, async (tx) => {
-    const list =
-      (await tx.query.lists.findFirst({
-        where: and(eq(lists.name, "Launch Campaign"), isNull(lists.deletedAt)),
-      })) ??
-      (await tx.query.lists.findFirst({
-        where: isNull(lists.deletedAt),
-        orderBy: [asc(lists.createdAt)],
-      }));
-    if (!list) return null;
-
-    // Sequencial: uma única conexão na transação.
-    const cols = await tx.query.statuses.findMany({
-      where: eq(statuses.listId, list.id),
-      orderBy: [asc(statuses.position)],
-    });
-    const rows = await tx.query.tasks.findMany({
-      where: and(eq(tasks.listId, list.id), isNull(tasks.deletedAt)),
-      orderBy: [asc(tasks.position)],
-      with: { client: true, assignees: { with: { user: true } } },
-    });
-    const clientRows = await tx.query.clients.findMany({
-      where: isNull(clients.deletedAt),
-      orderBy: [asc(clients.name)],
-    });
-    const memberRows = await tx.query.memberships.findMany({ with: { user: true } });
-
-    const taskIds = rows.map((r) => r.id);
-    const countRows = taskIds.length
-      ? await tx
-          .select({ taskId: comments.taskId, n: count() })
-          .from(comments)
-          .where(and(inArray(comments.taskId, taskIds), isNull(comments.deletedAt)))
-          .groupBy(comments.taskId)
-      : [];
-    const commentCounts = new Map(countRows.map((r) => [r.taskId, r.n]));
-
-    const byStatus = new Map<string, BoardTaskDTO[]>();
-    for (const t of rows) {
-      if (!t.statusId) continue;
-      const dto = toDTO(t);
-      dto.commentCount = commentCounts.get(t.id) ?? 0;
-      const bucket = byStatus.get(t.statusId);
-      if (bucket) bucket.push(dto);
-      else byStatus.set(t.statusId, [dto]);
-    }
-
-    const owner = memberRows.find((m) => m.role === "owner") ?? memberRows[0];
-
-    const columns: BoardColumnDTO[] = cols.map((c) => ({
-      id: c.id,
-      name: c.name,
-      kind: c.kind,
-      color: c.color,
-      tasks: byStatus.get(c.id) ?? [],
-    }));
-
-    return {
-      orgId: org.id,
-      listId: list.id,
-      listName: list.name,
-      columns,
-      clients: clientRows.map((c) => ({ id: c.id, name: c.name, color: c.color })),
-      members: memberRows.map((m) => ({
-        id: m.user.id,
-        name: m.user.name,
-        avatarUrl: m.user.avatarUrl,
-      })),
-      currentUserId: owner?.user.id ?? null,
-    };
+    const b = await buildBoard(tx, org.id);
+    if (!b) return null;
+    return { ...b, currentUserId: b.members[0]?.id ?? null };
   });
 }
 

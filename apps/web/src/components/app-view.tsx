@@ -12,7 +12,15 @@ import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { PresenceLayer } from "@/components/panels/presence-layer";
 
-export function AppView({ data, listName }: { data: BoardData | null; listName: string }) {
+export function AppView({
+  data,
+  listName,
+  userName,
+}: {
+  data: BoardData | null;
+  listName: string;
+  userName: string;
+}) {
   const [view, setView] = React.useState("board");
 
   return (
@@ -21,7 +29,7 @@ export function AppView({ data, listName }: { data: BoardData | null; listName: 
       <HomePanel />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar userName={userName} />
         <ViewTabs value={view} onValueChange={setView} listName={listName} />
 
         {view === "board" ? (
