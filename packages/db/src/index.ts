@@ -18,7 +18,13 @@ export {
   type BoardClientDTO,
   type BoardMemberDTO,
 } from "./queries/board";
-export { getUserByEmail, resolveUserOrg, type AuthUser } from "./queries/auth";
+export {
+  getUserByEmail,
+  resolveUserOrg,
+  getUserOrgs,
+  type AuthUser,
+  type UserOrg,
+} from "./queries/auth";
 export {
   saveBoardOrder,
   createTask,

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Database, LayoutGrid } from "lucide-react";
-import type { BoardData } from "@wayline/db";
+import type { BoardData, UserOrg } from "@wayline/db";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { Topbar } from "@/components/shell/topbar";
@@ -14,10 +14,14 @@ import { PresenceLayer } from "@/components/panels/presence-layer";
 
 export function AppView({
   data,
+  orgs,
+  activeOrgId,
   listName,
   userName,
 }: {
   data: BoardData | null;
+  orgs: UserOrg[];
+  activeOrgId: string;
   listName: string;
   userName: string;
 }) {
@@ -29,7 +33,7 @@ export function AppView({
       <HomePanel />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Topbar userName={userName} />
+        <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />
         <ViewTabs value={view} onValueChange={setView} listName={listName} />
 
         {view === "board" ? (

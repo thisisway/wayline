@@ -31,3 +31,29 @@ export async function resolveUserOrg(userId: string): Promise<string | null> {
     return m?.orgId ?? null;
   });
 }
+
+export interface UserOrg {
+  id: string;
+  name: string;
+  plan: string;
+  role: string;
+}
+
+/** Todas as orgs às quais o usuário pertence (para o seletor de workspace). */
+export async function getUserOrgs(userId: string): Promise<UserOrg[]> {
+  return withUser(userId, async (tx) => {
+    const rows = await tx.query.memberships.findMany({
+      where: eq(memberships.userId, userId),
+      orderBy: [asc(memberships.createdAt)],
+      with: { organization: true },
+    });
+    return rows
+      .filter((m) => m.organization && !m.organization.deletedAt)
+      .map((m) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        plan: m.organization.plan,
+        role: m.role,
+      }));
+  });
+}
