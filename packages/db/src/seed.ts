@@ -6,7 +6,7 @@
  * Rodar: DATABASE_URL="..." pnpm --filter @wayline/db db:seed
  */
 import { eq } from "drizzle-orm";
-import { closeDb, getDb } from "./client";
+import { closeDb, getDb, withOrg } from "./client";
 import {
   clients,
   lists,
@@ -24,16 +24,18 @@ const ORG_SLUG = "wayline-studio";
 async function main() {
   const db = getDb();
 
-  // --- Reset idempotente ---------------------------------------------------
+  // --- Reset idempotente (delete escopado por org p/ passar pela RLS) -------
   const existing = await db.query.organizations.findFirst({
     where: eq(organizations.slug, ORG_SLUG),
   });
   if (existing) {
-    await db.delete(organizations).where(eq(organizations.id, existing.id));
+    await withOrg(existing.id, async (tx) => {
+      await tx.delete(organizations).where(eq(organizations.id, existing.id));
+    });
     console.log(`org existente '${ORG_SLUG}' removida (cascade).`);
   }
 
-  // --- Org -----------------------------------------------------------------
+  // --- Org (organizations não tem RLS) -------------------------------------
   const [org] = await db
     .insert(organizations)
     .values({ name: "Wayline Studio", slug: ORG_SLUG, plan: "growth" })
@@ -41,6 +43,8 @@ async function main() {
   if (!org) throw new Error("falha ao criar org");
   const orgId = org.id;
 
+  // Tudo que carrega org_id roda com app.current_org setado (RLS).
+  await withOrg(orgId, async (db) => {
   // --- Users ---------------------------------------------------------------
   const people = [
     { key: "ana", name: "Ana Rocha", email: "ana@wayline.studio" },
@@ -207,6 +211,8 @@ async function main() {
   console.log(
     `seed ok: org=${orgId} · ${seedTasks.length} tasks em ${list.name} (3 colunas).`,
   );
+  }); // withOrg
+
   await closeDb();
 }
 

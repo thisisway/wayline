@@ -17,27 +17,31 @@ function parseDue(due: string | null): Date | null {
 }
 
 /** Persiste a nova ordem/coluna dos cards após um drag-and-drop. */
-export async function saveBoard(order: BoardOrderInput[]): Promise<void> {
-  await saveBoardOrder(order);
+export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promise<void> {
+  await saveBoardOrder(orgId, order);
   revalidatePath("/app");
 }
 
-export async function createTaskAction(input: TaskFormInput): Promise<BoardTaskDTO | null> {
-  const id = await createTask({ ...input, dueDate: parseDue(input.dueDate) });
+export async function createTaskAction(
+  orgId: string,
+  input: TaskFormInput,
+): Promise<BoardTaskDTO | null> {
+  const id = await createTask(orgId, { ...input, dueDate: parseDue(input.dueDate) });
   revalidatePath("/app");
-  return getTaskCard(id);
+  return getTaskCard(orgId, id);
 }
 
 export async function updateTaskAction(
+  orgId: string,
   id: string,
   input: TaskFormInput,
 ): Promise<BoardTaskDTO | null> {
-  await updateTask({ id, ...input, dueDate: parseDue(input.dueDate) });
+  await updateTask(orgId, { id, ...input, dueDate: parseDue(input.dueDate) });
   revalidatePath("/app");
-  return getTaskCard(id);
+  return getTaskCard(orgId, id);
 }
 
-export async function deleteTaskAction(id: string): Promise<void> {
-  await deleteTask(id);
+export async function deleteTaskAction(orgId: string, id: string): Promise<void> {
+  await deleteTask(orgId, id);
   revalidatePath("/app");
 }

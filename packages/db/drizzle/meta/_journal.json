@@ -15,6 +15,13 @@
       "when": 1782940970803,
       "tag": "0001_pretty_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782950621535,
+      "tag": "0002_rls_org_isolation",
+      "breakpoints": true
     }
   ]
 }

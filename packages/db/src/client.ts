@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
@@ -13,6 +14,9 @@ import * as schema from "./schema";
  * numa etapa futura; aqui fica só a conexão base.
  */
 export type Database = PostgresJsDatabase<typeof schema>;
+
+/** Transação escopada por org (o `tx` passado a `withOrg`). */
+export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 let cached: { db: Database; sql: ReturnType<typeof postgres> } | undefined;
 
@@ -30,6 +34,19 @@ export function getDb(): Database {
   const db = drizzle(sql, { schema });
   cached = { db, sql };
   return db;
+}
+
+/**
+ * Executa `fn` dentro de uma transação com `app.current_org` setado — a base
+ * do isolamento por RLS. `set_config(..., true)` é local à transação, então
+ * funciona com o pool de conexões (não vaza entre requests).
+ */
+export async function withOrg<T>(orgId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const db = getDb();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.current_org', ${orgId}, true)`);
+    return fn(tx);
+  });
 }
 
 /** Fecha a conexão (útil em scripts/testes). */

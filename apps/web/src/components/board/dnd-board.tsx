@@ -47,6 +47,7 @@ type ModalState =
 
 /** Board Kanban com drag-and-drop, persistência e CRUD de tarefas. */
 export function DndBoard({ data }: { data: BoardData }) {
+  const orgId = data.orgId;
   const [columns, setColumns] = React.useState<UIColumn[]>(() =>
     data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, cards: c.tasks })),
   );
@@ -151,7 +152,7 @@ export function DndBoard({ data }: { data: BoardData }) {
       taskIds: c.cards.map((card) => card.id),
     }));
     startTransition(() => {
-      saveBoard(order).catch((err) => console.error("Falha ao salvar o board:", err));
+      saveBoard(orgId, order).catch((err) => console.error("Falha ao salvar o board:", err));
     });
   }
 
@@ -170,8 +171,8 @@ export function DndBoard({ data }: { data: BoardData }) {
     try {
       const dto =
         modal.mode === "create"
-          ? await createTaskAction(input)
-          : await updateTaskAction(modal.task.id, input);
+          ? await createTaskAction(orgId, input)
+          : await updateTaskAction(orgId, modal.task.id, input);
       if (dto) upsertCard(dto);
       setModal(null);
     } catch (err) {
@@ -186,7 +187,7 @@ export function DndBoard({ data }: { data: BoardData }) {
     const id = modal.task.id;
     setSubmitting(true);
     try {
-      await deleteTaskAction(id);
+      await deleteTaskAction(orgId, id);
       commit(columnsRef.current.map((c) => ({ ...c, cards: c.cards.filter((x) => x.id !== id) })));
       setModal(null);
     } catch (err) {
