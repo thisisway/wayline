@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Send, Trash2, X } from "lucide-react";
+import { Plus, Send, Trash2, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type { BoardClientDTO, BoardMemberDTO, CommentDTO } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
@@ -224,6 +224,8 @@ export function TaskModal({
                 })}
               </div>
             </div>
+
+            <TagsEditor tags={form.tags} onChange={(tags) => set("tags", tags)} />
           </form>
 
           {mode === "edit" && taskId && (
@@ -254,6 +256,94 @@ export function TaskModal({
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const TAG_COLORS = ["#1D66FF", "#17C86A", "#FFB800", "#FF3B30", "#7C5CFF", "#0EA5E9"];
+
+function TagsEditor({
+  tags,
+  onChange,
+}: {
+  tags: Array<{ label: string; color: string }>;
+  onChange: (tags: Array<{ label: string; color: string }>) => void;
+}) {
+  const [label, setLabel] = React.useState("");
+  const [color, setColor] = React.useState<string>(TAG_COLORS[0]!);
+
+  function add() {
+    const l = label.trim();
+    if (!l) return;
+    if (!tags.some((t) => t.label.toLowerCase() === l.toLowerCase())) {
+      onChange([...tags, { label: l, color }]);
+    }
+    setLabel("");
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <span className={fieldLabel}>Tags</span>
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((t, i) => (
+            <span
+              key={`${t.label}-${i}`}
+              className="inline-flex items-center gap-1 rounded-pill px-2 h-6 text-[11px] font-semibold"
+              style={{ backgroundColor: `${t.color}22`, color: t.color }}
+            >
+              {t.label}
+              <button
+                type="button"
+                onClick={() => onChange(tags.filter((_, idx) => idx !== i))}
+                aria-label={`Remover ${t.label}`}
+                className="hover:opacity-70"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {TAG_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setColor(c)}
+              aria-label={`Cor ${c}`}
+              className={cn(
+                "size-5 rounded-full border-2 transition-transform",
+                color === c ? "border-foreground scale-110" : "border-transparent",
+              )}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder="Nova tag…"
+          className="h-9"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          onClick={add}
+          disabled={!label.trim()}
+          aria-label="Adicionar tag"
+        >
+          <Plus />
+        </Button>
       </div>
     </div>
   );

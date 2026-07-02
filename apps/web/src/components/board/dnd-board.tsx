@@ -216,6 +216,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           clientId: null,
           dueDate: null,
           assigneeIds: [],
+          tags: [],
         };
 
   return (

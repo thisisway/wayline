@@ -54,6 +54,7 @@ export interface TaskFormInput {
   clientId: string | null;
   dueDate: string | null;
   assigneeIds: string[];
+  tags: Array<{ label: string; color: string }>;
 }
 
 /** Valores iniciais do form a partir de um card existente (modo edição). */
@@ -65,6 +66,7 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
     clientId: dto.client?.id ?? null,
     dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,
     assigneeIds: dto.assignees.map((a) => a.id),
+    tags: dto.tags,
   };
 }
 
