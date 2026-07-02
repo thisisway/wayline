@@ -28,7 +28,7 @@ export {
   type AuthUser,
   type UserOrg,
 } from "./queries/auth";
-export { createOrg } from "./queries/orgs";
+export { createOrg, createSpace, createList } from "./queries/orgs";
 export {
   saveBoardOrder,
   createTask,

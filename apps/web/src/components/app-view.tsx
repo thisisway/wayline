@@ -34,7 +34,7 @@ export function AppView({
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail />
-      <HomePanel nav={nav} activeListId={activeListId} />
+      <HomePanel nav={nav} activeListId={activeListId} activeOrgId={activeOrgId} />
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />

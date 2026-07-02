@@ -2,18 +2,26 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { createOrg, getUserOrgs } from "@wayline/db";
+import { createList, createOrg, createSpace, getUserOrgs } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 
+const cookieOpts = { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 365 } as const;
+
 async function setActiveOrgCookie(orgId: string): Promise<void> {
-  const store = await cookies();
-  store.set(ACTIVE_ORG_COOKIE, orgId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  (await cookies()).set(ACTIVE_ORG_COOKIE, orgId, cookieOpts);
+}
+
+async function setActiveListCookie(listId: string): Promise<void> {
+  (await cookies()).set(ACTIVE_LIST_COOKIE, listId, cookieOpts);
+}
+
+/** Confirma que o usuário logado é membro da org. */
+async function assertMember(orgId: string): Promise<boolean> {
+  const session = await auth();
+  if (!session?.user?.id) return false;
+  const orgs = await getUserOrgs(session.user.id);
+  return orgs.some((o) => o.id === orgId);
 }
 
 /** Troca a org ativa — valida que o usuário é membro antes de gravar o cookie. */
@@ -34,13 +42,26 @@ export async function switchOrg(orgId: string): Promise<void> {
  * uma lista de outra org simplesmente cai no board padrão.
  */
 export async function switchList(listId: string): Promise<void> {
-  const store = await cookies();
-  store.set(ACTIVE_LIST_COOKIE, listId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  await setActiveListCookie(listId);
+  revalidatePath("/app");
+}
+
+/** Cria um space na org ativa. */
+export async function createSpaceAction(orgId: string, name: string): Promise<void> {
+  if (!name.trim() || !(await assertMember(orgId))) return;
+  await createSpace(orgId, name);
+  revalidatePath("/app");
+}
+
+/** Cria uma lista num space e a torna a lista ativa. */
+export async function createListAction(
+  orgId: string,
+  spaceId: string,
+  name: string,
+): Promise<void> {
+  if (!name.trim() || !(await assertMember(orgId))) return;
+  const listId = await createList(orgId, spaceId, name);
+  await setActiveListCookie(listId);
   revalidatePath("/app");
 }
 
