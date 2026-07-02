@@ -2,7 +2,17 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { createList, createOrg, createSpace, getUserOrgs } from "@wayline/db";
+import {
+  addMemberByEmail,
+  createList,
+  createOrg,
+  createSpace,
+  getUserOrgs,
+  getWorkspaceMembers,
+  removeMember,
+  type AddMemberStatus,
+  type WorkspaceMember,
+} from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 
@@ -62,6 +72,28 @@ export async function createListAction(
   if (!name.trim() || !(await assertMember(orgId))) return;
   const listId = await createList(orgId, spaceId, name);
   await setActiveListCookie(listId);
+  revalidatePath("/app");
+}
+
+// --- Membros ---------------------------------------------------------------
+export async function listMembersAction(orgId: string): Promise<WorkspaceMember[]> {
+  if (!(await assertMember(orgId))) return [];
+  return getWorkspaceMembers(orgId);
+}
+
+export async function addMemberAction(orgId: string, email: string): Promise<AddMemberStatus> {
+  if (!email.trim() || !(await assertMember(orgId))) return "not_found";
+  const status = await addMemberByEmail(orgId, email);
+  revalidatePath("/app");
+  return status;
+}
+
+export async function removeMemberAction(orgId: string, userId: string): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  const members = await getWorkspaceMembers(orgId);
+  const target = members.find((m) => m.userId === userId);
+  if (!target || target.role === "owner") return; // não remove owners
+  await removeMember(orgId, userId);
   revalidatePath("/app");
 }
 

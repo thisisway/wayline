@@ -10,11 +10,13 @@ import {
   Plus,
   Search,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
+import { MembersModal } from "@/components/shell/members-modal";
 
 export function Topbar({
   userName,
@@ -25,9 +27,13 @@ export function Topbar({
   orgs: UserOrg[];
   activeOrgId: string;
 }) {
+  const [showMembers, setShowMembers] = React.useState(false);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} />
+      {showMembers && (
+        <MembersModal orgId={activeOrgId} onClose={() => setShowMembers(false)} />
+      )}
 
       {/* Busca global */}
       <div className="mx-auto flex w-full max-w-md items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-muted transition-colors focus-within:border-brand">
@@ -47,6 +53,15 @@ export function Topbar({
           <Sparkles className="size-4" />
           Wayline Brain
         </Button>
+        <button
+          type="button"
+          onClick={() => setShowMembers(true)}
+          aria-label="Membros"
+          title="Membros do workspace"
+          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+        >
+          <Users className="size-4.5" />
+        </button>
         <button
           type="button"
           aria-label="Notificações"

@@ -30,6 +30,13 @@ export {
 } from "./queries/auth";
 export { createOrg, createSpace, createList } from "./queries/orgs";
 export {
+  getWorkspaceMembers,
+  addMemberByEmail,
+  removeMember,
+  type WorkspaceMember,
+  type AddMemberStatus,
+} from "./queries/members";
+export {
   saveBoardOrder,
   createTask,
   updateTask,
