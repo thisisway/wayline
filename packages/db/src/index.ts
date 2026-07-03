@@ -61,6 +61,7 @@ export {
   deleteSubtask,
   type Subtask,
 } from "./queries/subtasks";
+export { getMyTasks, type MyTask } from "./queries/my-tasks";
 
 import type {
   organizations,

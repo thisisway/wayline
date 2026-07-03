@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { Database, LayoutGrid } from "lucide-react";
-import type { BoardData, NavSpace, UserOrg } from "@wayline/db";
+import type { BoardData, MyTask, NavSpace, UserOrg } from "@wayline/db";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
+import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
@@ -21,6 +22,7 @@ export function AppView({
   activeOrgId,
   nav,
   activeListId,
+  myTasks,
   listName,
   userName,
 }: {
@@ -29,10 +31,12 @@ export function AppView({
   activeOrgId: string;
   nav: NavSpace[];
   activeListId: string;
+  myTasks: MyTask[];
   listName: string;
   userName: string;
 }) {
   const [view, setView] = React.useState("board");
+  const [myTasksOpen, setMyTasksOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
 
@@ -42,7 +46,16 @@ export function AppView({
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail />
-      <HomePanel nav={nav} activeListId={activeListId} activeOrgId={activeOrgId} />
+      <HomePanel
+        nav={nav}
+        activeListId={activeListId}
+        activeOrgId={activeOrgId}
+        myTasksCount={myTasks.length}
+        onOpenMyTasks={() => setMyTasksOpen(true)}
+      />
+      {myTasksOpen && (
+        <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />

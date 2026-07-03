@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   getBoardForOrg,
+  getMyTasks,
   getUserOrgs,
   getWorkspaceNav,
   type BoardData,
+  type MyTask,
   type NavSpace,
 } from "@wayline/db";
 import { auth } from "@/auth";
@@ -30,12 +32,14 @@ export default async function AppPage() {
   // Nav (spaces/lists) da org ativa + lista ativa (cookie, se pertencer à org).
   let nav: NavSpace[] = [];
   let data: BoardData | null = null;
+  let myTasks: MyTask[] = [];
   try {
     nav = await getWorkspaceNav(activeOrg.id);
     const orgListIds = new Set(nav.flatMap((s) => s.lists.map((l) => l.id)));
     const cookieList = store.get(ACTIVE_LIST_COOKIE)?.value;
     const activeListId = cookieList && orgListIds.has(cookieList) ? cookieList : undefined;
     data = await getBoardForOrg(activeOrg.id, session.user.id, activeListId);
+    myTasks = await getMyTasks(activeOrg.id, session.user.id);
   } catch (err) {
     console.error("Falha ao carregar o board do Postgres:", err);
   }
@@ -47,6 +51,7 @@ export default async function AppPage() {
       activeOrgId={activeOrg.id}
       nav={nav}
       activeListId={data?.listId ?? ""}
+      myTasks={myTasks}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
     />

@@ -64,10 +64,14 @@ export function HomePanel({
   nav,
   activeListId,
   activeOrgId,
+  myTasksCount,
+  onOpenMyTasks,
 }: {
   nav: NavSpace[];
   activeListId: string;
   activeOrgId: string;
+  myTasksCount: number;
+  onOpenMyTasks: () => void;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -103,13 +107,14 @@ export function HomePanel({
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         {homeItems.map((item) => {
           const Icon = homeIcon[item.icon];
+          const isMyTasks = item.id === "tasks";
           return (
             <SidebarItem
               key={item.id}
               icon={<Icon />}
               label={item.label}
-              count={item.count}
-              active={item.id === "tasks"}
+              count={isMyTasks ? myTasksCount : item.count}
+              onClick={isMyTasks ? onOpenMyTasks : undefined}
             />
           );
         })}
