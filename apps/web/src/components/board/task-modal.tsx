@@ -208,6 +208,18 @@ export function TaskModal({
               </div>
 
               <div className="space-y-1.5">
+                <label className={fieldLabel} htmlFor="task-start">
+                  Início
+                </label>
+                <Input
+                  id="task-start"
+                  type="date"
+                  value={form.startDate ?? ""}
+                  onChange={(e) => set("startDate", e.target.value || null)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <label className={fieldLabel} htmlFor="task-due">
                   Prazo
                 </label>

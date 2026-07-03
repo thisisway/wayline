@@ -244,6 +244,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           description: "",
           priority: "normal",
           clientId: null,
+          startDate: null,
           dueDate: null,
           assigneeIds: [],
           tags: [],

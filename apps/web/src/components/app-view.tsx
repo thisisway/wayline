@@ -11,6 +11,7 @@ import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
 import { ListView } from "@/components/board/list-view";
 import { CalendarView } from "@/components/board/calendar-view";
+import { GanttView } from "@/components/board/gantt-view";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
@@ -102,6 +103,12 @@ export function AppView({
             <EmptyBoard />
           ) : (
             <CalendarView data={filtered!} />
+          )
+        ) : view === "gantt" ? (
+          !data || data.columns.length === 0 ? (
+            <EmptyBoard />
+          ) : (
+            <GanttView data={filtered!} />
           )
         ) : (
           <PlaceholderView view={view} />

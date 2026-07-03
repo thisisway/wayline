@@ -64,6 +64,7 @@ export function useTaskEditor(data: BoardData) {
           description: "",
           priority: "normal",
           clientId: null,
+          startDate: null,
           dueDate: state?.mode === "create" ? (state.dueDate ?? null) : null,
           assigneeIds: [],
           tags: [],

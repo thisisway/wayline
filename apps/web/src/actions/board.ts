@@ -29,6 +29,7 @@ function parseDue(due: string | null): Date | null {
 function normalize(input: TaskFormInput) {
   return {
     ...input,
+    startDate: parseDue(input.startDate),
     dueDate: parseDue(input.dueDate),
     description: input.description.trim() || null,
   };

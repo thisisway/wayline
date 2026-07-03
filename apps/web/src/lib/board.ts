@@ -54,6 +54,7 @@ export interface TaskFormInput {
   description: string;
   priority: "urgent" | "high" | "normal" | "low";
   clientId: string | null;
+  startDate: string | null;
   dueDate: string | null;
   assigneeIds: string[];
   tags: Array<{ label: string; color: string }>;
@@ -67,6 +68,7 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
     description: dto.description ?? "",
     priority: dto.priority,
     clientId: dto.client?.id ?? null,
+    startDate: dto.startDate ? dto.startDate.toISOString().slice(0, 10) : null,
     dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,
     assigneeIds: dto.assignees.map((a) => a.id),
     tags: dto.tags,
