@@ -17,6 +17,7 @@ import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
 import { MembersModal } from "@/components/shell/members-modal";
+import { CommandPalette } from "@/components/shell/command-palette";
 
 export function Topbar({
   userName,
@@ -28,24 +29,39 @@ export function Topbar({
   activeOrgId: string;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
+  const [search, setSearch] = React.useState(false);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearch(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} />
       {showMembers && (
         <MembersModal orgId={activeOrgId} onClose={() => setShowMembers(false)} />
       )}
+      {search && <CommandPalette orgId={activeOrgId} onClose={() => setSearch(false)} />}
 
-      {/* Busca global */}
-      <div className="mx-auto flex w-full max-w-md items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-muted transition-colors focus-within:border-brand">
+      {/* Busca global (⌘K) */}
+      <button
+        type="button"
+        onClick={() => setSearch(true)}
+        className="mx-auto flex w-full max-w-md items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-muted transition-colors hover:border-brand-40"
+      >
         <Search className="size-4" />
-        <input
-          placeholder="Buscar tarefas, docs, clientes…"
-          className="w-full bg-transparent text-ui text-foreground outline-none placeholder:text-subtle"
-        />
+        <span className="flex-1 text-left text-ui text-subtle">Buscar tarefas…</span>
         <kbd className="flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[11px] text-subtle">
           <Command className="size-3" />K
         </kbd>
-      </div>
+      </button>
 
       {/* Ações */}
       <div className="flex items-center gap-2">

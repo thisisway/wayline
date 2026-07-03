@@ -62,6 +62,7 @@ export {
   type Subtask,
 } from "./queries/subtasks";
 export { getMyTasks, type MyTask } from "./queries/my-tasks";
+export { searchTasks, type SearchResult } from "./queries/search";
 export {
   notifyTaskAssignees,
   notifyAssigned,
