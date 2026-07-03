@@ -21,6 +21,8 @@ export const comments = pgTable(
     authorId: uuid("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // Comentário atribuível (ClickUp-style): "resolva isto".
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
     parentId: uuid("parent_id"),
     body: text("body").notNull(),
     ...timestamps,
@@ -31,7 +33,12 @@ export const comments = pgTable(
 
 export const commentsRelations = relations(comments, ({ one }) => ({
   task: one(tasks, { fields: [comments.taskId], references: [tasks.id] }),
-  author: one(users, { fields: [comments.authorId], references: [users.id] }),
+  author: one(users, { fields: [comments.authorId], references: [users.id], relationName: "author" }),
+  assignee: one(users, {
+    fields: [comments.assignedTo],
+    references: [users.id],
+    relationName: "assignee",
+  }),
 }));
 
 /**

@@ -51,8 +51,12 @@ export {
   getTaskComments,
   addComment,
   deleteComment,
+  assignComment,
+  getAssignedComments,
   type CommentDTO,
+  type CommentAuthor,
   type AddCommentInput,
+  type AssignedComment,
 } from "./queries/comments";
 export {
   getSubtasks,

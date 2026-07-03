@@ -1,12 +1,19 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { withOrg } from "../client";
-import { comments } from "../schema";
+import { comments, notifications } from "../schema";
+
+export interface CommentAuthor {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
 
 export interface CommentDTO {
   id: string;
   body: string;
   createdAt: Date;
-  author: { id: string; name: string; avatarUrl: string | null };
+  author: CommentAuthor;
+  assignedTo: CommentAuthor | null;
 }
 
 export interface AddCommentInput {
@@ -15,17 +22,23 @@ export interface AddCommentInput {
   body: string;
 }
 
-function toCommentDTO(row: {
+type CommentRow = {
   id: string;
   body: string;
   createdAt: Date;
-  author: { id: string; name: string; avatarUrl: string | null };
-}): CommentDTO {
+  author: CommentAuthor;
+  assignee: CommentAuthor | null;
+};
+
+function toCommentDTO(row: CommentRow): CommentDTO {
   return {
     id: row.id,
     body: row.body,
     createdAt: row.createdAt,
     author: { id: row.author.id, name: row.author.name, avatarUrl: row.author.avatarUrl },
+    assignedTo: row.assignee
+      ? { id: row.assignee.id, name: row.assignee.name, avatarUrl: row.assignee.avatarUrl }
+      : null,
   };
 }
 
@@ -35,7 +48,7 @@ export async function getTaskComments(orgId: string, taskId: string): Promise<Co
     const rows = await tx.query.comments.findMany({
       where: and(eq(comments.taskId, taskId), isNull(comments.deletedAt)),
       orderBy: [asc(comments.createdAt)],
-      with: { author: true },
+      with: { author: true, assignee: true },
     });
     return rows.map(toCommentDTO);
   });
@@ -50,7 +63,7 @@ export async function addComment(orgId: string, input: AddCommentInput): Promise
     if (!created) throw new Error("falha ao criar comentário");
     const row = await tx.query.comments.findFirst({
       where: eq(comments.id, created.id),
-      with: { author: true },
+      with: { author: true, assignee: true },
     });
     if (!row) throw new Error("comentário não encontrado após criação");
     return toCommentDTO(row);
@@ -64,5 +77,70 @@ export async function deleteComment(orgId: string, id: string): Promise<void> {
       .update(comments)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(comments.id, id));
+  });
+}
+
+/** Atribui (ou desatribui) um comentário; notifica o novo responsável. */
+export async function assignComment(
+  orgId: string,
+  commentId: string,
+  assigneeId: string | null,
+  actorId: string,
+  actorName: string,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(comments)
+      .set({ assignedTo: assigneeId, updatedAt: new Date() })
+      .where(eq(comments.id, commentId));
+
+    if (assigneeId && assigneeId !== actorId) {
+      const c = await tx.query.comments.findFirst({
+        where: eq(comments.id, commentId),
+        with: { task: true },
+      });
+      if (c?.task) {
+        await tx.insert(notifications).values({
+          orgId,
+          userId: assigneeId,
+          type: "assigned_comment",
+          taskId: c.taskId,
+          listId: c.task.listId,
+          taskTitle: c.task.title,
+          actorName,
+        });
+      }
+    }
+  });
+}
+
+export interface AssignedComment {
+  id: string;
+  body: string;
+  taskId: string;
+  listId: string | null;
+  taskTitle: string;
+  authorName: string;
+  createdAt: Date;
+}
+
+/** Comentários atribuídos ao usuário na org (para o drawer). */
+export async function getAssignedComments(orgId: string, userId: string): Promise<AssignedComment[]> {
+  return withOrg(orgId, async (tx) => {
+    const rows = await tx.query.comments.findMany({
+      where: and(eq(comments.assignedTo, userId), isNull(comments.deletedAt)),
+      orderBy: [desc(comments.createdAt)],
+      limit: 50,
+      with: { author: true, task: true },
+    });
+    return rows.map((c) => ({
+      id: c.id,
+      body: c.body,
+      taskId: c.taskId,
+      listId: c.task?.listId ?? null,
+      taskTitle: c.task?.title ?? "—",
+      authorName: c.author?.name ?? "—",
+      createdAt: c.createdAt,
+    }));
   });
 }

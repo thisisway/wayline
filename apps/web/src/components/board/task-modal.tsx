@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Plus, Send, Square, Trash2, X } from "lucide-react";
+import { CheckSquare, Plus, Send, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
 import {
   addCommentAction,
   addSubtaskAction,
+  assignCommentAction,
   deleteCommentAction,
   deleteSubtaskAction,
   listCommentsAction,
@@ -269,6 +270,7 @@ export function TaskModal({
               orgId={orgId}
               taskId={taskId}
               currentUserId={currentUserId}
+              members={members}
               onCountChange={onCommentCountChange}
             />
           )}
@@ -524,16 +526,23 @@ function CommentsSection({
   orgId,
   taskId,
   currentUserId,
+  members,
   onCountChange,
 }: {
   orgId: string;
   taskId: string;
   currentUserId: string | null;
+  members: BoardMemberDTO[];
   onCountChange?: (count: number) => void;
 }) {
   const [comments, setComments] = React.useState<CommentDTO[] | null>(null);
   const [body, setBody] = React.useState("");
   const [posting, setPosting] = React.useState(false);
+  const [assigningId, setAssigningId] = React.useState<string | null>(null);
+
+  const reload = React.useCallback(() => {
+    listCommentsAction(orgId, taskId).then(setComments);
+  }, [orgId, taskId]);
 
   React.useEffect(() => {
     let alive = true;
@@ -542,6 +551,12 @@ function CommentsSection({
       alive = false;
     };
   }, [orgId, taskId]);
+
+  async function assign(commentId: string, userId: string | null) {
+    setAssigningId(null);
+    await assignCommentAction(orgId, commentId, userId).catch(() => {});
+    reload();
+  }
 
   async function post() {
     const text = body.trim();
@@ -593,14 +608,63 @@ function CommentsSection({
                     {c.author.name}
                   </span>
                   <span className="text-[11px] text-subtle">{timeAgo(c.createdAt)}</span>
-                  <button
-                    type="button"
-                    onClick={() => remove(c.id)}
-                    aria-label="Excluir comentário"
-                    className="ml-auto text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
+                  <div className="relative ml-auto flex items-center gap-1">
+                    {c.assignedTo ? (
+                      <button
+                        type="button"
+                        onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
+                        title={`Atribuído a ${c.assignedTo.name}`}
+                      >
+                        <Avatar
+                          name={c.assignedTo.name}
+                          src={c.assignedTo.avatarUrl ?? undefined}
+                          size="xs"
+                        />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
+                        aria-label="Atribuir comentário"
+                        className="text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                      >
+                        <UserPlus className="size-3.5" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => remove(c.id)}
+                      aria-label="Excluir comentário"
+                      className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+
+                    {assigningId === c.id && (
+                      <div className="absolute right-0 top-6 z-10 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+                        {c.assignedTo && (
+                          <button
+                            type="button"
+                            onClick={() => assign(c.id, null)}
+                            className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-muted hover:bg-elevated"
+                          >
+                            <X className="size-3.5" /> Remover atribuição
+                          </button>
+                        )}
+                        {members.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => assign(c.id, m.id)}
+                            className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
+                          >
+                            <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
+                            <span className="truncate">{m.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="whitespace-pre-wrap text-ui text-muted">{c.body}</p>
               </div>

@@ -3,12 +3,20 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Database, LayoutGrid } from "lucide-react";
-import type { BoardData, MyTask, NavSpace, NotificationDTO, UserOrg } from "@wayline/db";
+import type {
+  AssignedComment,
+  BoardData,
+  MyTask,
+  NavSpace,
+  NotificationDTO,
+  UserOrg,
+} from "@wayline/db";
 import { useTaskEditor } from "@/lib/use-task-editor";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
 import { InboxDrawer } from "@/components/shell/inbox-drawer";
+import { AssignedCommentsDrawer } from "@/components/shell/assigned-comments-drawer";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
@@ -28,6 +36,7 @@ export function AppView({
   activeListId,
   myTasks,
   inbox,
+  assignedComments,
   listName,
   userName,
   focusTaskId,
@@ -39,6 +48,7 @@ export function AppView({
   activeListId: string;
   myTasks: MyTask[];
   inbox: { items: NotificationDTO[]; unread: number };
+  assignedComments: AssignedComment[];
   listName: string;
   userName: string;
   focusTaskId?: string;
@@ -47,6 +57,7 @@ export function AppView({
   const [view, setView] = React.useState("board");
   const [myTasksOpen, setMyTasksOpen] = React.useState(false);
   const [inboxOpen, setInboxOpen] = React.useState(false);
+  const [assignedOpen, setAssignedOpen] = React.useState(false);
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -73,14 +84,22 @@ export function AppView({
         activeOrgId={activeOrgId}
         myTasksCount={myTasks.length}
         inboxUnread={inbox.unread}
+        assignedCount={assignedComments.length}
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenInbox={() => setInboxOpen(true)}
+        onOpenAssigned={() => setAssignedOpen(true)}
       />
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
       )}
       {inboxOpen && (
         <InboxDrawer orgId={activeOrgId} items={inbox.items} onClose={() => setInboxOpen(false)} />
+      )}
+      {assignedOpen && (
+        <AssignedCommentsDrawer
+          items={assignedComments}
+          onClose={() => setAssignedOpen(false)}
+        />
       )}
       {focusEditor.modal}
 

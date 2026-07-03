@@ -66,16 +66,20 @@ export function HomePanel({
   activeOrgId,
   myTasksCount,
   inboxUnread,
+  assignedCount,
   onOpenMyTasks,
   onOpenInbox,
+  onOpenAssigned,
 }: {
   nav: NavSpace[];
   activeListId: string;
   activeOrgId: string;
   myTasksCount: number;
   inboxUnread: number;
+  assignedCount: number;
   onOpenMyTasks: () => void;
   onOpenInbox: () => void;
+  onOpenAssigned: () => void;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -112,9 +116,21 @@ export function HomePanel({
         {homeItems.map((item) => {
           const Icon = homeIcon[item.icon];
           const count =
-            item.id === "tasks" ? myTasksCount : item.id === "inbox" ? inboxUnread : item.count;
+            item.id === "tasks"
+              ? myTasksCount
+              : item.id === "inbox"
+                ? inboxUnread
+                : item.id === "assigned"
+                  ? assignedCount
+                  : item.count;
           const onClick =
-            item.id === "tasks" ? onOpenMyTasks : item.id === "inbox" ? onOpenInbox : undefined;
+            item.id === "tasks"
+              ? onOpenMyTasks
+              : item.id === "inbox"
+                ? onOpenInbox
+                : item.id === "assigned"
+                  ? onOpenAssigned
+                  : undefined;
           return (
             <SidebarItem
               key={item.id}

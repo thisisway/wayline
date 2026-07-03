@@ -1,11 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  getAssignedComments,
   getBoardForOrg,
   getMyTasks,
   getNotifications,
   getUserOrgs,
   getWorkspaceNav,
+  type AssignedComment,
   type BoardData,
   type MyTask,
   type NavSpace,
@@ -41,6 +43,7 @@ export default async function AppPage({
   let data: BoardData | null = null;
   let myTasks: MyTask[] = [];
   let inbox: { items: NotificationDTO[]; unread: number } = { items: [], unread: 0 };
+  let assignedComments: AssignedComment[] = [];
   try {
     nav = await getWorkspaceNav(activeOrg.id);
     const orgListIds = new Set(nav.flatMap((s) => s.lists.map((l) => l.id)));
@@ -49,6 +52,7 @@ export default async function AppPage({
     data = await getBoardForOrg(activeOrg.id, session.user.id, activeListId);
     myTasks = await getMyTasks(activeOrg.id, session.user.id);
     inbox = await getNotifications(activeOrg.id, session.user.id);
+    assignedComments = await getAssignedComments(activeOrg.id, session.user.id);
   } catch (err) {
     console.error("Falha ao carregar o board do Postgres:", err);
   }
@@ -62,6 +66,7 @@ export default async function AppPage({
       activeListId={data?.listId ?? ""}
       myTasks={myTasks}
       inbox={inbox}
+      assignedComments={assignedComments}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
       focusTaskId={focusTaskId}

@@ -2,6 +2,7 @@
 
 import {
   addComment,
+  assignComment,
   createSubtask,
   createTask,
   deleteComment,
@@ -96,6 +97,18 @@ export async function addCommentAction(
 export async function deleteCommentAction(orgId: string, id: string): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await deleteComment(orgId, id);
+  revalidatePath("/app");
+}
+
+export async function assignCommentAction(
+  orgId: string,
+  commentId: string,
+  assigneeId: string | null,
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  const user = await getSessionUser();
+  if (!user) return;
+  await assignComment(orgId, commentId, assigneeId, user.id, user.name);
   revalidatePath("/app");
 }
 
