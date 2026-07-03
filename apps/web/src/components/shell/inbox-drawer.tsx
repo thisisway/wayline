@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { CheckCheck, Inbox, MessageSquare, UserPlus, X } from "lucide-react";
 import type { NotificationDTO } from "@wayline/db";
 import { cn } from "@wayline/ui";
@@ -31,6 +32,7 @@ export function InboxDrawer({
   items: NotificationDTO[];
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
@@ -40,9 +42,10 @@ export function InboxDrawer({
   }, [onClose]);
 
   function open(n: NotificationDTO) {
-    startTransition(() => {
+    startTransition(async () => {
       void markInboxReadAction(orgId);
-      if (n.listId) void switchList(n.listId);
+      if (n.listId) await switchList(n.listId);
+      if (n.taskId) router.push(`/app?task=${n.taskId}`);
       onClose();
     });
   }

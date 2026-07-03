@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Database, LayoutGrid } from "lucide-react";
 import type { BoardData, MyTask, NavSpace, NotificationDTO, UserOrg } from "@wayline/db";
+import { useTaskEditor } from "@/lib/use-task-editor";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
@@ -28,6 +30,7 @@ export function AppView({
   inbox,
   listName,
   userName,
+  focusTaskId,
 }: {
   data: BoardData | null;
   orgs: UserOrg[];
@@ -38,10 +41,23 @@ export function AppView({
   inbox: { items: NotificationDTO[]; unread: number };
   listName: string;
   userName: string;
+  focusTaskId?: string;
 }) {
+  const router = useRouter();
   const [view, setView] = React.useState("board");
   const [myTasksOpen, setMyTasksOpen] = React.useState(false);
   const [inboxOpen, setInboxOpen] = React.useState(false);
+
+  // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
+  const focusEditor = useTaskEditor(data);
+  React.useEffect(() => {
+    if (!focusTaskId || !data) return;
+    const task = data.columns.flatMap((c) => c.tasks).find((t) => t.id === focusTaskId);
+    if (task) {
+      focusEditor.openEdit(task);
+      router.replace("/app");
+    }
+  }, [focusTaskId, data]);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
 
@@ -66,6 +82,7 @@ export function AppView({
       {inboxOpen && (
         <InboxDrawer orgId={activeOrgId} items={inbox.items} onClose={() => setInboxOpen(false)} />
       )}
+      {focusEditor.modal}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />

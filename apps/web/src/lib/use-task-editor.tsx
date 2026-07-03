@@ -15,17 +15,17 @@ type ModalState =
 
 /**
  * Edição de tarefa compartilhada por renderizadores sem estado otimista
- * (List, Calendar): abre o TaskModal e, após criar/editar/excluir, refetcha
- * (router.refresh) e notifica o realtime (pokeList). O Board usa sua própria
- * versão otimista (por causa do drag).
+ * (List, Calendar, Gantt) e pelo AppView (abrir tarefa da busca/inbox).
+ * Após criar/editar/excluir, refetcha (router.refresh) e notifica o realtime.
+ * Tolera `data` null (retorna editor no-op).
  */
-export function useTaskEditor(data: BoardData) {
+export function useTaskEditor(data: BoardData | null) {
   const router = useRouter();
   const [state, setState] = React.useState<ModalState>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
   async function handleSubmit(input: TaskFormInput) {
-    if (!state) return;
+    if (!state || !data) return;
     setSubmitting(true);
     try {
       if (state.mode === "create") await createTaskAction(data.orgId, input);
@@ -41,7 +41,7 @@ export function useTaskEditor(data: BoardData) {
   }
 
   async function handleDelete() {
-    if (state?.mode !== "edit") return;
+    if (!data || state?.mode !== "edit") return;
     setSubmitting(true);
     try {
       await deleteTaskAction(data.orgId, state.task.id);
@@ -59,7 +59,7 @@ export function useTaskEditor(data: BoardData) {
     state?.mode === "edit"
       ? dtoToForm(state.task)
       : {
-          statusId: state?.mode === "create" ? state.statusId : (data.columns[0]?.id ?? ""),
+          statusId: state?.mode === "create" ? state.statusId : (data?.columns[0]?.id ?? ""),
           title: "",
           description: "",
           priority: "normal",
@@ -70,30 +70,31 @@ export function useTaskEditor(data: BoardData) {
           tags: [],
         };
 
-  const modal = state ? (
-    <TaskModal
-      mode={state.mode}
-      orgId={data.orgId}
-      currentUserId={data.currentUserId}
-      taskId={state.mode === "edit" ? state.task.id : undefined}
-      columns={data.columns.map((c) => ({ id: c.id, name: c.name }))}
-      clients={data.clients}
-      members={data.members}
-      initial={initial}
-      submitting={submitting}
-      onClose={() => setState(null)}
-      onSubmit={handleSubmit}
-      onDelete={handleDelete}
-      onSubtaskCountChange={() => {
-        void pokeList(data.listId);
-        router.refresh();
-      }}
-      onCommentCountChange={() => {
-        void pokeList(data.listId);
-        router.refresh();
-      }}
-    />
-  ) : null;
+  const modal =
+    data && state ? (
+      <TaskModal
+        mode={state.mode}
+        orgId={data.orgId}
+        currentUserId={data.currentUserId}
+        taskId={state.mode === "edit" ? state.task.id : undefined}
+        columns={data.columns.map((c) => ({ id: c.id, name: c.name }))}
+        clients={data.clients}
+        members={data.members}
+        initial={initial}
+        submitting={submitting}
+        onClose={() => setState(null)}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
+        onSubtaskCountChange={() => {
+          void pokeList(data.listId);
+          router.refresh();
+        }}
+        onCommentCountChange={() => {
+          void pokeList(data.listId);
+          router.refresh();
+        }}
+      />
+    ) : null;
 
   return {
     openCreate: (statusId: string, dueDate?: string) =>

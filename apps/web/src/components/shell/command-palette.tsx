@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { CornerDownLeft, Search } from "lucide-react";
 import type { SearchResult } from "@wayline/db";
 import { cn } from "@wayline/ui";
@@ -15,6 +16,7 @@ const PRIO_COLOR: Record<SearchResult["priority"], string> = {
 };
 
 export function CommandPalette({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+  const router = useRouter();
   const [q, setQ] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -42,12 +44,13 @@ export function CommandPalette({ orgId, onClose }: { orgId: string; onClose: () 
 
   const go = React.useCallback(
     (r: SearchResult) => {
-      startTransition(() => {
-        void switchList(r.listId);
+      startTransition(async () => {
+        await switchList(r.listId);
+        router.push(`/app?task=${r.id}`);
         onClose();
       });
     },
-    [onClose],
+    [onClose, router],
   );
 
   function onKeyDown(e: React.KeyboardEvent) {

@@ -18,7 +18,12 @@ import { AppView } from "@/components/app-view";
 // Lê o banco a cada request (nunca prerenderiza no build, que não tem DB).
 export const dynamic = "force-dynamic";
 
-export default async function AppPage() {
+export default async function AppPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ task?: string }>;
+}) {
+  const { task: focusTaskId } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -59,6 +64,7 @@ export default async function AppPage() {
       inbox={inbox}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
+      focusTaskId={focusTaskId}
     />
   );
 }
