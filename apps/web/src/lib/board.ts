@@ -43,6 +43,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     tags: t.tags,
     attachments: 0,
     comments: t.commentCount,
+    subtasks: t.subtaskTotal > 0 ? { done: t.subtaskDone, total: t.subtaskTotal } : undefined,
   };
 }
 

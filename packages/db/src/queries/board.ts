@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
 import { clients, comments, lists, organizations, spaces, statuses, tasks } from "../schema";
 
@@ -21,6 +21,8 @@ export interface BoardTaskDTO {
   assignees: Array<{ id: string; name: string; avatarUrl: string | null }>;
   tags: Array<{ label: string; color: string }>;
   commentCount: number;
+  subtaskTotal: number;
+  subtaskDone: number;
 }
 
 export interface BoardColumnDTO {
@@ -81,6 +83,8 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     })),
     tags: t.tags,
     commentCount: 0,
+    subtaskTotal: 0,
+    subtaskDone: 0,
   };
 }
 
@@ -115,7 +119,8 @@ async function buildBoard(
     orderBy: [asc(statuses.position)],
   });
   const rows = await tx.query.tasks.findMany({
-    where: and(eq(tasks.listId, list.id), isNull(tasks.deletedAt)),
+    // Subtarefas (parent_id) não aparecem como cards de topo.
+    where: and(eq(tasks.listId, list.id), isNull(tasks.parentId), isNull(tasks.deletedAt)),
     orderBy: [asc(tasks.position)],
     with: { client: true, assignees: { with: { user: true } } },
   });
@@ -135,11 +140,27 @@ async function buildBoard(
     : [];
   const commentCounts = new Map(countRows.map((r) => [r.taskId, r.n]));
 
+  const subRows = taskIds.length
+    ? await tx
+        .select({
+          parentId: tasks.parentId,
+          total: count(),
+          done: sql<number>`count(*) filter (where ${tasks.completed})`.mapWith(Number),
+        })
+        .from(tasks)
+        .where(and(inArray(tasks.parentId, taskIds), isNull(tasks.deletedAt)))
+        .groupBy(tasks.parentId)
+    : [];
+  const subCounts = new Map(subRows.map((r) => [r.parentId, { total: r.total, done: r.done }]));
+
   const byStatus = new Map<string, BoardTaskDTO[]>();
   for (const t of rows) {
     if (!t.statusId) continue;
     const dto = toDTO(t);
     dto.commentCount = commentCounts.get(t.id) ?? 0;
+    const sub = subCounts.get(t.id);
+    dto.subtaskTotal = sub?.total ?? 0;
+    dto.subtaskDone = sub?.done ?? 0;
     const bucket = byStatus.get(t.statusId);
     if (bucket) bucket.push(dto);
     else byStatus.set(t.statusId, [dto]);
@@ -209,6 +230,14 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
     dto.commentCount = await tx.$count(
       comments,
       and(eq(comments.taskId, id), isNull(comments.deletedAt)),
+    );
+    dto.subtaskTotal = await tx.$count(
+      tasks,
+      and(eq(tasks.parentId, id), isNull(tasks.deletedAt)),
+    );
+    dto.subtaskDone = await tx.$count(
+      tasks,
+      and(eq(tasks.parentId, id), eq(tasks.completed, true), isNull(tasks.deletedAt)),
     );
     return dto;
   });

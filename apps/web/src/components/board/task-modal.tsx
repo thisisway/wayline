@@ -1,14 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Send, Trash2, X } from "lucide-react";
+import { CheckSquare, Plus, Send, Square, Trash2, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
-import type { BoardClientDTO, BoardMemberDTO, CommentDTO } from "@wayline/db";
+import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
 import {
   addCommentAction,
+  addSubtaskAction,
   deleteCommentAction,
+  deleteSubtaskAction,
   listCommentsAction,
+  listSubtasksAction,
+  toggleSubtaskAction,
 } from "@/actions/board";
 
 const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
@@ -46,6 +50,7 @@ export interface TaskModalProps {
   onSubmit: (input: TaskFormInput) => void;
   onDelete?: () => void;
   onCommentCountChange?: (count: number) => void;
+  onSubtaskCountChange?: (done: number, total: number) => void;
 }
 
 export function TaskModal({
@@ -62,6 +67,7 @@ export function TaskModal({
   onSubmit,
   onDelete,
   onCommentCountChange,
+  onSubtaskCountChange,
 }: TaskModalProps) {
   const [form, setForm] = React.useState<TaskFormInput>(initial);
   const set = <K extends keyof TaskFormInput>(key: K, value: TaskFormInput[K]) =>
@@ -229,6 +235,10 @@ export function TaskModal({
           </form>
 
           {mode === "edit" && taskId && (
+            <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />
+          )}
+
+          {mode === "edit" && taskId && (
             <CommentsSection
               orgId={orgId}
               taskId={taskId}
@@ -341,6 +351,141 @@ function TagsEditor({
           onClick={add}
           disabled={!label.trim()}
           aria-label="Adicionar tag"
+        >
+          <Plus />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SubtasksSection({
+  orgId,
+  taskId,
+  onCountsChange,
+}: {
+  orgId: string;
+  taskId: string;
+  onCountsChange?: (done: number, total: number) => void;
+}) {
+  const [subs, setSubs] = React.useState<Subtask[] | null>(null);
+  const [title, setTitle] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    listSubtasksAction(orgId, taskId).then((s) => alive && setSubs(s));
+    return () => {
+      alive = false;
+    };
+  }, [orgId, taskId]);
+
+  function emit(list: Subtask[]) {
+    onCountsChange?.(list.filter((s) => s.completed).length, list.length);
+  }
+
+  async function add() {
+    const text = title.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    try {
+      const created = await addSubtaskAction(orgId, taskId, text);
+      if (!created) return;
+      const next = [...(subs ?? []), created];
+      setSubs(next);
+      setTitle("");
+      emit(next);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggle(s: Subtask) {
+    const next = (subs ?? []).map((x) => (x.id === s.id ? { ...x, completed: !x.completed } : x));
+    setSubs(next);
+    emit(next);
+    await toggleSubtaskAction(orgId, s.id, !s.completed).catch(() => {});
+  }
+
+  async function remove(id: string) {
+    const next = (subs ?? []).filter((x) => x.id !== id);
+    setSubs(next);
+    emit(next);
+    await deleteSubtaskAction(orgId, id).catch(() => {});
+  }
+
+  const done = (subs ?? []).filter((s) => s.completed).length;
+  const total = subs?.length ?? 0;
+
+  return (
+    <div className="border-t border-border px-5 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className={fieldLabel}>Subtarefas {total > 0 ? `(${done}/${total})` : ""}</span>
+        {total > 0 && (
+          <div className="h-1.5 w-24 overflow-hidden rounded-pill bg-elevated">
+            <div
+              className="h-full rounded-pill bg-success transition-all"
+              style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        {subs === null ? (
+          <p className="text-dense text-subtle">Carregando…</p>
+        ) : (
+          subs.map((s) => (
+            <div key={s.id} className="group flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toggle(s)}
+                aria-label={s.completed ? "Desmarcar" : "Concluir"}
+                className={cn(s.completed ? "text-success" : "text-subtle hover:text-foreground")}
+              >
+                {s.completed ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+              </button>
+              <span
+                className={cn(
+                  "flex-1 text-ui",
+                  s.completed ? "text-subtle line-through" : "text-foreground",
+                )}
+              >
+                {s.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => remove(s.id)}
+                aria-label="Excluir subtarefa"
+                className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void add();
+            }
+          }}
+          placeholder="Adicionar subtarefa…"
+          className="h-9"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          onClick={() => void add()}
+          disabled={!title.trim() || busy}
+          aria-label="Adicionar subtarefa"
         >
           <Plus />
         </Button>

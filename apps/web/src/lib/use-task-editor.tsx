@@ -82,6 +82,14 @@ export function useTaskEditor(data: BoardData) {
       onClose={() => setState(null)}
       onSubmit={handleSubmit}
       onDelete={handleDelete}
+      onSubtaskCountChange={() => {
+        void pokeList(data.listId);
+        router.refresh();
+      }}
+      onCommentCountChange={() => {
+        void pokeList(data.listId);
+        router.refresh();
+      }}
     />
   ) : null;
 

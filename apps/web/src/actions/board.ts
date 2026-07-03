@@ -2,16 +2,21 @@
 
 import {
   addComment,
+  createSubtask,
   createTask,
   deleteComment,
+  deleteSubtask,
   deleteTask,
+  getSubtasks,
   getTaskCard,
   getTaskComments,
   saveBoardOrder,
+  setSubtaskDone,
   updateTask,
   type BoardOrderInput,
   type BoardTaskDTO,
   type CommentDTO,
+  type Subtask,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
@@ -78,5 +83,38 @@ export async function addCommentAction(
 export async function deleteCommentAction(orgId: string, id: string): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await deleteComment(orgId, id);
+  revalidatePath("/app");
+}
+
+// --- Subtarefas ------------------------------------------------------------
+export async function listSubtasksAction(orgId: string, parentId: string): Promise<Subtask[]> {
+  if (!(await assertMember(orgId))) return [];
+  return getSubtasks(orgId, parentId);
+}
+
+export async function addSubtaskAction(
+  orgId: string,
+  parentId: string,
+  title: string,
+): Promise<Subtask | null> {
+  if (!title.trim() || !(await assertMember(orgId))) return null;
+  const created = await createSubtask(orgId, parentId, title);
+  revalidatePath("/app");
+  return created;
+}
+
+export async function toggleSubtaskAction(
+  orgId: string,
+  id: string,
+  completed: boolean,
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await setSubtaskDone(orgId, id, completed);
+  revalidatePath("/app");
+}
+
+export async function deleteSubtaskAction(orgId: string, id: string): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await deleteSubtask(orgId, id);
   revalidatePath("/app");
 }

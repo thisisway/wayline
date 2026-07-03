@@ -54,6 +54,13 @@ export {
   type CommentDTO,
   type AddCommentInput,
 } from "./queries/comments";
+export {
+  getSubtasks,
+  createSubtask,
+  setSubtaskDone,
+  deleteSubtask,
+  type Subtask,
+} from "./queries/subtasks";
 
 import type {
   organizations,

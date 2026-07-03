@@ -207,6 +207,18 @@ export function DndBoard({ data }: { data: BoardData }) {
     poke();
   }
 
+  function updateSubtaskCount(taskId: string, subtaskDone: number, subtaskTotal: number) {
+    commit(
+      columnsRef.current.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === taskId ? { ...card, subtaskDone, subtaskTotal } : card,
+        ),
+      })),
+    );
+    poke();
+  }
+
   async function handleDelete() {
     if (modal?.mode !== "edit") return;
     const id = modal.task.id;
@@ -282,6 +294,11 @@ export function DndBoard({ data }: { data: BoardData }) {
           onCommentCountChange={
             modal.mode === "edit"
               ? (count) => updateCommentCount(modal.task.id, count)
+              : undefined
+          }
+          onSubtaskCountChange={
+            modal.mode === "edit"
+              ? (done, total) => updateSubtaskCount(modal.task.id, done, total)
               : undefined
           }
         />
