@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import { getDb, withUser } from "../client";
-import { memberships, users } from "../schema";
+import { getDb, withOrg, withUser } from "../client";
+import { lists, memberships, users } from "../schema";
 
 export interface AuthUser {
   id: string;
@@ -54,6 +54,19 @@ export interface UserOrg {
   name: string;
   plan: string;
   role: string;
+}
+
+/** O usuário tem acesso à lista? (a lista está numa org da qual ele é membro) */
+export async function userCanAccessList(userId: string, listId: string): Promise<boolean> {
+  if (!userId || !listId) return false;
+  const orgs = await getUserOrgs(userId);
+  for (const o of orgs) {
+    const found = await withOrg(o.id, (tx) =>
+      tx.query.lists.findFirst({ where: eq(lists.id, listId) }),
+    );
+    if (found) return true;
+  }
+  return false;
 }
 
 /** Todas as orgs às quais o usuário pertence (para o seletor de workspace). */

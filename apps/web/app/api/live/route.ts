@@ -1,3 +1,4 @@
+import { userCanAccessList } from "@wayline/db";
 import { auth } from "@/auth";
 import { subscribe } from "@/lib/live";
 import { viewers } from "@/lib/presence";
@@ -12,6 +13,9 @@ export async function GET(req: Request) {
 
   const listId = new URL(req.url).searchParams.get("listId");
   if (!listId) return new Response("listId required", { status: 400 });
+  if (!(await userCanAccessList(session.user.id, listId))) {
+    return new Response("forbidden", { status: 403 });
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

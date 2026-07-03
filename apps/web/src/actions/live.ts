@@ -1,5 +1,6 @@
 "use server";
 
+import { userCanAccessList } from "@wayline/db";
 import { auth } from "@/auth";
 import { send } from "@/lib/live";
 import { heartbeat, leave, viewers, type Viewer } from "@/lib/presence";
@@ -13,6 +14,7 @@ export async function pokeList(listId: string): Promise<void> {
 export async function heartbeatAction(listId: string): Promise<Viewer[]> {
   const session = await auth();
   if (!session?.user?.id || !listId) return [];
+  if (!(await userCanAccessList(session.user.id, listId))) return [];
 
   heartbeat(listId, {
     userId: session.user.id,

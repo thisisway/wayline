@@ -7,7 +7,6 @@ import {
   createList,
   createOrg,
   createSpace,
-  getUserOrgs,
   getWorkspaceMembers,
   removeMember,
   type AddMemberStatus,
@@ -15,8 +14,15 @@ import {
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
+import { assertMember } from "@/lib/authz";
 
-const cookieOpts = { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 365 } as const;
+const cookieOpts = {
+  httpOnly: true,
+  sameSite: "lax",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 365,
+  secure: process.env.NODE_ENV === "production",
+} as const;
 
 async function setActiveOrgCookie(orgId: string): Promise<void> {
   (await cookies()).set(ACTIVE_ORG_COOKIE, orgId, cookieOpts);
@@ -26,22 +32,9 @@ async function setActiveListCookie(listId: string): Promise<void> {
   (await cookies()).set(ACTIVE_LIST_COOKIE, listId, cookieOpts);
 }
 
-/** Confirma que o usuário logado é membro da org. */
-async function assertMember(orgId: string): Promise<boolean> {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const orgs = await getUserOrgs(session.user.id);
-  return orgs.some((o) => o.id === orgId);
-}
-
 /** Troca a org ativa — valida que o usuário é membro antes de gravar o cookie. */
 export async function switchOrg(orgId: string): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id) return;
-
-  const orgs = await getUserOrgs(session.user.id);
-  if (!orgs.some((o) => o.id === orgId)) return; // não é membro → ignora
-
+  if (!(await assertMember(orgId))) return;
   await setActiveOrgCookie(orgId);
   revalidatePath("/app");
 }

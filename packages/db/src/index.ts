@@ -26,6 +26,7 @@ export {
   createUser,
   resolveUserOrg,
   getUserOrgs,
+  userCanAccessList,
   type AuthUser,
   type UserOrg,
 } from "./queries/auth";

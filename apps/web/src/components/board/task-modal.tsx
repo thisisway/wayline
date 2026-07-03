@@ -377,7 +377,8 @@ function CommentsSection({
     if (!text || !currentUserId || posting) return;
     setPosting(true);
     try {
-      const created = await addCommentAction(orgId, taskId, currentUserId, text);
+      const created = await addCommentAction(orgId, taskId, text);
+      if (!created) return;
       const next = [...(comments ?? []), created];
       setComments(next);
       setBody("");
