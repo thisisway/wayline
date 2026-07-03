@@ -10,6 +10,7 @@ import {
   getSubtasks,
   getTaskCard,
   getTaskComments,
+  notifyTaskAssignees,
   saveBoardOrder,
   setSubtaskDone,
   updateTask,
@@ -20,7 +21,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
-import { assertMember, getSessionUserId } from "@/lib/authz";
+import { assertMember, getSessionUser } from "@/lib/authz";
 
 function parseDue(due: string | null): Date | null {
   return due ? new Date(due) : null;
@@ -48,6 +49,8 @@ export async function createTaskAction(
 ): Promise<BoardTaskDTO | null> {
   if (!(await assertMember(orgId))) return null;
   const id = await createTask(orgId, normalize(input));
+  const user = await getSessionUser();
+  if (user) await notifyTaskAssignees(orgId, id, user.id, user.name, "assigned");
   revalidatePath("/app");
   return getTaskCard(orgId, id);
 }
@@ -82,9 +85,10 @@ export async function addCommentAction(
 ): Promise<CommentDTO | null> {
   if (!(await assertMember(orgId))) return null;
   // Autor SEMPRE é o usuário da sessão (não confiar no cliente).
-  const authorId = await getSessionUserId();
-  if (!authorId) return null;
-  const created = await addComment(orgId, { taskId, authorId, body });
+  const user = await getSessionUser();
+  if (!user) return null;
+  const created = await addComment(orgId, { taskId, authorId: user.id, body });
+  await notifyTaskAssignees(orgId, taskId, user.id, user.name, "comment");
   revalidatePath("/app");
   return created;
 }

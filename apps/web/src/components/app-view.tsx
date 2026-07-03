@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { Database, LayoutGrid } from "lucide-react";
-import type { BoardData, MyTask, NavSpace, UserOrg } from "@wayline/db";
+import type { BoardData, MyTask, NavSpace, NotificationDTO, UserOrg } from "@wayline/db";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
+import { InboxDrawer } from "@/components/shell/inbox-drawer";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
@@ -24,6 +25,7 @@ export function AppView({
   nav,
   activeListId,
   myTasks,
+  inbox,
   listName,
   userName,
 }: {
@@ -33,11 +35,13 @@ export function AppView({
   nav: NavSpace[];
   activeListId: string;
   myTasks: MyTask[];
+  inbox: { items: NotificationDTO[]; unread: number };
   listName: string;
   userName: string;
 }) {
   const [view, setView] = React.useState("board");
   const [myTasksOpen, setMyTasksOpen] = React.useState(false);
+  const [inboxOpen, setInboxOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
 
@@ -52,10 +56,15 @@ export function AppView({
         activeListId={activeListId}
         activeOrgId={activeOrgId}
         myTasksCount={myTasks.length}
+        inboxUnread={inbox.unread}
         onOpenMyTasks={() => setMyTasksOpen(true)}
+        onOpenInbox={() => setInboxOpen(true)}
       />
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
+      )}
+      {inboxOpen && (
+        <InboxDrawer orgId={activeOrgId} items={inbox.items} onClose={() => setInboxOpen(false)} />
       )}
 
       <main className="flex min-w-0 flex-1 flex-col">

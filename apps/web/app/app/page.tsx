@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import {
   getBoardForOrg,
   getMyTasks,
+  getNotifications,
   getUserOrgs,
   getWorkspaceNav,
   type BoardData,
   type MyTask,
   type NavSpace,
+  type NotificationDTO,
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
@@ -33,6 +35,7 @@ export default async function AppPage() {
   let nav: NavSpace[] = [];
   let data: BoardData | null = null;
   let myTasks: MyTask[] = [];
+  let inbox: { items: NotificationDTO[]; unread: number } = { items: [], unread: 0 };
   try {
     nav = await getWorkspaceNav(activeOrg.id);
     const orgListIds = new Set(nav.flatMap((s) => s.lists.map((l) => l.id)));
@@ -40,6 +43,7 @@ export default async function AppPage() {
     const activeListId = cookieList && orgListIds.has(cookieList) ? cookieList : undefined;
     data = await getBoardForOrg(activeOrg.id, session.user.id, activeListId);
     myTasks = await getMyTasks(activeOrg.id, session.user.id);
+    inbox = await getNotifications(activeOrg.id, session.user.id);
   } catch (err) {
     console.error("Falha ao carregar o board do Postgres:", err);
   }
@@ -52,6 +56,7 @@ export default async function AppPage() {
       nav={nav}
       activeListId={data?.listId ?? ""}
       myTasks={myTasks}
+      inbox={inbox}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
     />

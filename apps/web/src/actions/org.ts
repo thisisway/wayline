@@ -8,6 +8,7 @@ import {
   createOrg,
   createSpace,
   getWorkspaceMembers,
+  markNotificationsRead,
   removeMember,
   type AddMemberStatus,
   type WorkspaceMember,
@@ -87,6 +88,14 @@ export async function removeMemberAction(orgId: string, userId: string): Promise
   const target = members.find((m) => m.userId === userId);
   if (!target || target.role === "owner") return; // não remove owners
   await removeMember(orgId, userId);
+  revalidatePath("/app");
+}
+
+/** Marca todas as notificações do usuário na org como lidas. */
+export async function markInboxReadAction(orgId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id || !(await assertMember(orgId))) return;
+  await markNotificationsRead(orgId, session.user.id);
   revalidatePath("/app");
 }
 

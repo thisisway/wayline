@@ -65,13 +65,17 @@ export function HomePanel({
   activeListId,
   activeOrgId,
   myTasksCount,
+  inboxUnread,
   onOpenMyTasks,
+  onOpenInbox,
 }: {
   nav: NavSpace[];
   activeListId: string;
   activeOrgId: string;
   myTasksCount: number;
+  inboxUnread: number;
   onOpenMyTasks: () => void;
+  onOpenInbox: () => void;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -107,14 +111,17 @@ export function HomePanel({
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         {homeItems.map((item) => {
           const Icon = homeIcon[item.icon];
-          const isMyTasks = item.id === "tasks";
+          const count =
+            item.id === "tasks" ? myTasksCount : item.id === "inbox" ? inboxUnread : item.count;
+          const onClick =
+            item.id === "tasks" ? onOpenMyTasks : item.id === "inbox" ? onOpenInbox : undefined;
           return (
             <SidebarItem
               key={item.id}
               icon={<Icon />}
               label={item.label}
-              count={isMyTasks ? myTasksCount : item.count}
-              onClick={isMyTasks ? onOpenMyTasks : undefined}
+              count={count}
+              onClick={onClick}
             />
           );
         })}

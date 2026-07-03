@@ -22,3 +22,10 @@ export async function getSessionUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id ?? null;
 }
+
+/** Usuário logado (id + nome) ou null. */
+export async function getSessionUser(): Promise<{ id: string; name: string } | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return { id: session.user.id, name: session.user.name ?? "Alguém" };
+}

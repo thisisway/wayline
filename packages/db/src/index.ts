@@ -62,6 +62,13 @@ export {
   type Subtask,
 } from "./queries/subtasks";
 export { getMyTasks, type MyTask } from "./queries/my-tasks";
+export {
+  notifyTaskAssignees,
+  notifyAssigned,
+  getNotifications,
+  markNotificationsRead,
+  type NotificationDTO,
+} from "./queries/notifications";
 
 import type {
   organizations,
