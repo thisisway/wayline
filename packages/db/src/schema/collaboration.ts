@@ -1,7 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
-import { tasks } from "./hierarchy";
+import { lists, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
 
 /**
@@ -65,3 +65,27 @@ export const notifications = pgTable(
   },
   (t) => [index("notifications_user_idx").on(t.userId), index("notifications_org_idx").on(t.orgId)],
 );
+
+/** CHAT por lista (discussão do board). */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("chat_list_idx").on(t.listId), index("chat_org_idx").on(t.orgId)],
+);
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  author: one(users, { fields: [chatMessages.authorId], references: [users.id] }),
+}));

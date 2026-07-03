@@ -67,6 +67,7 @@ export {
 } from "./queries/subtasks";
 export { getMyTasks, type MyTask } from "./queries/my-tasks";
 export { searchTasks, type SearchResult } from "./queries/search";
+export { getChatMessages, sendChatMessage, type ChatMessage } from "./queries/chat";
 export {
   notifyTaskAssignees,
   notifyAssigned,

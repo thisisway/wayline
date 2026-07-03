@@ -23,6 +23,7 @@ import { DndBoard } from "@/components/board/dnd-board";
 import { ListView } from "@/components/board/list-view";
 import { CalendarView } from "@/components/board/calendar-view";
 import { GanttView } from "@/components/board/gantt-view";
+import { ChatView } from "@/components/board/chat-view";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
@@ -154,6 +155,16 @@ export function AppView({
             <EmptyBoard />
           ) : (
             <GanttView data={filtered!} />
+          )
+        ) : view === "chat" ? (
+          !data ? (
+            <EmptyBoard />
+          ) : (
+            <ChatView
+              orgId={data.orgId}
+              listId={data.listId}
+              currentUserId={data.currentUserId}
+            />
           )
         ) : (
           <PlaceholderView view={view} />
