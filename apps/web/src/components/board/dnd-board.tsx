@@ -241,6 +241,7 @@ export function DndBoard({ data }: { data: BoardData }) {
       : {
           statusId: modal?.mode === "create" ? modal.statusId : (columns[0]?.id ?? ""),
           title: "",
+          description: "",
           priority: "normal",
           clientId: null,
           dueDate: null,

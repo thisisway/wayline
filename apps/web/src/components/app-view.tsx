@@ -13,6 +13,7 @@ import { CalendarView } from "@/components/board/calendar-view";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
+import { applyFilters, collectTags, EMPTY_FILTERS, type BoardFilters } from "@/lib/board-filter";
 
 export function AppView({
   data,
@@ -32,7 +33,11 @@ export function AppView({
   userName: string;
 }) {
   const [view, setView] = React.useState("board");
+  const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
+
+  const filtered = React.useMemo(() => (data ? applyFilters(data, filters) : null), [data, filters]);
+  const tagOptions = React.useMemo(() => (data ? collectTags(data) : []), [data]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
@@ -46,6 +51,11 @@ export function AppView({
           onValueChange={setView}
           listName={listName}
           viewers={viewers}
+          filters={filters}
+          onFiltersChange={setFilters}
+          clients={data?.clients ?? []}
+          members={data?.members ?? []}
+          tags={tagOptions}
         />
 
         {view === "board" ? (
@@ -54,7 +64,7 @@ export function AppView({
           ) : (
             <div className="relative min-h-0 flex-1">
               {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
-              <DndBoard key={data.listId} data={data} />
+              <DndBoard key={data.listId} data={filtered!} />
 
               {data.columns.some((c) => c.tasks.length > 0) && (
                 <>
@@ -72,13 +82,13 @@ export function AppView({
           !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
-            <ListView data={data} />
+            <ListView data={filtered!} />
           )
         ) : view === "calendar" ? (
           !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
-            <CalendarView data={data} />
+            <CalendarView data={filtered!} />
           )
         ) : (
           <PlaceholderView view={view} />

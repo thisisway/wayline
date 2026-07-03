@@ -137,6 +137,20 @@ export function TaskModal({
               />
             </div>
 
+            <div className="space-y-1.5">
+              <label className={fieldLabel} htmlFor="task-desc">
+                Descrição
+              </label>
+              <textarea
+                id="task-desc"
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="Detalhes, contexto, links…"
+                rows={3}
+                className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-ui text-foreground placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-brand"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className={fieldLabel} htmlFor="task-status">

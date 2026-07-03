@@ -13,6 +13,7 @@ import { clients, comments, lists, organizations, spaces, statuses, tasks } from
 export interface BoardTaskDTO {
   id: string;
   title: string;
+  description: string | null;
   statusId: string | null;
   priority: "urgent" | "high" | "normal" | "low";
   dueDate: Date | null;
@@ -58,6 +59,7 @@ export interface BoardData {
 type TaskRow = {
   id: string;
   title: string;
+  description: string | null;
   statusId: string | null;
   priority: BoardTaskDTO["priority"];
   dueDate: Date | null;
@@ -71,6 +73,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
   return {
     id: t.id,
     title: t.title,
+    description: t.description,
     statusId: t.statusId,
     priority: t.priority,
     dueDate: t.dueDate,

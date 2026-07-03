@@ -51,6 +51,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
 export interface TaskFormInput {
   statusId: string;
   title: string;
+  description: string;
   priority: "urgent" | "high" | "normal" | "low";
   clientId: string | null;
   dueDate: string | null;
@@ -63,6 +64,7 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
   return {
     statusId: dto.statusId ?? "",
     title: dto.title,
+    description: dto.description ?? "",
     priority: dto.priority,
     clientId: dto.client?.id ?? null,
     dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,

@@ -26,6 +26,14 @@ function parseDue(due: string | null): Date | null {
   return due ? new Date(due) : null;
 }
 
+function normalize(input: TaskFormInput) {
+  return {
+    ...input,
+    dueDate: parseDue(input.dueDate),
+    description: input.description.trim() || null,
+  };
+}
+
 /** Persiste a nova ordem/coluna dos cards após um drag-and-drop. */
 export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promise<void> {
   if (!(await assertMember(orgId))) return;
@@ -38,7 +46,7 @@ export async function createTaskAction(
   input: TaskFormInput,
 ): Promise<BoardTaskDTO | null> {
   if (!(await assertMember(orgId))) return null;
-  const id = await createTask(orgId, { ...input, dueDate: parseDue(input.dueDate) });
+  const id = await createTask(orgId, normalize(input));
   revalidatePath("/app");
   return getTaskCard(orgId, id);
 }
@@ -49,7 +57,7 @@ export async function updateTaskAction(
   input: TaskFormInput,
 ): Promise<BoardTaskDTO | null> {
   if (!(await assertMember(orgId))) return null;
-  await updateTask(orgId, { id, ...input, dueDate: parseDue(input.dueDate) });
+  await updateTask(orgId, { id, ...normalize(input) });
   revalidatePath("/app");
   return getTaskCard(orgId, id);
 }

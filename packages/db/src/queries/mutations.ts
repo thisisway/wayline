@@ -13,6 +13,7 @@ type Priority = "urgent" | "high" | "normal" | "low";
 export interface CreateTaskInput {
   statusId: string;
   title: string;
+  description: string | null;
   priority: Priority;
   clientId: string | null;
   dueDate: Date | null;
@@ -59,6 +60,7 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
         listId: status.listId,
         statusId: input.statusId,
         title: input.title,
+        description: input.description,
         priority: input.priority,
         clientId: input.clientId,
         dueDate: input.dueDate,
@@ -95,6 +97,7 @@ export async function updateTask(orgId: string, input: UpdateTaskInput): Promise
       .update(tasks)
       .set({
         title: input.title,
+        description: input.description,
         priority: input.priority,
         clientId: input.clientId,
         dueDate: input.dueDate,
