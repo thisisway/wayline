@@ -7,9 +7,22 @@ import { AvatarGroup, cn } from "@wayline/ui";
 import { mapTaskDTO } from "@/lib/board";
 import { useTaskEditor } from "@/lib/use-task-editor";
 import { priorityMeta } from "@/components/board/task-card";
+import { collectCustomFieldOptions } from "@/lib/board-filter";
 
-type GroupBy = "status" | "priority" | "assignee" | "client";
+/** "status" | "priority" | "assignee" | "client" | `cf:<nome do campo>` */
+type GroupBy = string;
 type SortBy = "default" | "due" | "priority" | "title";
+
+function fmtFieldValue(type: string, value: string): string {
+  if (type === "checkbox") return value === "1" ? "Sim" : "Não";
+  if (type === "date") {
+    const d = new Date(value);
+    return isNaN(d.getTime())
+      ? value
+      : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  }
+  return value;
+}
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "default", label: "Padrão" },
@@ -98,6 +111,24 @@ function buildGroups(data: BoardData, groupBy: GroupBy): Group[] {
     return groups;
   }
 
+  if (groupBy.startsWith("cf:")) {
+    const name = groupBy.slice(3);
+    const valueOf = (t: BoardTaskDTO) =>
+      (t.customFields ?? []).find((f) => f.name === name)?.value ?? "";
+    const type =
+      all.flatMap((t) => t.customFields ?? []).find((f) => f.name === name)?.type ?? "text";
+    const distinct = [...new Set(all.map(valueOf).filter((v) => v !== ""))].sort();
+    const groups: Group[] = distinct.map((v) => ({
+      key: `cf:${v}`,
+      name: fmtFieldValue(type, v),
+      color: "#7C5CFF",
+      tasks: all.filter((t) => valueOf(t) === v),
+    }));
+    const none = all.filter((t) => valueOf(t) === "");
+    if (none.length) groups.push({ key: "none", name: "Sem valor", color: "#94A3B8", tasks: none });
+    return groups;
+  }
+
   // assignee (uma tarefa com N responsáveis aparece em N grupos)
   const groups: Group[] = data.members
     .map((m) => ({
@@ -119,12 +150,23 @@ export function ListView({ data }: { data: BoardData }) {
   const [sortBy, setSortBy] = React.useState<SortBy>("default");
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
 
+  const groupOptions = React.useMemo(() => {
+    const custom = collectCustomFieldOptions(data).map((cf) => ({
+      value: `cf:${cf.name}`,
+      label: cf.name,
+    }));
+    return [...GROUP_OPTIONS, ...custom];
+  }, [data]);
+
+  // Se agrupava por um campo que sumiu (ex.: trocou de lista), volta p/ status.
+  const activeGroupBy = groupOptions.some((o) => o.value === groupBy) ? groupBy : "status";
+
   const groups = React.useMemo(() => {
-    const g = buildGroups(data, groupBy);
+    const g = buildGroups(data, activeGroupBy);
     return sortBy === "default"
       ? g
       : g.map((grp) => ({ ...grp, tasks: sortTasks(grp.tasks, sortBy) }));
-  }, [data, groupBy, sortBy]);
+  }, [data, activeGroupBy, sortBy]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -133,11 +175,11 @@ export function ListView({ data }: { data: BoardData }) {
           <div className="flex items-center gap-2">
             <span className="text-dense text-muted">Agrupar por</span>
             <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+              value={activeGroupBy}
+              onChange={(e) => setGroupBy(e.target.value)}
               className="h-8 rounded-md border border-border bg-surface px-2 text-dense font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {GROUP_OPTIONS.map((o) => (
+              {groupOptions.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
