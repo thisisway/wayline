@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, sql } from "drizzle-orm";
+import { and, count, eq, gte, isNull, sql } from "drizzle-orm";
 import { withOrg } from "../client";
 import { clients, tasks, timeEntries, users } from "../schema";
 
@@ -20,8 +20,12 @@ export interface OrgReport {
 
 const secondsExpr = sql<number>`coalesce(sum(extract(epoch from (coalesce(${timeEntries.endedAt}, now()) - ${timeEntries.startedAt}))), 0)`;
 
-/** Agregados da org (todas as listas) para o painel de Relatórios. */
-export async function getOrgReport(orgId: string): Promise<OrgReport> {
+/**
+ * Agregados da org (todas as listas) para o painel de Relatórios.
+ * `since` (opcional) recorta o tempo rastreado por data de início.
+ */
+export async function getOrgReport(orgId: string, since?: Date | null): Promise<OrgReport> {
+  const sinceFilter = since ? gte(timeEntries.startedAt, since) : undefined;
   return withOrg(orgId, async (tx) => {
     const [summary] = await tx
       .select({
@@ -37,7 +41,8 @@ export async function getOrgReport(orgId: string): Promise<OrgReport> {
 
     const [tracked] = await tx
       .select({ seconds: secondsExpr.mapWith(Number) })
-      .from(timeEntries);
+      .from(timeEntries)
+      .where(sinceFilter);
 
     const clientRows = await tx
       .select({
@@ -49,6 +54,7 @@ export async function getOrgReport(orgId: string): Promise<OrgReport> {
       .from(timeEntries)
       .innerJoin(tasks, eq(tasks.id, timeEntries.taskId))
       .leftJoin(clients, eq(clients.id, tasks.clientId))
+      .where(sinceFilter)
       .groupBy(clients.id, clients.name, clients.color)
       .orderBy(sql`4 desc`);
 
@@ -61,6 +67,7 @@ export async function getOrgReport(orgId: string): Promise<OrgReport> {
       })
       .from(timeEntries)
       .innerJoin(users, eq(users.id, timeEntries.userId))
+      .where(sinceFilter)
       .groupBy(users.id, users.name)
       .orderBy(sql`4 desc`);
 
