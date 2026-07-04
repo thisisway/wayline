@@ -18,6 +18,7 @@ import { HomePanel } from "@/components/shell/home-panel";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
 import { InboxDrawer } from "@/components/shell/inbox-drawer";
 import { CommentRefDrawer } from "@/components/shell/comment-ref-drawer";
+import { ShortcutsHelp } from "@/components/shell/shortcuts-help";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
@@ -63,6 +64,7 @@ export function AppView({
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const [assignedOpen, setAssignedOpen] = React.useState(false);
   const [repliesOpen, setRepliesOpen] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -74,6 +76,30 @@ export function AppView({
       router.replace("/app");
     }
   }, [focusTaskId, data]);
+
+  // Atalhos de teclado (power-user). Ignora quando digitando ou com modal aberto.
+  React.useEffect(() => {
+    const VIEW_KEYS: Record<string, string> = {
+      "1": "board",
+      "2": "list",
+      "3": "calendar",
+      "4": "gantt",
+      "5": "chat",
+    };
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (document.querySelector('[role="dialog"]')) return; // modal aberto
+
+      if (VIEW_KEYS[e.key]) setView(VIEW_KEYS[e.key]!);
+      else if (e.key === "n") {
+        if (data) focusEditor.openCreate(data.columns[0]?.id ?? "");
+      } else if (e.key === "?") setShortcutsOpen(true);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [data, focusEditor]);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
 
@@ -119,6 +145,7 @@ export function AppView({
         />
       )}
       {focusEditor.modal}
+      {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />
