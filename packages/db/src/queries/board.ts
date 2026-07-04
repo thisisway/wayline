@@ -4,6 +4,8 @@ import {
   attachments,
   clients,
   comments,
+  customFieldDefs,
+  customFieldValues,
   lists,
   organizations,
   spaces,
@@ -42,6 +44,8 @@ export interface BoardTaskDTO {
   blocked: boolean;
   /** Segundos totais rastreados (controle de tempo). */
   trackedSeconds: number;
+  /** Campos customizados com valor preenchido. */
+  customFields: Array<{ name: string; type: string; value: string }>;
 }
 
 export interface BoardColumnDTO {
@@ -118,6 +122,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     attachmentCount: 0,
     blocked: false,
     trackedSeconds: 0,
+    customFields: [],
   };
 }
 
@@ -243,6 +248,33 @@ async function buildBoard(
         )
     : [];
 
+  // Campos customizados da lista + valores por tarefa.
+  const fieldDefs = await tx.query.customFieldDefs.findMany({
+    where: eq(customFieldDefs.listId, list.id),
+    orderBy: [asc(customFieldDefs.position), asc(customFieldDefs.createdAt)],
+  });
+  const fieldById = new Map(fieldDefs.map((d) => [d.id, { name: d.name, type: d.type }]));
+  const fieldValRows =
+    taskIds.length && fieldDefs.length
+      ? await tx
+          .select({
+            taskId: customFieldValues.taskId,
+            fieldId: customFieldValues.fieldId,
+            value: customFieldValues.value,
+          })
+          .from(customFieldValues)
+          .where(inArray(customFieldValues.taskId, taskIds))
+      : [];
+  const cfByTask = new Map<string, Array<{ name: string; type: string; value: string }>>();
+  for (const v of fieldValRows) {
+    if (v.value == null || v.value === "") continue;
+    const def = fieldById.get(v.fieldId);
+    if (!def) continue;
+    const arr = cfByTask.get(v.taskId) ?? [];
+    arr.push({ name: def.name, type: def.type, value: v.value });
+    cfByTask.set(v.taskId, arr);
+  }
+
   const byStatus = new Map<string, BoardTaskDTO[]>();
   for (const t of rows) {
     if (!t.statusId) continue;
@@ -251,6 +283,7 @@ async function buildBoard(
     dto.attachmentCount = attCounts.get(t.id) ?? 0;
     dto.blocked = blockedSet.has(t.id);
     dto.trackedSeconds = timeByTask.get(t.id) ?? 0;
+    dto.customFields = cfByTask.get(t.id) ?? [];
     const sub = subCounts.get(t.id);
     dto.subtaskTotal = sub?.total ?? 0;
     dto.subtaskDone = sub?.done ?? 0;
@@ -358,6 +391,21 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       .from(timeEntries)
       .where(eq(timeEntries.taskId, id));
     dto.trackedSeconds = Math.round(timeRow?.seconds ?? 0);
+
+    const defs = await tx.query.customFieldDefs.findMany({
+      where: eq(customFieldDefs.listId, t.listId),
+      orderBy: [asc(customFieldDefs.position), asc(customFieldDefs.createdAt)],
+    });
+    if (defs.length) {
+      const vals = await tx
+        .select({ fieldId: customFieldValues.fieldId, value: customFieldValues.value })
+        .from(customFieldValues)
+        .where(eq(customFieldValues.taskId, id));
+      const valById = new Map(vals.map((v) => [v.fieldId, v.value]));
+      dto.customFields = defs
+        .map((d) => ({ name: d.name, type: d.type, value: valById.get(d.id) ?? "" }))
+        .filter((f) => f.value !== "");
+    }
     return dto;
   });
 }

@@ -5,6 +5,17 @@ import { AvatarGroup, Card, cn } from "@wayline/ui";
 import type { Priority, TaskCard as TaskCardType } from "@/mock/types";
 import { fmtDuration } from "./time-tracking-section";
 
+function fmtFieldValue(type: string, value: string): string | null {
+  if (type === "checkbox") return value === "1" ? "✓" : null;
+  if (type === "date") {
+    const d = new Date(value);
+    return isNaN(d.getTime())
+      ? value
+      : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  }
+  return value;
+}
+
 const priorityMeta: Record<Priority, { label: string; color: string }> = {
   urgent: { label: "Urgente", color: "#FF3B30" },
   high: { label: "Alta", color: "#FFB800" },
@@ -54,6 +65,26 @@ export function TaskCard({ card }: { card: TaskCardType }) {
 
       {/* Título */}
       <p className="text-dense font-medium leading-snug text-foreground">{card.title}</p>
+
+      {/* Campos customizados preenchidos */}
+      {card.customFields && card.customFields.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {card.customFields.map((f) => {
+            const val = fmtFieldValue(f.type, f.value);
+            if (val === null) return null;
+            return (
+              <span
+                key={f.name}
+                className="inline-flex items-center gap-1 rounded-md bg-elevated px-1.5 h-5 text-[11px] text-muted"
+                title={f.name}
+              >
+                <span className="text-subtle">{f.name}:</span>
+                <span className="font-medium text-foreground">{val}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Tags */}
       {card.tags.length > 0 && (
