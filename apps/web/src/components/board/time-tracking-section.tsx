@@ -66,12 +66,14 @@ export function TimeTrackingSection({
 
   const running = React.useMemo(() => (entries ?? []).find((e) => e.running) ?? null, [entries]);
 
-  // Tique de 1s só enquanto há cronômetro rodando nesta tarefa.
+  // Tique de 1s enquanto houver cronômetro rodando (dep. primitiva p/ estabilidade).
+  const isRunning = running !== null;
   React.useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [running]);
+    if (!isRunning) return;
+    setNow(Date.now()); // tique imediato ao iniciar
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [isRunning]);
 
   const total = (entries ?? []).reduce((acc, e) => acc + entrySeconds(e, now), 0);
 
@@ -134,13 +136,21 @@ export function TimeTrackingSection({
     <div className="border-t border-border px-5 py-4">
       <div className="mb-3 flex items-center justify-between">
         <span className={fieldLabel}>Tempo</span>
-        <span
-          className={cn(
-            "font-display text-h3 font-bold tabular-nums",
-            running ? "text-brand" : "text-foreground",
+        <span className="flex items-center gap-2">
+          {running && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-danger">
+              <span className="size-2 animate-pulse rounded-full bg-danger" />
+              gravando
+            </span>
           )}
-        >
-          {fmtClock(total)}
+          <span
+            className={cn(
+              "font-display text-h3 font-bold tabular-nums",
+              running ? "text-brand" : "text-foreground",
+            )}
+          >
+            {fmtClock(total)}
+          </span>
         </span>
       </div>
 
