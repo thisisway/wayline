@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { THEME_COOKIE } from "@/lib/constants";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,10 +27,14 @@ export const viewport: Viewport = {
   themeColor: "#0B1023",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // dark-first: sem cookie → dark. Lê no server p/ não piscar no primeiro paint.
+  const light = (await cookies()).get(THEME_COOKIE)?.value === "light";
   return (
-    // dark-first: o app de referência é a experiência premium escura.
-    <html lang="pt-BR" className={`dark ${inter.variable} ${jakarta.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${light ? "" : "dark"} ${inter.variable} ${jakarta.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

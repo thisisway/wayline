@@ -18,6 +18,7 @@ import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
 import { MembersModal } from "@/components/shell/members-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
   userName,
@@ -86,6 +87,7 @@ export function Topbar({
           <Bell className="size-4.5" />
           <span className="absolute right-2 top-2 size-2 rounded-full bg-danger ring-2 ring-surface" />
         </button>
+        <ThemeToggle />
         <Avatar name={userName} size="md" title={userName} />
         <button
           type="button"
