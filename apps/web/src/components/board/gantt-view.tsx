@@ -58,6 +58,33 @@ export function GanttView({ data }: { data: BoardData }) {
   const rows = dated.sort((a, b) => a.start - b.start);
   const undated = tasks.length - dated.length;
 
+  // Geometria das barras (relativa ao track) para desenhar as setas.
+  const ROW_H = 40;
+  const posById = new Map<string, { row: number; left: number; width: number }>();
+  rows.forEach((r, i) => {
+    posById.set(r.task.id, {
+      row: i,
+      left: idxOf(r.start) * DAY_W,
+      width: (idxOf(r.end) - idxOf(r.start) + 1) * DAY_W,
+    });
+  });
+  const completedById = new Map(tasks.map((t) => [t.id, t.completed]));
+  const edges = data.dependencies
+    .map((e) => {
+      const a = posById.get(e.blockerId);
+      const b = posById.get(e.blockedId);
+      if (!a || !b) return null;
+      return {
+        key: `${e.blockerId}-${e.blockedId}`,
+        x1: a.left + 2 + Math.max(DAY_W - 4, a.width - 4),
+        y1: a.row * ROW_H + ROW_H / 2,
+        x2: b.left + 2,
+        y2: b.row * ROW_H + ROW_H / 2,
+        active: !completedById.get(e.blockerId),
+      };
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
+
   return (
     <div className="min-h-0 flex-1 overflow-auto">
       <div style={{ width: NAME_W + trackW }}>
@@ -101,7 +128,8 @@ export function GanttView({ data }: { data: BoardData }) {
           </div>
         </div>
 
-        {/* Linhas */}
+        {/* Linhas (com overlay de setas de dependência) */}
+        <div className="relative" style={{ width: NAME_W + trackW }}>
         {rows.map(({ task, start, end }) => {
           const left = idxOf(start) * DAY_W;
           const width = (idxOf(end) - idxOf(start) + 1) * DAY_W;
@@ -129,6 +157,36 @@ export function GanttView({ data }: { data: BoardData }) {
             </div>
           );
         })}
+
+        {edges.length > 0 && (
+          <svg
+            className="pointer-events-none absolute top-0"
+            style={{ left: NAME_W, width: trackW, height: rows.length * ROW_H }}
+            width={trackW}
+            height={rows.length * ROW_H}
+          >
+            {edges.map((e) => {
+              const cx = Math.max(24, Math.abs(e.x2 - e.x1) / 2);
+              const stroke = e.active ? "#FF3B30" : "#94A3B8";
+              return (
+                <g key={e.key} opacity={0.85}>
+                  <path
+                    d={`M ${e.x1} ${e.y1} C ${e.x1 + cx} ${e.y1}, ${e.x2 - cx} ${e.y2}, ${e.x2} ${e.y2}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={1.5}
+                    strokeDasharray={e.active ? undefined : "4 3"}
+                  />
+                  <polygon
+                    points={`${e.x2 - 6},${e.y2 - 4} ${e.x2},${e.y2} ${e.x2 - 6},${e.y2 + 4}`}
+                    fill={stroke}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+        )}
+        </div>
 
         {rows.length === 0 && (
           <p className="px-3 py-6 text-center text-ui text-muted">

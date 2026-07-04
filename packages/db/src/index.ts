@@ -18,6 +18,7 @@ export {
   type BoardTaskDTO,
   type BoardClientDTO,
   type BoardMemberDTO,
+  type DependencyEdge,
   type NavSpace,
   type NavList,
 } from "./queries/board";

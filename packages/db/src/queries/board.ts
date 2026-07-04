@@ -60,6 +60,12 @@ export interface BoardMemberDTO {
   avatarUrl: string | null;
 }
 
+/** Aresta de dependência entre tarefas visíveis na lista (blocker → blocked). */
+export interface DependencyEdge {
+  blockerId: string;
+  blockedId: string;
+}
+
 export interface BoardData {
   orgId: string;
   listId: string;
@@ -67,6 +73,7 @@ export interface BoardData {
   columns: BoardColumnDTO[];
   clients: BoardClientDTO[];
   members: BoardMemberDTO[];
+  dependencies: DependencyEdge[];
   /** Usuário "corrente" (owner da org) enquanto não há auth — autor dos comentários. */
   currentUserId: string | null;
 }
@@ -201,6 +208,22 @@ async function buildBoard(
     : [];
   const blockedSet = new Set(blockedRows.map((r) => r.blockedId));
 
+  // Arestas de dependência entre tarefas visíveis (ambos os lados na lista).
+  const depEdges = taskIds.length
+    ? await tx
+        .select({
+          blockerId: taskDependencies.blockerId,
+          blockedId: taskDependencies.blockedId,
+        })
+        .from(taskDependencies)
+        .where(
+          and(
+            inArray(taskDependencies.blockerId, taskIds),
+            inArray(taskDependencies.blockedId, taskIds),
+          ),
+        )
+    : [];
+
   const byStatus = new Map<string, BoardTaskDTO[]>();
   for (const t of rows) {
     if (!t.statusId) continue;
@@ -235,6 +258,7 @@ async function buildBoard(
       name: m.user.name,
       avatarUrl: m.user.avatarUrl,
     })),
+    dependencies: depEdges,
   };
 }
 
