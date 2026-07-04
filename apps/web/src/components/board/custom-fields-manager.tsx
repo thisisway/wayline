@@ -37,9 +37,15 @@ export function CustomFieldsManager({
   const [type, setType] = React.useState<CustomFieldType>("text");
   const [optionsText, setOptionsText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    listFieldsAction(orgId, listId).then(setFields);
+    listFieldsAction(orgId, listId)
+      .then((f) => setFields(f))
+      .catch(() => {
+        setFields([]);
+        setError("Não foi possível carregar os campos (a migração 0013 já foi aplicada?).");
+      });
   }, [orgId, listId]);
 
   React.useEffect(() => {
@@ -60,6 +66,7 @@ export function CustomFieldsManager({
         : [];
     if (type === "select" && options.length === 0) return;
     setBusy(true);
+    setError(null);
     try {
       const created = await createFieldAction(orgId, listId, { name: n, type, options });
       if (created) {
@@ -67,7 +74,11 @@ export function CustomFieldsManager({
         setName("");
         setOptionsText("");
         setType("text");
+      } else {
+        setError("Não foi possível criar o campo (verifique a migração 0013).");
       }
+    } catch {
+      setError("Falha ao criar o campo.");
     } finally {
       setBusy(false);
     }
@@ -105,6 +116,7 @@ export function CustomFieldsManager({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
+          {error && <p className="mb-3 text-dense text-danger">{error}</p>}
           <div className="space-y-1.5">
             {fields === null ? (
               <p className="text-dense text-subtle">Carregando…</p>
