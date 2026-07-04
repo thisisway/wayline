@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
 import { lists, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
@@ -89,3 +89,24 @@ export const chatMessages = pgTable(
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   author: one(users, { fields: [chatMessages.authorId], references: [users.id] }),
 }));
+
+/** ANEXOS — só metadados; os bytes ficam no bucket S3/R2 (storage_key). */
+export const attachments = pgTable(
+  "attachments",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    uploaderId: uuid("uploader_id").references(() => users.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    storageKey: text("storage_key").notNull(),
+    contentType: text("content_type").notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("attachments_task_idx").on(t.taskId), index("attachments_org_idx").on(t.orgId)],
+);

@@ -220,6 +220,18 @@ export function DndBoard({ data }: { data: BoardData }) {
     poke();
   }
 
+  function updateAttachmentCount(taskId: string, attachmentCount: number) {
+    commit(
+      columnsRef.current.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === taskId ? { ...card, attachmentCount } : card,
+        ),
+      })),
+    );
+    poke();
+  }
+
   async function handleDelete() {
     if (modal?.mode !== "edit") return;
     const id = modal.task.id;
@@ -318,6 +330,11 @@ export function DndBoard({ data }: { data: BoardData }) {
           onSubtaskCountChange={
             modal.mode === "edit"
               ? (done, total) => updateSubtaskCount(modal.task.id, done, total)
+              : undefined
+          }
+          onAttachmentCountChange={
+            modal.mode === "edit"
+              ? (count) => updateAttachmentCount(modal.task.id, count)
               : undefined
           }
         />

@@ -41,7 +41,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     dueLabel: label,
     overdue,
     tags: t.tags,
-    attachments: 0,
+    attachments: t.attachmentCount,
     comments: t.commentCount,
     subtasks: t.subtaskTotal > 0 ? { done: t.subtaskDone, total: t.subtaskTotal } : undefined,
   };

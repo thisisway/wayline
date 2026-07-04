@@ -1,6 +1,6 @@
 import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
-import { clients, comments, lists, organizations, spaces, statuses, tasks } from "../schema";
+import { attachments, clients, comments, lists, organizations, spaces, statuses, tasks } from "../schema";
 
 /**
  * Query do Board (Fase 1.x).
@@ -25,6 +25,7 @@ export interface BoardTaskDTO {
   commentCount: number;
   subtaskTotal: number;
   subtaskDone: number;
+  attachmentCount: number;
 }
 
 export interface BoardColumnDTO {
@@ -91,6 +92,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     commentCount: 0,
     subtaskTotal: 0,
     subtaskDone: 0,
+    attachmentCount: 0,
   };
 }
 
@@ -159,11 +161,21 @@ async function buildBoard(
     : [];
   const subCounts = new Map(subRows.map((r) => [r.parentId, { total: r.total, done: r.done }]));
 
+  const attRows = taskIds.length
+    ? await tx
+        .select({ taskId: attachments.taskId, n: count() })
+        .from(attachments)
+        .where(inArray(attachments.taskId, taskIds))
+        .groupBy(attachments.taskId)
+    : [];
+  const attCounts = new Map(attRows.map((r) => [r.taskId, r.n]));
+
   const byStatus = new Map<string, BoardTaskDTO[]>();
   for (const t of rows) {
     if (!t.statusId) continue;
     const dto = toDTO(t);
     dto.commentCount = commentCounts.get(t.id) ?? 0;
+    dto.attachmentCount = attCounts.get(t.id) ?? 0;
     const sub = subCounts.get(t.id);
     dto.subtaskTotal = sub?.total ?? 0;
     dto.subtaskDone = sub?.done ?? 0;
@@ -245,6 +257,7 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       tasks,
       and(eq(tasks.parentId, id), eq(tasks.completed, true), isNull(tasks.deletedAt)),
     );
+    dto.attachmentCount = await tx.$count(attachments, eq(attachments.taskId, id));
     return dto;
   });
 }
