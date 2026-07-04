@@ -12,6 +12,7 @@ import {
   getSubtasks,
   getTaskCard,
   getTaskComments,
+  notifyMentions,
   notifyReply,
   notifyTaskAssignees,
   saveBoardOrder,
@@ -105,6 +106,7 @@ export async function addCommentAction(
   taskId: string,
   body: string,
   parentId?: string | null,
+  mentionIds?: string[],
 ): Promise<CommentDTO | null> {
   if (!(await assertMember(orgId))) return null;
   // Autor SEMPRE é o usuário da sessão (não confiar no cliente).
@@ -113,6 +115,7 @@ export async function addCommentAction(
   const created = await addComment(orgId, { taskId, authorId: user.id, body, parentId });
   if (parentId) await notifyReply(orgId, parentId, user.id, user.name);
   else await notifyTaskAssignees(orgId, taskId, user.id, user.name, "comment");
+  if (mentionIds?.length) await notifyMentions(orgId, taskId, user.id, user.name, mentionIds);
   revalidatePath("/app");
   return created;
 }

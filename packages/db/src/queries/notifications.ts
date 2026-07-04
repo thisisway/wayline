@@ -73,6 +73,33 @@ export async function notifyAssigned(
   });
 }
 
+/** Notifica usuários @mencionados num comentário (exceto o autor). */
+export async function notifyMentions(
+  orgId: string,
+  taskId: string,
+  actorId: string,
+  actorName: string,
+  mentionedIds: string[],
+): Promise<void> {
+  const recipients = [...new Set(mentionedIds)].filter((id) => id !== actorId);
+  if (recipients.length === 0) return;
+  await withOrg(orgId, async (tx) => {
+    const task = await tx.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
+    if (!task) return;
+    await tx.insert(notifications).values(
+      recipients.map((userId) => ({
+        orgId,
+        userId,
+        type: "mention",
+        taskId,
+        listId: task.listId,
+        taskTitle: task.title,
+        actorName,
+      })),
+    );
+  });
+}
+
 export async function getNotifications(
   orgId: string,
   userId: string,

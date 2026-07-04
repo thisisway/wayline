@@ -106,6 +106,7 @@ export { getOrgReport, type OrgReport, type ReportRow } from "./queries/reports"
 export {
   notifyTaskAssignees,
   notifyAssigned,
+  notifyMentions,
   getNotifications,
   markNotificationsRead,
   type NotificationDTO,

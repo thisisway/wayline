@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Copy, Plus, Send, Square, Trash2, UserPlus, X } from "lucide-react";
+import { CheckSquare, Copy, Plus, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
 import { AttachmentsSection } from "@/components/board/attachments-section";
 import { DependenciesSection } from "@/components/board/dependencies-section";
 import { TimeTrackingSection } from "@/components/board/time-tracking-section";
+import { MentionComposer, renderWithMentions } from "@/components/board/mention-composer";
 import {
   addCommentAction,
   addSubtaskAction,
@@ -573,11 +574,9 @@ function CommentsSection({
   onCountChange?: (count: number) => void;
 }) {
   const [comments, setComments] = React.useState<CommentDTO[] | null>(null);
-  const [body, setBody] = React.useState("");
   const [posting, setPosting] = React.useState(false);
   const [assigningId, setAssigningId] = React.useState<string | null>(null);
   const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
-  const [replyBody, setReplyBody] = React.useState("");
 
   const reload = React.useCallback(() => {
     listCommentsAction(orgId, taskId).then(setComments);
@@ -597,16 +596,14 @@ function CommentsSection({
     reload();
   }
 
-  async function post() {
-    const text = body.trim();
+  async function post(text: string, mentionIds: string[]) {
     if (!text || !currentUserId || posting) return;
     setPosting(true);
     try {
-      const created = await addCommentAction(orgId, taskId, text);
+      const created = await addCommentAction(orgId, taskId, text, null, mentionIds);
       if (!created) return;
       const next = [...(comments ?? []), created];
       setComments(next);
-      setBody("");
       onCountChange?.(next.length);
     } catch (err) {
       console.error("Falha ao comentar:", err);
@@ -626,15 +623,13 @@ function CommentsSection({
     }
   }
 
-  async function postReply(parentId: string) {
-    const text = replyBody.trim();
+  async function postReply(parentId: string, text: string, mentionIds: string[]) {
     if (!text || !currentUserId) return;
     try {
-      const created = await addCommentAction(orgId, taskId, text, parentId);
+      const created = await addCommentAction(orgId, taskId, text, parentId, mentionIds);
       if (!created) return;
       const next = [...(comments ?? []), created];
       setComments(next);
-      setReplyBody("");
       setReplyingTo(null);
       onCountChange?.(next.length);
     } catch (err) {
@@ -708,7 +703,9 @@ function CommentsSection({
               )}
             </div>
           </div>
-          <p className="whitespace-pre-wrap text-ui text-muted">{c.body}</p>
+          <p className="whitespace-pre-wrap text-ui text-muted">
+            {renderWithMentions(c.body, members)}
+          </p>
         </div>
       </div>
     );
@@ -749,40 +746,20 @@ function CommentsSection({
               )}
 
               {replyingTo === c.id ? (
-                <div className="ml-8 mt-2 flex items-center gap-2">
-                  <Input
+                <div className="ml-8 mt-2">
+                  <MentionComposer
+                    small
                     autoFocus
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        void postReply(c.id);
-                      } else if (e.key === "Escape") {
-                        setReplyingTo(null);
-                      }
-                    }}
-                    placeholder="Responder…"
-                    className="h-8 text-dense"
+                    members={members}
+                    placeholder="Responder… (@ para mencionar)"
+                    onPost={(text, ids) => void postReply(c.id, text, ids)}
                   />
-                  <Button
-                    type="button"
-                    size="icon"
-                    onClick={() => void postReply(c.id)}
-                    disabled={!replyBody.trim()}
-                    aria-label="Responder"
-                  >
-                    <Send />
-                  </Button>
                 </div>
               ) : (
                 currentUserId && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setReplyBody("");
-                      setReplyingTo(c.id);
-                    }}
+                    onClick={() => setReplyingTo(c.id)}
                     className="ml-8 mt-1 text-[11px] font-medium text-subtle hover:text-brand"
                   >
                     Responder
@@ -794,28 +771,13 @@ function CommentsSection({
         )}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <Input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void post();
-            }
-          }}
-          placeholder={currentUserId ? "Escreva um comentário…" : "Sem usuário para comentar"}
+      <div className="mt-3">
+        <MentionComposer
+          members={members}
+          placeholder={currentUserId ? "Escreva um comentário… (@ para mencionar)" : "Sem usuário para comentar"}
           disabled={!currentUserId || posting}
+          onPost={(text, ids) => void post(text, ids)}
         />
-        <Button
-          type="button"
-          size="icon"
-          onClick={() => void post()}
-          disabled={!currentUserId || posting || body.trim().length === 0}
-          aria-label="Comentar"
-        >
-          <Send />
-        </Button>
       </div>
     </div>
   );
