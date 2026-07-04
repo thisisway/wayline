@@ -118,6 +118,10 @@ export function useTaskEditor(data: BoardData | null) {
           void pokeList(data.listId);
           router.refresh();
         }}
+        onDependenciesChange={() => {
+          void pokeList(data.listId);
+          router.refresh();
+        }}
       />
     ) : null;
 

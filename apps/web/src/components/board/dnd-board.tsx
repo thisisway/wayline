@@ -29,6 +29,7 @@ import {
   createTaskAction,
   deleteTaskAction,
   duplicateTaskAction,
+  refreshCardAction,
   saveBoard,
   updateTaskAction,
 } from "@/actions/board";
@@ -232,6 +233,20 @@ export function DndBoard({ data }: { data: BoardData }) {
     poke();
   }
 
+  async function handleDependenciesChange(taskId: string) {
+    const dto = await refreshCardAction(orgId, taskId).catch(() => null);
+    if (!dto) return;
+    commit(
+      columnsRef.current.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === taskId ? { ...card, blocked: dto.blocked } : card,
+        ),
+      })),
+    );
+    poke();
+  }
+
   async function handleDelete() {
     if (modal?.mode !== "edit") return;
     const id = modal.task.id;
@@ -335,6 +350,11 @@ export function DndBoard({ data }: { data: BoardData }) {
           onAttachmentCountChange={
             modal.mode === "edit"
               ? (count) => updateAttachmentCount(modal.task.id, count)
+              : undefined
+          }
+          onDependenciesChange={
+            modal.mode === "edit"
+              ? () => handleDependenciesChange(modal.task.id)
               : undefined
           }
         />

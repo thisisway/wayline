@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
 import { lists, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
@@ -109,4 +109,31 @@ export const attachments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   },
   (t) => [index("attachments_task_idx").on(t.taskId), index("attachments_org_idx").on(t.orgId)],
+);
+
+/**
+ * DEPENDÊNCIAS entre tarefas. `blocker` bloqueia `blocked`
+ * (ou seja: `blocked` está "bloqueada por" `blocker`).
+ */
+export const taskDependencies = pgTable(
+  "task_dependencies",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    blockerId: uuid("blocker_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("task_dep_unique").on(t.blockerId, t.blockedId),
+    index("task_dep_blocked_idx").on(t.blockedId),
+    index("task_dep_blocker_idx").on(t.blockerId),
+    index("task_dep_org_idx").on(t.orgId),
+  ],
 );

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckSquare, MessageSquare, Paperclip } from "lucide-react";
+import { Ban, CalendarDays, CheckSquare, MessageSquare, Paperclip } from "lucide-react";
 import { AvatarGroup, Card, cn } from "@wayline/ui";
 import type { Priority, TaskCard as TaskCardType } from "@/mock/types";
 
@@ -39,6 +39,17 @@ export function TaskCard({ card }: { card: TaskCardType }) {
           {prio.label}
         </span>
       </div>
+
+      {/* Bloqueio */}
+      {card.blocked && (
+        <span
+          className="inline-flex w-fit items-center gap-1 rounded-pill bg-danger/10 px-2 h-5 text-[11px] font-semibold text-danger"
+          title="Bloqueada por outra tarefa não concluída"
+        >
+          <Ban className="size-3" />
+          Bloqueada
+        </span>
+      )}
 
       {/* Título */}
       <p className="text-dense font-medium leading-snug text-foreground">{card.title}</p>

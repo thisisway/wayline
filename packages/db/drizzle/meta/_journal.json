@@ -71,6 +71,13 @@
       "when": 1783173345847,
       "tag": "0009_medical_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783187813189,
+      "tag": "0010_freezing_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

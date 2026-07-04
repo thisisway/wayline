@@ -6,6 +6,7 @@ import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
 import { AttachmentsSection } from "@/components/board/attachments-section";
+import { DependenciesSection } from "@/components/board/dependencies-section";
 import {
   addCommentAction,
   addSubtaskAction,
@@ -55,6 +56,7 @@ export interface TaskModalProps {
   onCommentCountChange?: (count: number) => void;
   onSubtaskCountChange?: (done: number, total: number) => void;
   onAttachmentCountChange?: (count: number) => void;
+  onDependenciesChange?: () => void;
 }
 
 export function TaskModal({
@@ -74,6 +76,7 @@ export function TaskModal({
   onCommentCountChange,
   onSubtaskCountChange,
   onAttachmentCountChange,
+  onDependenciesChange,
 }: TaskModalProps) {
   const [form, setForm] = React.useState<TaskFormInput>(initial);
   const set = <K extends keyof TaskFormInput>(key: K, value: TaskFormInput[K]) =>
@@ -268,6 +271,10 @@ export function TaskModal({
 
           {mode === "edit" && taskId && (
             <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />
+          )}
+
+          {mode === "edit" && taskId && (
+            <DependenciesSection orgId={orgId} taskId={taskId} onChange={onDependenciesChange} />
           )}
 
           {mode === "edit" && taskId && (

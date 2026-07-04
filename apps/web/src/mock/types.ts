@@ -32,6 +32,7 @@ export interface TaskCard {
   attachments: number;
   comments: number;
   subtasks?: { done: number; total: number };
+  blocked?: boolean;
 }
 
 export interface BoardColumn {

@@ -69,6 +69,15 @@ export async function updateTaskAction(
   return getTaskCard(orgId, id);
 }
 
+/** Recarrega um card (para reconciliar flags derivadas, ex.: bloqueio). */
+export async function refreshCardAction(
+  orgId: string,
+  id: string,
+): Promise<BoardTaskDTO | null> {
+  if (!(await assertMember(orgId))) return null;
+  return getTaskCard(orgId, id);
+}
+
 export async function deleteTaskAction(orgId: string, id: string): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await deleteTask(orgId, id);

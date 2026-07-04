@@ -1,6 +1,17 @@
 import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
-import { attachments, clients, comments, lists, organizations, spaces, statuses, tasks } from "../schema";
+import {
+  attachments,
+  clients,
+  comments,
+  lists,
+  organizations,
+  spaces,
+  statuses,
+  taskDependencies,
+  tasks,
+} from "../schema";
+import { alias } from "drizzle-orm/pg-core";
 
 /**
  * Query do Board (Fase 1.x).
@@ -26,6 +37,8 @@ export interface BoardTaskDTO {
   subtaskTotal: number;
   subtaskDone: number;
   attachmentCount: number;
+  /** Tem ao menos um bloqueador ainda não concluído. */
+  blocked: boolean;
 }
 
 export interface BoardColumnDTO {
@@ -93,6 +106,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     subtaskTotal: 0,
     subtaskDone: 0,
     attachmentCount: 0,
+    blocked: false,
   };
 }
 
@@ -170,12 +184,30 @@ async function buildBoard(
     : [];
   const attCounts = new Map(attRows.map((r) => [r.taskId, r.n]));
 
+  // Tarefas bloqueadas: têm um bloqueador (blocker) ainda não concluído.
+  const blocker = alias(tasks, "blocker");
+  const blockedRows = taskIds.length
+    ? await tx
+        .selectDistinct({ blockedId: taskDependencies.blockedId })
+        .from(taskDependencies)
+        .innerJoin(blocker, eq(blocker.id, taskDependencies.blockerId))
+        .where(
+          and(
+            inArray(taskDependencies.blockedId, taskIds),
+            eq(blocker.completed, false),
+            isNull(blocker.deletedAt),
+          ),
+        )
+    : [];
+  const blockedSet = new Set(blockedRows.map((r) => r.blockedId));
+
   const byStatus = new Map<string, BoardTaskDTO[]>();
   for (const t of rows) {
     if (!t.statusId) continue;
     const dto = toDTO(t);
     dto.commentCount = commentCounts.get(t.id) ?? 0;
     dto.attachmentCount = attCounts.get(t.id) ?? 0;
+    dto.blocked = blockedSet.has(t.id);
     const sub = subCounts.get(t.id);
     dto.subtaskTotal = sub?.total ?? 0;
     dto.subtaskDone = sub?.done ?? 0;
@@ -258,6 +290,20 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       and(eq(tasks.parentId, id), eq(tasks.completed, true), isNull(tasks.deletedAt)),
     );
     dto.attachmentCount = await tx.$count(attachments, eq(attachments.taskId, id));
+    const blocker = alias(tasks, "blocker");
+    const blockedRows = await tx
+      .select({ id: taskDependencies.id })
+      .from(taskDependencies)
+      .innerJoin(blocker, eq(blocker.id, taskDependencies.blockerId))
+      .where(
+        and(
+          eq(taskDependencies.blockedId, id),
+          eq(blocker.completed, false),
+          isNull(blocker.deletedAt),
+        ),
+      )
+      .limit(1);
+    dto.blocked = blockedRows.length > 0;
     return dto;
   });
 }

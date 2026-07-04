@@ -81,6 +81,16 @@ export {
   type CreateAttachmentInput,
 } from "./queries/attachments";
 export {
+  getTaskDependencies,
+  getTaskOptions,
+  addDependency,
+  removeDependency,
+  type TaskDependencies,
+  type DependencyTaskDTO,
+  type TaskOption,
+  type AddDependencyResult,
+} from "./queries/dependencies";
+export {
   notifyTaskAssignees,
   notifyAssigned,
   getNotifications,
