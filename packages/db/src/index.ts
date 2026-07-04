@@ -102,6 +102,7 @@ export {
   type TimeEntryDTO,
   type RunningTimer,
 } from "./queries/time-tracking";
+export { getOrgReport, type OrgReport, type ReportRow } from "./queries/reports";
 export {
   notifyTaskAssignees,
   notifyAssigned,

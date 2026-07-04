@@ -26,6 +26,7 @@ import { ListView } from "@/components/board/list-view";
 import { CalendarView } from "@/components/board/calendar-view";
 import { GanttView } from "@/components/board/gantt-view";
 import { ChatView } from "@/components/board/chat-view";
+import { ReportsView } from "@/components/board/reports-view";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
@@ -85,6 +86,7 @@ export function AppView({
       "3": "calendar",
       "4": "gantt",
       "5": "chat",
+      "6": "reports",
     };
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -209,6 +211,8 @@ export function AppView({
               currentUserId={data.currentUserId}
             />
           )
+        ) : view === "reports" ? (
+          <ReportsView orgId={activeOrgId} />
         ) : (
           <PlaceholderView view={view} />
         )}

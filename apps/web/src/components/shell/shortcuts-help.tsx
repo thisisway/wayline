@@ -12,6 +12,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
       ["3", "Calendar"],
       ["4", "Gantt"],
       ["5", "Chat"],
+      ["6", "Relatórios"],
     ],
   },
   {

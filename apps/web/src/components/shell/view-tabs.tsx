@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  BarChart3,
   Calendar,
   Check,
   Filter,
@@ -25,6 +26,7 @@ const views = [
   { id: "list", label: "List", icon: <List /> },
   { id: "gantt", label: "Gantt", icon: <GanttChartSquare /> },
   { id: "calendar", label: "Calendar", icon: <Calendar /> },
+  { id: "reports", label: "Relatórios", icon: <BarChart3 /> },
 ];
 
 const PRIORITIES = [
