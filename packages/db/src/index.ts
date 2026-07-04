@@ -54,10 +54,13 @@ export {
   deleteComment,
   assignComment,
   getAssignedComments,
+  notifyReply,
+  getMyReplies,
   type CommentDTO,
   type CommentAuthor,
   type AddCommentInput,
   type AssignedComment,
+  type ReplyDTO,
 } from "./queries/comments";
 export {
   getSubtasks,

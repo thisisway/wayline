@@ -9,6 +9,7 @@ import type {
   MyTask,
   NavSpace,
   NotificationDTO,
+  ReplyDTO,
   UserOrg,
 } from "@wayline/db";
 import { useTaskEditor } from "@/lib/use-task-editor";
@@ -16,7 +17,7 @@ import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
 import { InboxDrawer } from "@/components/shell/inbox-drawer";
-import { AssignedCommentsDrawer } from "@/components/shell/assigned-comments-drawer";
+import { CommentRefDrawer } from "@/components/shell/comment-ref-drawer";
 import { Topbar } from "@/components/shell/topbar";
 import { ViewTabs } from "@/components/shell/view-tabs";
 import { DndBoard } from "@/components/board/dnd-board";
@@ -38,6 +39,7 @@ export function AppView({
   myTasks,
   inbox,
   assignedComments,
+  replies,
   listName,
   userName,
   focusTaskId,
@@ -50,6 +52,7 @@ export function AppView({
   myTasks: MyTask[];
   inbox: { items: NotificationDTO[]; unread: number };
   assignedComments: AssignedComment[];
+  replies: ReplyDTO[];
   listName: string;
   userName: string;
   focusTaskId?: string;
@@ -59,6 +62,7 @@ export function AppView({
   const [myTasksOpen, setMyTasksOpen] = React.useState(false);
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const [assignedOpen, setAssignedOpen] = React.useState(false);
+  const [repliesOpen, setRepliesOpen] = React.useState(false);
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -86,9 +90,11 @@ export function AppView({
         myTasksCount={myTasks.length}
         inboxUnread={inbox.unread}
         assignedCount={assignedComments.length}
+        repliesCount={replies.length}
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenInbox={() => setInboxOpen(true)}
         onOpenAssigned={() => setAssignedOpen(true)}
+        onOpenReplies={() => setRepliesOpen(true)}
       />
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
@@ -97,9 +103,19 @@ export function AppView({
         <InboxDrawer orgId={activeOrgId} items={inbox.items} onClose={() => setInboxOpen(false)} />
       )}
       {assignedOpen && (
-        <AssignedCommentsDrawer
+        <CommentRefDrawer
+          title="Assigned Comments"
+          kind="assigned"
           items={assignedComments}
           onClose={() => setAssignedOpen(false)}
+        />
+      )}
+      {repliesOpen && (
+        <CommentRefDrawer
+          title="Replies"
+          kind="replies"
+          items={replies}
+          onClose={() => setRepliesOpen(false)}
         />
       )}
       {focusEditor.modal}

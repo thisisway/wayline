@@ -67,9 +67,11 @@ export function HomePanel({
   myTasksCount,
   inboxUnread,
   assignedCount,
+  repliesCount,
   onOpenMyTasks,
   onOpenInbox,
   onOpenAssigned,
+  onOpenReplies,
 }: {
   nav: NavSpace[];
   activeListId: string;
@@ -77,9 +79,11 @@ export function HomePanel({
   myTasksCount: number;
   inboxUnread: number;
   assignedCount: number;
+  repliesCount: number;
   onOpenMyTasks: () => void;
   onOpenInbox: () => void;
   onOpenAssigned: () => void;
+  onOpenReplies: () => void;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -122,7 +126,9 @@ export function HomePanel({
                 ? inboxUnread
                 : item.id === "assigned"
                   ? assignedCount
-                  : item.count;
+                  : item.id === "replies"
+                    ? repliesCount
+                    : item.count;
           const onClick =
             item.id === "tasks"
               ? onOpenMyTasks
@@ -130,7 +136,9 @@ export function HomePanel({
                 ? onOpenInbox
                 : item.id === "assigned"
                   ? onOpenAssigned
-                  : undefined;
+                  : item.id === "replies"
+                    ? onOpenReplies
+                    : undefined;
           return (
             <SidebarItem
               key={item.id}

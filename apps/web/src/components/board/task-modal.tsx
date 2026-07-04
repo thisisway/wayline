@@ -551,6 +551,8 @@ function CommentsSection({
   const [body, setBody] = React.useState("");
   const [posting, setPosting] = React.useState(false);
   const [assigningId, setAssigningId] = React.useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
+  const [replyBody, setReplyBody] = React.useState("");
 
   const reload = React.useCallback(() => {
     listCommentsAction(orgId, taskId).then(setComments);
@@ -599,6 +601,104 @@ function CommentsSection({
     }
   }
 
+  async function postReply(parentId: string) {
+    const text = replyBody.trim();
+    if (!text || !currentUserId) return;
+    try {
+      const created = await addCommentAction(orgId, taskId, text, parentId);
+      if (!created) return;
+      const next = [...(comments ?? []), created];
+      setComments(next);
+      setReplyBody("");
+      setReplyingTo(null);
+      onCountChange?.(next.length);
+    } catch (err) {
+      console.error("Falha ao responder:", err);
+    }
+  }
+
+  function renderComment(c: CommentDTO) {
+    return (
+      <div className="group flex gap-2.5">
+        <Avatar name={c.author.name} src={c.author.avatarUrl ?? undefined} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-dense font-semibold text-foreground">{c.author.name}</span>
+            <span className="text-[11px] text-subtle">{timeAgo(c.createdAt)}</span>
+            <div className="relative ml-auto flex items-center gap-1">
+              {c.assignedTo ? (
+                <button
+                  type="button"
+                  onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
+                  title={`Atribuído a ${c.assignedTo.name}`}
+                >
+                  <Avatar
+                    name={c.assignedTo.name}
+                    src={c.assignedTo.avatarUrl ?? undefined}
+                    size="xs"
+                  />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
+                  aria-label="Atribuir comentário"
+                  className="text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                >
+                  <UserPlus className="size-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => remove(c.id)}
+                aria-label="Excluir comentário"
+                className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+
+              {assigningId === c.id && (
+                <div className="absolute right-0 top-6 z-10 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+                  {c.assignedTo && (
+                    <button
+                      type="button"
+                      onClick={() => assign(c.id, null)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-muted hover:bg-elevated"
+                    >
+                      <X className="size-3.5" /> Remover atribuição
+                    </button>
+                  )}
+                  {members.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => assign(c.id, m.id)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
+                    >
+                      <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
+                      <span className="truncate">{m.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="whitespace-pre-wrap text-ui text-muted">{c.body}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const topLevel = (comments ?? []).filter((c) => !c.parentId);
+  const repliesByParent = new Map<string, CommentDTO[]>();
+  for (const c of comments ?? []) {
+    if (c.parentId) {
+      const arr = repliesByParent.get(c.parentId);
+      if (arr) arr.push(c);
+      else repliesByParent.set(c.parentId, [c]);
+    }
+  }
+
   return (
     <div className="border-t border-border px-5 py-4">
       <span className={cn(fieldLabel, "mb-3 block")}>
@@ -608,78 +708,62 @@ function CommentsSection({
       <div className="space-y-3">
         {comments === null ? (
           <p className="text-dense text-subtle">Carregando…</p>
-        ) : comments.length === 0 ? (
+        ) : topLevel.length === 0 ? (
           <p className="text-dense text-subtle">Nenhum comentário ainda.</p>
         ) : (
-          comments.map((c) => (
-            <div key={c.id} className="group flex gap-2.5">
-              <Avatar name={c.author.name} src={c.author.avatarUrl ?? undefined} size="sm" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-dense font-semibold text-foreground">
-                    {c.author.name}
-                  </span>
-                  <span className="text-[11px] text-subtle">{timeAgo(c.createdAt)}</span>
-                  <div className="relative ml-auto flex items-center gap-1">
-                    {c.assignedTo ? (
-                      <button
-                        type="button"
-                        onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
-                        title={`Atribuído a ${c.assignedTo.name}`}
-                      >
-                        <Avatar
-                          name={c.assignedTo.name}
-                          src={c.assignedTo.avatarUrl ?? undefined}
-                          size="xs"
-                        />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setAssigningId(assigningId === c.id ? null : c.id)}
-                        aria-label="Atribuir comentário"
-                        className="text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                      >
-                        <UserPlus className="size-3.5" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => remove(c.id)}
-                      aria-label="Excluir comentário"
-                      className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+          topLevel.map((c) => (
+            <div key={c.id}>
+              {renderComment(c)}
 
-                    {assigningId === c.id && (
-                      <div className="absolute right-0 top-6 z-10 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
-                        {c.assignedTo && (
-                          <button
-                            type="button"
-                            onClick={() => assign(c.id, null)}
-                            className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-muted hover:bg-elevated"
-                          >
-                            <X className="size-3.5" /> Remover atribuição
-                          </button>
-                        )}
-                        {members.map((m) => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => assign(c.id, m.id)}
-                            className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
-                          >
-                            <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
-                            <span className="truncate">{m.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+              {(repliesByParent.get(c.id)?.length ?? 0) > 0 && (
+                <div className="ml-8 mt-2 space-y-2 border-l border-border pl-3">
+                  {repliesByParent.get(c.id)!.map((r) => (
+                    <div key={r.id}>{renderComment(r)}</div>
+                  ))}
                 </div>
-                <p className="whitespace-pre-wrap text-ui text-muted">{c.body}</p>
-              </div>
+              )}
+
+              {replyingTo === c.id ? (
+                <div className="ml-8 mt-2 flex items-center gap-2">
+                  <Input
+                    autoFocus
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void postReply(c.id);
+                      } else if (e.key === "Escape") {
+                        setReplyingTo(null);
+                      }
+                    }}
+                    placeholder="Responder…"
+                    className="h-8 text-dense"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={() => void postReply(c.id)}
+                    disabled={!replyBody.trim()}
+                    aria-label="Responder"
+                  >
+                    <Send />
+                  </Button>
+                </div>
+              ) : (
+                currentUserId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplyBody("");
+                      setReplyingTo(c.id);
+                    }}
+                    className="ml-8 mt-1 text-[11px] font-medium text-subtle hover:text-brand"
+                  >
+                    Responder
+                  </button>
+                )
+              )}
             </div>
           ))
         )}

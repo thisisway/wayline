@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   getAssignedComments,
   getBoardForOrg,
+  getMyReplies,
   getMyTasks,
   getNotifications,
   getUserOrgs,
@@ -12,6 +13,7 @@ import {
   type MyTask,
   type NavSpace,
   type NotificationDTO,
+  type ReplyDTO,
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
@@ -44,6 +46,7 @@ export default async function AppPage({
   let myTasks: MyTask[] = [];
   let inbox: { items: NotificationDTO[]; unread: number } = { items: [], unread: 0 };
   let assignedComments: AssignedComment[] = [];
+  let replies: ReplyDTO[] = [];
   try {
     nav = await getWorkspaceNav(activeOrg.id);
     const orgListIds = new Set(nav.flatMap((s) => s.lists.map((l) => l.id)));
@@ -53,6 +56,7 @@ export default async function AppPage({
     myTasks = await getMyTasks(activeOrg.id, session.user.id);
     inbox = await getNotifications(activeOrg.id, session.user.id);
     assignedComments = await getAssignedComments(activeOrg.id, session.user.id);
+    replies = await getMyReplies(activeOrg.id, session.user.id);
   } catch (err) {
     console.error("Falha ao carregar o board do Postgres:", err);
   }
@@ -67,6 +71,7 @@ export default async function AppPage({
       myTasks={myTasks}
       inbox={inbox}
       assignedComments={assignedComments}
+      replies={replies}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
       focusTaskId={focusTaskId}
