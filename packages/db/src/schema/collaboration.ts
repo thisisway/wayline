@@ -170,3 +170,23 @@ export const timeEntries = pgTable(
 export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   user: one(users, { fields: [timeEntries.userId], references: [users.id] }),
 }));
+
+/** HISTÓRICO de atividade da tarefa (feed read-only). `actor_name` denormalizado. */
+export const activityLog = pgTable(
+  "activity_log",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    actorName: text("actor_name").notNull(),
+    action: text("action").notNull(),
+    detail: text("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("activity_task_idx").on(t.taskId), index("activity_org_idx").on(t.orgId)],
+);

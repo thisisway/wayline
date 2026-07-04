@@ -10,7 +10,11 @@ import {
   deleteTask,
   duplicateTask,
   getSubtasks,
+  getTaskActivity,
   getTaskCard,
+  logCreated,
+  logTaskChanges,
+  type ActivityDTO,
   getTaskComments,
   notifyMentions,
   notifyReply,
@@ -54,7 +58,10 @@ export async function createTaskAction(
   if (!(await assertMember(orgId))) return null;
   const id = await createTask(orgId, normalize(input));
   const user = await getSessionUser();
-  if (user) await notifyTaskAssignees(orgId, id, user.id, user.name, "assigned");
+  if (user) {
+    await notifyTaskAssignees(orgId, id, user.id, user.name, "assigned");
+    await logCreated(orgId, id, user.id, user.name);
+  }
   revalidatePath("/app");
   return getTaskCard(orgId, id);
 }
@@ -65,9 +72,15 @@ export async function updateTaskAction(
   input: TaskFormInput,
 ): Promise<BoardTaskDTO | null> {
   if (!(await assertMember(orgId))) return null;
+  const before = await getTaskCard(orgId, id);
   await updateTask(orgId, { id, ...normalize(input) });
+  const after = await getTaskCard(orgId, id);
+  const user = await getSessionUser();
+  if (user && before && after) {
+    await logTaskChanges(orgId, id, user.id, user.name, before, after);
+  }
   revalidatePath("/app");
-  return getTaskCard(orgId, id);
+  return after;
 }
 
 /** Recarrega um card (para reconciliar flags derivadas, ex.: bloqueio). */
@@ -118,6 +131,14 @@ export async function addCommentAction(
   if (mentionIds?.length) await notifyMentions(orgId, taskId, user.id, user.name, mentionIds);
   revalidatePath("/app");
   return created;
+}
+
+export async function listActivityAction(
+  orgId: string,
+  taskId: string,
+): Promise<ActivityDTO[]> {
+  if (!(await assertMember(orgId))) return [];
+  return getTaskActivity(orgId, taskId);
 }
 
 export async function deleteCommentAction(orgId: string, id: string): Promise<void> {

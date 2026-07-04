@@ -3,7 +3,13 @@
 import * as React from "react";
 import { CheckSquare, Copy, Plus, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
-import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
+import type {
+  ActivityDTO,
+  BoardClientDTO,
+  BoardMemberDTO,
+  CommentDTO,
+  Subtask,
+} from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
 import { AttachmentsSection } from "@/components/board/attachments-section";
 import { DependenciesSection } from "@/components/board/dependencies-section";
@@ -15,6 +21,7 @@ import {
   assignCommentAction,
   deleteCommentAction,
   deleteSubtaskAction,
+  listActivityAction,
   listCommentsAction,
   listSubtasksAction,
   toggleSubtaskAction,
@@ -302,6 +309,8 @@ export function TaskModal({
               onCountChange={onCommentCountChange}
             />
           )}
+
+          {mode === "edit" && taskId && <ActivitySection orgId={orgId} taskId={taskId} />}
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-5 py-3.5">
@@ -779,6 +788,71 @@ function CommentsSection({
           onPost={(text, ids) => void post(text, ids)}
         />
       </div>
+    </div>
+  );
+}
+
+function activityPhrase(a: ActivityDTO): React.ReactNode {
+  const d = a.detail;
+  switch (a.action) {
+    case "created":
+      return "criou a tarefa";
+    case "title":
+      return <>renomeou · {d}</>;
+    case "priority":
+      return <>prioridade: {d}</>;
+    case "completed":
+      return d === "Concluída" ? "concluiu a tarefa" : "reabriu a tarefa";
+    case "due":
+      return <>prazo: {d}</>;
+    case "client":
+      return <>cliente: {d}</>;
+    case "status":
+      return <>moveu · {d}</>;
+    case "assignees":
+      return <>responsáveis · {d}</>;
+    default:
+      return d ?? a.action;
+  }
+}
+
+function ActivitySection({ orgId, taskId }: { orgId: string; taskId: string }) {
+  const [items, setItems] = React.useState<ActivityDTO[] | null>(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    listActivityAction(orgId, taskId).then((a) => alive && setItems(a));
+    return () => {
+      alive = false;
+    };
+  }, [orgId, taskId]);
+
+  return (
+    <div className="border-t border-border px-5 py-4">
+      <span className={cn(fieldLabel, "mb-3 block")}>
+        Atividade {items && items.length > 0 ? `(${items.length})` : ""}
+      </span>
+      {items === null ? (
+        <p className="text-dense text-subtle">Carregando…</p>
+      ) : items.length === 0 ? (
+        <p className="text-dense text-subtle">Sem atividade registrada.</p>
+      ) : (
+        <div className="space-y-2.5">
+          {items
+            .slice()
+            .reverse()
+            .map((a) => (
+              <div key={a.id} className="flex gap-2.5 text-dense">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-border" />
+                <p className="text-muted">
+                  <span className="font-semibold text-foreground">{a.actorName}</span>{" "}
+                  {activityPhrase(a)}
+                  <span className="ml-1.5 text-[11px] text-subtle">{timeAgo(a.createdAt)}</span>
+                </p>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

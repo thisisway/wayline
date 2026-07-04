@@ -104,6 +104,12 @@ export {
 } from "./queries/time-tracking";
 export { getOrgReport, type OrgReport, type ReportRow } from "./queries/reports";
 export {
+  getTaskActivity,
+  logCreated,
+  logTaskChanges,
+  type ActivityDTO,
+} from "./queries/activity";
+export {
   notifyTaskAssignees,
   notifyAssigned,
   notifyMentions,
