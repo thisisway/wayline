@@ -1,8 +1,9 @@
 "use client";
 
-import { Ban, CalendarDays, CheckSquare, MessageSquare, Paperclip } from "lucide-react";
+import { Ban, CalendarDays, CheckSquare, Clock, MessageSquare, Paperclip } from "lucide-react";
 import { AvatarGroup, Card, cn } from "@wayline/ui";
 import type { Priority, TaskCard as TaskCardType } from "@/mock/types";
+import { fmtDuration } from "./time-tracking-section";
 
 const priorityMeta: Record<Priority, { label: string; color: string }> = {
   urgent: { label: "Urgente", color: "#FF3B30" },
@@ -99,6 +100,12 @@ export function TaskCard({ card }: { card: TaskCardType }) {
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="size-3.5" />
               {card.comments}
+            </span>
+          )}
+          {card.trackedSeconds != null && card.trackedSeconds >= 60 && (
+            <span className="inline-flex items-center gap-1" title="Tempo rastreado">
+              <Clock className="size-3.5" />
+              {fmtDuration(card.trackedSeconds)}
             </span>
           )}
         </div>

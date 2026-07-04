@@ -233,6 +233,18 @@ export function DndBoard({ data }: { data: BoardData }) {
     poke();
   }
 
+  function updateTrackedSeconds(taskId: string, trackedSeconds: number) {
+    commit(
+      columnsRef.current.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === taskId ? { ...card, trackedSeconds } : card,
+        ),
+      })),
+    );
+    poke();
+  }
+
   async function handleDependenciesChange(taskId: string) {
     const dto = await refreshCardAction(orgId, taskId).catch(() => null);
     if (!dto) return;
@@ -355,6 +367,11 @@ export function DndBoard({ data }: { data: BoardData }) {
           onDependenciesChange={
             modal.mode === "edit"
               ? () => handleDependenciesChange(modal.task.id)
+              : undefined
+          }
+          onTrackedChange={
+            modal.mode === "edit"
+              ? (seconds) => updateTrackedSeconds(modal.task.id, seconds)
               : undefined
           }
         />

@@ -137,3 +137,36 @@ export const taskDependencies = pgTable(
     index("task_dep_org_idx").on(t.orgId),
   ],
 );
+
+/**
+ * CONTROLE DE TEMPO. Cada linha é um intervalo `started_at`→`ended_at`.
+ * `ended_at` nulo = cronômetro em andamento (só um por usuário).
+ */
+export const timeEntries = pgTable(
+  "time_entries",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().default(sql`now()`),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [
+    index("time_entries_task_idx").on(t.taskId),
+    index("time_entries_user_idx").on(t.userId),
+    index("time_entries_org_idx").on(t.orgId),
+  ],
+);
+
+export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+  user: one(users, { fields: [timeEntries.userId], references: [users.id] }),
+}));

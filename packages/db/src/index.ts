@@ -92,6 +92,17 @@ export {
   type AddDependencyResult,
 } from "./queries/dependencies";
 export {
+  getTaskTimeEntries,
+  getRunningTimer,
+  startTimer,
+  stopTimer,
+  addManualEntry,
+  deleteTimeEntry,
+  getTaskTrackedSeconds,
+  type TimeEntryDTO,
+  type RunningTimer,
+} from "./queries/time-tracking";
+export {
   notifyTaskAssignees,
   notifyAssigned,
   getNotifications,

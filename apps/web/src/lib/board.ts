@@ -45,6 +45,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     comments: t.commentCount,
     subtasks: t.subtaskTotal > 0 ? { done: t.subtaskDone, total: t.subtaskTotal } : undefined,
     blocked: t.blocked,
+    trackedSeconds: t.trackedSeconds,
   };
 }
 

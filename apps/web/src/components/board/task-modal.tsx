@@ -7,6 +7,7 @@ import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayli
 import type { TaskFormInput } from "@/lib/board";
 import { AttachmentsSection } from "@/components/board/attachments-section";
 import { DependenciesSection } from "@/components/board/dependencies-section";
+import { TimeTrackingSection } from "@/components/board/time-tracking-section";
 import {
   addCommentAction,
   addSubtaskAction,
@@ -57,6 +58,7 @@ export interface TaskModalProps {
   onSubtaskCountChange?: (done: number, total: number) => void;
   onAttachmentCountChange?: (count: number) => void;
   onDependenciesChange?: () => void;
+  onTrackedChange?: (seconds: number) => void;
 }
 
 export function TaskModal({
@@ -77,6 +79,7 @@ export function TaskModal({
   onSubtaskCountChange,
   onAttachmentCountChange,
   onDependenciesChange,
+  onTrackedChange,
 }: TaskModalProps) {
   const [form, setForm] = React.useState<TaskFormInput>(initial);
   const set = <K extends keyof TaskFormInput>(key: K, value: TaskFormInput[K]) =>
@@ -275,6 +278,10 @@ export function TaskModal({
 
           {mode === "edit" && taskId && (
             <DependenciesSection orgId={orgId} taskId={taskId} onChange={onDependenciesChange} />
+          )}
+
+          {mode === "edit" && taskId && (
+            <TimeTrackingSection orgId={orgId} taskId={taskId} onTrackedChange={onTrackedChange} />
           )}
 
           {mode === "edit" && taskId && (

@@ -10,6 +10,7 @@ import {
   statuses,
   taskDependencies,
   tasks,
+  timeEntries,
 } from "../schema";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -39,6 +40,8 @@ export interface BoardTaskDTO {
   attachmentCount: number;
   /** Tem ao menos um bloqueador ainda não concluído. */
   blocked: boolean;
+  /** Segundos totais rastreados (controle de tempo). */
+  trackedSeconds: number;
 }
 
 export interface BoardColumnDTO {
@@ -114,6 +117,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     subtaskDone: 0,
     attachmentCount: 0,
     blocked: false,
+    trackedSeconds: 0,
   };
 }
 
@@ -208,6 +212,21 @@ async function buildBoard(
     : [];
   const blockedSet = new Set(blockedRows.map((r) => r.blockedId));
 
+  const timeRows = taskIds.length
+    ? await tx
+        .select({
+          taskId: timeEntries.taskId,
+          seconds:
+            sql<number>`coalesce(sum(extract(epoch from (coalesce(${timeEntries.endedAt}, now()) - ${timeEntries.startedAt}))), 0)`.mapWith(
+              Number,
+            ),
+        })
+        .from(timeEntries)
+        .where(inArray(timeEntries.taskId, taskIds))
+        .groupBy(timeEntries.taskId)
+    : [];
+  const timeByTask = new Map(timeRows.map((r) => [r.taskId, Math.round(r.seconds)]));
+
   // Arestas de dependência entre tarefas visíveis (ambos os lados na lista).
   const depEdges = taskIds.length
     ? await tx
@@ -231,6 +250,7 @@ async function buildBoard(
     dto.commentCount = commentCounts.get(t.id) ?? 0;
     dto.attachmentCount = attCounts.get(t.id) ?? 0;
     dto.blocked = blockedSet.has(t.id);
+    dto.trackedSeconds = timeByTask.get(t.id) ?? 0;
     const sub = subCounts.get(t.id);
     dto.subtaskTotal = sub?.total ?? 0;
     dto.subtaskDone = sub?.done ?? 0;
@@ -328,6 +348,16 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
       )
       .limit(1);
     dto.blocked = blockedRows.length > 0;
+    const [timeRow] = await tx
+      .select({
+        seconds:
+          sql<number>`coalesce(sum(extract(epoch from (coalesce(${timeEntries.endedAt}, now()) - ${timeEntries.startedAt}))), 0)`.mapWith(
+            Number,
+          ),
+      })
+      .from(timeEntries)
+      .where(eq(timeEntries.taskId, id));
+    dto.trackedSeconds = Math.round(timeRow?.seconds ?? 0);
     return dto;
   });
 }
