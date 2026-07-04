@@ -32,11 +32,6 @@ function fmtClock(seconds: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
-function entrySeconds(e: TimeEntryDTO, nowMs: number): number {
-  if (!e.running) return e.seconds;
-  return Math.max(0, Math.round((nowMs - new Date(e.startedAt).getTime()) / 1000));
-}
-
 function fmtDate(d: Date): string {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
@@ -65,9 +60,22 @@ export function TimeTrackingSection({
   }, [orgId, taskId]);
 
   const running = React.useMemo(() => (entries ?? []).find((e) => e.running) ?? null, [entries]);
+  const isRunning = running !== null;
+
+  // Âncora client-side: base (segundos do servidor no instante do fetch) + delta
+  // medido pelo relógio do NAVEGADOR. Imune a diferença de horário cliente/servidor.
+  const anchorRef = React.useRef<{ id: string; base: number; at: number } | null>(null);
+  React.useEffect(() => {
+    if (running) {
+      if (anchorRef.current?.id !== running.id) {
+        anchorRef.current = { id: running.id, base: running.seconds, at: Date.now() };
+      }
+    } else {
+      anchorRef.current = null;
+    }
+  }, [running]);
 
   // Tique de 1s enquanto houver cronômetro rodando (dep. primitiva p/ estabilidade).
-  const isRunning = running !== null;
   React.useEffect(() => {
     if (!isRunning) return;
     setNow(Date.now()); // tique imediato ao iniciar
@@ -75,7 +83,18 @@ export function TimeTrackingSection({
     return () => window.clearInterval(id);
   }, [isRunning]);
 
-  const total = (entries ?? []).reduce((acc, e) => acc + entrySeconds(e, now), 0);
+  const liveSeconds = React.useCallback(
+    (e: TimeEntryDTO): number => {
+      const a = anchorRef.current;
+      if (e.running && a && a.id === e.id) {
+        return a.base + (now - a.at) / 1000;
+      }
+      return e.seconds;
+    },
+    [now],
+  );
+
+  const total = (entries ?? []).reduce((acc, e) => acc + liveSeconds(e), 0);
 
   function emitTotal(list: TimeEntryDTO[]) {
     onTrackedChange?.(list.reduce((acc, e) => acc + e.seconds, 0));
@@ -223,7 +242,7 @@ export function TimeTrackingSection({
                   e.running ? "text-brand" : "text-foreground",
                 )}
               >
-                {e.running ? fmtClock(entrySeconds(e, now)) : fmtDuration(e.seconds)}
+                {e.running ? fmtClock(liveSeconds(e)) : fmtDuration(e.seconds)}
               </span>
               <button
                 type="button"
