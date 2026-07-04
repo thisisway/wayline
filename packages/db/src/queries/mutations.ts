@@ -120,6 +120,46 @@ export async function updateTask(orgId: string, input: UpdateTaskInput): Promise
   });
 }
 
+/** Duplica uma tarefa (campos + tags + responsáveis; não copia subtarefas/comentários). */
+export async function duplicateTask(orgId: string, taskId: string): Promise<string> {
+  return withOrg(orgId, async (tx) => {
+    const src = await tx.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+      with: { assignees: true },
+    });
+    if (!src) throw new Error("tarefa não encontrada");
+
+    const position = src.statusId
+      ? await tx.$count(tasks, and(eq(tasks.statusId, src.statusId), isNull(tasks.deletedAt)))
+      : 0;
+
+    const [created] = await tx
+      .insert(tasks)
+      .values({
+        orgId,
+        listId: src.listId,
+        statusId: src.statusId,
+        title: `${src.title} (cópia)`,
+        description: src.description,
+        priority: src.priority,
+        clientId: src.clientId,
+        startDate: src.startDate,
+        dueDate: src.dueDate,
+        tags: src.tags,
+        position,
+      })
+      .returning();
+    if (!created) throw new Error("falha ao duplicar tarefa");
+
+    if (src.assignees.length > 0) {
+      await tx
+        .insert(taskAssignees)
+        .values(src.assignees.map((a) => ({ orgId, taskId: created.id, userId: a.userId })));
+    }
+    return created.id;
+  });
+}
+
 /** Soft delete — o board filtra por deleted_at IS NULL. */
 export async function deleteTask(orgId: string, id: string): Promise<void> {
   await withOrg(orgId, async (tx) => {

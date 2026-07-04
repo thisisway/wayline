@@ -28,6 +28,7 @@ import { TaskModal } from "./task-modal";
 import {
   createTaskAction,
   deleteTaskAction,
+  duplicateTaskAction,
   saveBoard,
   updateTaskAction,
 } from "@/actions/board";
@@ -235,6 +236,21 @@ export function DndBoard({ data }: { data: BoardData }) {
     }
   }
 
+  async function handleDuplicate() {
+    if (modal?.mode !== "edit") return;
+    setSubmitting(true);
+    try {
+      const dto = await duplicateTaskAction(orgId, modal.task.id);
+      if (dto) upsertCard(dto);
+      setModal(null);
+      poke();
+    } catch (err) {
+      console.error("Falha ao duplicar a tarefa:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const modalInitial: TaskFormInput =
     modal?.mode === "edit"
       ? dtoToForm(modal.task)
@@ -293,6 +309,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           onClose={() => setModal(null)}
           onSubmit={handleSubmit}
           onDelete={handleDelete}
+          onDuplicate={modal.mode === "edit" ? handleDuplicate : undefined}
           onCommentCountChange={
             modal.mode === "edit"
               ? (count) => updateCommentCount(modal.task.id, count)

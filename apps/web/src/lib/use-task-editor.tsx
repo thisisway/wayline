@@ -4,7 +4,12 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { dtoToForm, type TaskFormInput } from "@/lib/board";
-import { createTaskAction, deleteTaskAction, updateTaskAction } from "@/actions/board";
+import {
+  createTaskAction,
+  deleteTaskAction,
+  duplicateTaskAction,
+  updateTaskAction,
+} from "@/actions/board";
 import { pokeList } from "@/actions/live";
 import { TaskModal } from "@/components/board/task-modal";
 
@@ -55,6 +60,21 @@ export function useTaskEditor(data: BoardData | null) {
     }
   }
 
+  async function handleDuplicate() {
+    if (!data || state?.mode !== "edit") return;
+    setSubmitting(true);
+    try {
+      await duplicateTaskAction(data.orgId, state.task.id);
+      void pokeList(data.listId);
+      setState(null);
+      router.refresh();
+    } catch (err) {
+      console.error("Falha ao duplicar a tarefa:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const initial: TaskFormInput =
     state?.mode === "edit"
       ? dtoToForm(state.task)
@@ -85,6 +105,7 @@ export function useTaskEditor(data: BoardData | null) {
         onClose={() => setState(null)}
         onSubmit={handleSubmit}
         onDelete={handleDelete}
+        onDuplicate={state.mode === "edit" ? handleDuplicate : undefined}
         onSubtaskCountChange={() => {
           void pokeList(data.listId);
           router.refresh();

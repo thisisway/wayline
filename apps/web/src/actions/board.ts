@@ -8,6 +8,7 @@ import {
   deleteComment,
   deleteSubtask,
   deleteTask,
+  duplicateTask,
   getSubtasks,
   getTaskCard,
   getTaskComments,
@@ -71,6 +72,16 @@ export async function deleteTaskAction(orgId: string, id: string): Promise<void>
   if (!(await assertMember(orgId))) return;
   await deleteTask(orgId, id);
   revalidatePath("/app");
+}
+
+export async function duplicateTaskAction(
+  orgId: string,
+  id: string,
+): Promise<BoardTaskDTO | null> {
+  if (!(await assertMember(orgId))) return null;
+  const newId = await duplicateTask(orgId, id);
+  revalidatePath("/app");
+  return getTaskCard(orgId, newId);
 }
 
 // --- Comentários -----------------------------------------------------------

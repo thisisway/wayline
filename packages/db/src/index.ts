@@ -42,6 +42,7 @@ export {
   saveBoardOrder,
   createTask,
   updateTask,
+  duplicateTask,
   deleteTask,
   type BoardOrderInput,
   type CreateTaskInput,

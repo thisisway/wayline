@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Plus, Send, Square, Trash2, UserPlus, X } from "lucide-react";
+import { CheckSquare, Copy, Plus, Send, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type { BoardClientDTO, BoardMemberDTO, CommentDTO, Subtask } from "@wayline/db";
 import type { TaskFormInput } from "@/lib/board";
@@ -50,6 +50,7 @@ export interface TaskModalProps {
   onClose: () => void;
   onSubmit: (input: TaskFormInput) => void;
   onDelete?: () => void;
+  onDuplicate?: () => void;
   onCommentCountChange?: (count: number) => void;
   onSubtaskCountChange?: (done: number, total: number) => void;
 }
@@ -67,6 +68,7 @@ export function TaskModal({
   onClose,
   onSubmit,
   onDelete,
+  onDuplicate,
   onCommentCountChange,
   onSubtaskCountChange,
 }: TaskModalProps) {
@@ -277,11 +279,21 @@ export function TaskModal({
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-5 py-3.5">
-          {mode === "edit" && onDelete ? (
-            <Button type="button" variant="ghost" onClick={onDelete} disabled={submitting}>
-              <Trash2 className="size-4 text-danger" />
-              Excluir
-            </Button>
+          {mode === "edit" ? (
+            <div className="flex gap-1">
+              {onDelete && (
+                <Button type="button" variant="ghost" onClick={onDelete} disabled={submitting}>
+                  <Trash2 className="size-4 text-danger" />
+                  Excluir
+                </Button>
+              )}
+              {onDuplicate && (
+                <Button type="button" variant="ghost" onClick={onDuplicate} disabled={submitting}>
+                  <Copy className="size-4" />
+                  Duplicar
+                </Button>
+              )}
+            </div>
           ) : (
             <span />
           )}
