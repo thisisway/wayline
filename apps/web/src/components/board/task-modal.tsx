@@ -15,6 +15,7 @@ import { AttachmentsSection } from "@/components/board/attachments-section";
 import { DependenciesSection } from "@/components/board/dependencies-section";
 import { TimeTrackingSection } from "@/components/board/time-tracking-section";
 import { MentionComposer, renderWithMentions } from "@/components/board/mention-composer";
+import { CustomFieldsSection } from "@/components/board/custom-fields-section";
 import {
   addCommentAction,
   addSubtaskAction,
@@ -279,6 +280,8 @@ export function TaskModal({
 
             <TagsEditor tags={form.tags} onChange={(tags) => set("tags", tags)} />
           </form>
+
+          {mode === "edit" && taskId && <CustomFieldsSection orgId={orgId} taskId={taskId} />}
 
           {mode === "edit" && taskId && (
             <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />

@@ -1,5 +1,15 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
 import { lists, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
@@ -189,4 +199,47 @@ export const activityLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   },
   (t) => [index("activity_task_idx").on(t.taskId), index("activity_org_idx").on(t.orgId)],
+);
+
+/** CAMPOS CUSTOMIZADOS — definições por lista. `type`: text|number|select|date|checkbox. */
+export const customFieldDefs = pgTable(
+  "custom_field_defs",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    options: jsonb("options").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("cfd_list_idx").on(t.listId), index("cfd_org_idx").on(t.orgId)],
+);
+
+/** Valores dos campos por tarefa (um por par tarefa+campo; guardado como texto). */
+export const customFieldValues = pgTable(
+  "custom_field_values",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    fieldId: uuid("field_id")
+      .notNull()
+      .references(() => customFieldDefs.id, { onDelete: "cascade" }),
+    value: text("value"),
+  },
+  (t) => [
+    uniqueIndex("cfv_task_field_unique").on(t.taskId, t.fieldId),
+    index("cfv_task_idx").on(t.taskId),
+    index("cfv_org_idx").on(t.orgId),
+  ],
 );

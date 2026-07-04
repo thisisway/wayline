@@ -27,6 +27,7 @@ import { CalendarView } from "@/components/board/calendar-view";
 import { GanttView } from "@/components/board/gantt-view";
 import { ChatView } from "@/components/board/chat-view";
 import { ReportsView } from "@/components/board/reports-view";
+import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
@@ -66,6 +67,7 @@ export function AppView({
   const [assignedOpen, setAssignedOpen] = React.useState(false);
   const [repliesOpen, setRepliesOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [fieldsOpen, setFieldsOpen] = React.useState(false);
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -148,6 +150,14 @@ export function AppView({
       )}
       {focusEditor.modal}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
+      {fieldsOpen && data && (
+        <CustomFieldsManager
+          orgId={activeOrgId}
+          listId={data.listId}
+          listName={listName}
+          onClose={() => setFieldsOpen(false)}
+        />
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />
@@ -161,6 +171,7 @@ export function AppView({
           clients={data?.clients ?? []}
           members={data?.members ?? []}
           tags={tagOptions}
+          onOpenFields={() => setFieldsOpen(true)}
         />
 
         {view === "board" ? (

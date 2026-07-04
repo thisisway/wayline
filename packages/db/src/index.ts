@@ -110,6 +110,18 @@ export {
   type ActivityDTO,
 } from "./queries/activity";
 export {
+  getListFields,
+  createField,
+  updateField,
+  deleteField,
+  getTaskFields,
+  setFieldValue,
+  type CustomFieldType,
+  type CustomFieldDef,
+  type CustomFieldWithValue,
+  type CreateFieldInput,
+} from "./queries/custom-fields";
+export {
   notifyTaskAssignees,
   notifyAssigned,
   notifyMentions,
