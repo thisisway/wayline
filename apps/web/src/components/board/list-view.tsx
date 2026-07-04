@@ -9,6 +9,36 @@ import { useTaskEditor } from "@/lib/use-task-editor";
 import { priorityMeta } from "@/components/board/task-card";
 
 type GroupBy = "status" | "priority" | "assignee" | "client";
+type SortBy = "default" | "due" | "priority" | "title";
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "default", label: "Padrão" },
+  { value: "due", label: "Prazo" },
+  { value: "priority", label: "Prioridade" },
+  { value: "title", label: "Título" },
+];
+
+const PRIO_ORDER: Record<BoardTaskDTO["priority"], number> = {
+  urgent: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
+function sortTasks(tasks: BoardTaskDTO[], sortBy: SortBy): BoardTaskDTO[] {
+  if (sortBy === "default") return tasks;
+  const copy = [...tasks];
+  if (sortBy === "due") {
+    copy.sort(
+      (a, b) => (a.dueDate?.getTime() ?? Infinity) - (b.dueDate?.getTime() ?? Infinity),
+    );
+  } else if (sortBy === "priority") {
+    copy.sort((a, b) => PRIO_ORDER[a.priority] - PRIO_ORDER[b.priority]);
+  } else if (sortBy === "title") {
+    copy.sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
+  }
+  return copy;
+}
 
 interface Group {
   key: string;
@@ -86,26 +116,48 @@ function buildGroups(data: BoardData, groupBy: GroupBy): Group[] {
 export function ListView({ data }: { data: BoardData }) {
   const editor = useTaskEditor(data);
   const [groupBy, setGroupBy] = React.useState<GroupBy>("status");
+  const [sortBy, setSortBy] = React.useState<SortBy>("default");
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
 
-  const groups = React.useMemo(() => buildGroups(data, groupBy), [data, groupBy]);
+  const groups = React.useMemo(() => {
+    const g = buildGroups(data, groupBy);
+    return sortBy === "default"
+      ? g
+      : g.map((grp) => ({ ...grp, tasks: sortTasks(grp.tasks, sortBy) }));
+  }, [data, groupBy, sortBy]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-dense text-muted">Agrupar por</span>
-          <select
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-            className="h-8 rounded-md border border-border bg-surface px-2 text-dense font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {GROUP_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-dense text-muted">Agrupar por</span>
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+              className="h-8 rounded-md border border-border bg-surface px-2 text-dense font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {GROUP_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-dense text-muted">Ordenar por</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortBy)}
+              className="h-8 rounded-md border border-border bg-surface px-2 text-dense font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="space-y-6">
