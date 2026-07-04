@@ -17,7 +17,12 @@ import {
 import type { BoardClientDTO, BoardMemberDTO } from "@wayline/db";
 import { Avatar, AvatarGroup, Button, Tabs, TabsList, TabsTrigger, cn } from "@wayline/ui";
 import type { Viewer } from "@/lib/presence";
-import { activeFilterCount, EMPTY_FILTERS, type BoardFilters } from "@/lib/board-filter";
+import {
+  activeFilterCount,
+  EMPTY_FILTERS,
+  type BoardFilters,
+  type CustomFieldOption,
+} from "@/lib/board-filter";
 import { clients as mockClients } from "@/mock/data";
 
 const views = [
@@ -46,6 +51,7 @@ export function ViewTabs({
   clients,
   members,
   tags,
+  customFieldOptions,
   onOpenFields,
 }: {
   value: string;
@@ -57,6 +63,7 @@ export function ViewTabs({
   clients: BoardClientDTO[];
   members: BoardMemberDTO[];
   tags: Array<{ label: string; color: string }>;
+  customFieldOptions: CustomFieldOption[];
   onOpenFields?: () => void;
 }) {
   return (
@@ -100,6 +107,7 @@ export function ViewTabs({
           clients={clients}
           members={members}
           tags={tags}
+          customFieldOptions={customFieldOptions}
         />
         <Button
           variant="ghost"
@@ -119,18 +127,31 @@ export function ViewTabs({
   );
 }
 
+function fmtFieldValue(type: string, value: string): string {
+  if (type === "checkbox") return value === "1" ? "Sim" : "Não";
+  if (type === "date") {
+    const d = new Date(value);
+    return isNaN(d.getTime())
+      ? value
+      : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  }
+  return value;
+}
+
 function FilterMenu({
   filters,
   onChange,
   clients,
   members,
   tags,
+  customFieldOptions,
 }: {
   filters: BoardFilters;
   onChange: (f: BoardFilters) => void;
   clients: BoardClientDTO[];
   members: BoardMemberDTO[];
   tags: Array<{ label: string; color: string }>;
+  customFieldOptions: CustomFieldOption[];
 }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -145,10 +166,21 @@ function FilterMenu({
     return () => window.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  function toggle<K extends keyof BoardFilters>(key: K, item: string) {
+  function toggle(key: "priorities" | "assigneeIds" | "clientIds" | "tags", item: string) {
     const list = filters[key];
     const next = list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
     onChange({ ...filters, [key]: next });
+  }
+
+  function toggleCustom(name: string, value: string) {
+    const current = filters.customFields[name] ?? [];
+    const next = current.includes(value)
+      ? current.filter((x) => x !== value)
+      : [...current, value];
+    const customFields = { ...filters.customFields };
+    if (next.length) customFields[name] = next;
+    else delete customFields[name];
+    onChange({ ...filters, customFields });
   }
 
   return (
@@ -238,6 +270,20 @@ function FilterMenu({
               ))}
             </Section>
           )}
+
+          {customFieldOptions.map((cf) => (
+            <Section key={cf.name} label={cf.name}>
+              {cf.values.map((v) => (
+                <Chip
+                  key={v}
+                  active={(filters.customFields[cf.name] ?? []).includes(v)}
+                  onClick={() => toggleCustom(cf.name, v)}
+                >
+                  {fmtFieldValue(cf.type, v)}
+                </Chip>
+              ))}
+            </Section>
+          ))}
         </div>
       )}
     </div>

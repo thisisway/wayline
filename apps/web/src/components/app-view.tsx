@@ -31,7 +31,13 @@ import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
-import { applyFilters, collectTags, EMPTY_FILTERS, type BoardFilters } from "@/lib/board-filter";
+import {
+  applyFilters,
+  collectCustomFieldOptions,
+  collectTags,
+  EMPTY_FILTERS,
+  type BoardFilters,
+} from "@/lib/board-filter";
 
 export function AppView({
   data,
@@ -109,6 +115,10 @@ export function AppView({
 
   const filtered = React.useMemo(() => (data ? applyFilters(data, filters) : null), [data, filters]);
   const tagOptions = React.useMemo(() => (data ? collectTags(data) : []), [data]);
+  const customFieldOptions = React.useMemo(
+    () => (data ? collectCustomFieldOptions(data) : []),
+    [data],
+  );
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
@@ -171,6 +181,7 @@ export function AppView({
           clients={data?.clients ?? []}
           members={data?.members ?? []}
           tags={tagOptions}
+          customFieldOptions={customFieldOptions}
           onOpenFields={() => setFieldsOpen(true)}
         />
 
