@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input } from "@wayline/ui";
 
+/** Destino pós-login: usa ?next=/… se for um caminho interno seguro. */
+export function safeNext(): string {
+  if (typeof window === "undefined") return "/app";
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
@@ -22,7 +29,7 @@ export function LoginForm() {
       if (res?.error) {
         setError("Email ou senha inválidos.");
       } else {
-        router.push("/app");
+        router.push(safeNext());
         router.refresh();
       }
     } catch {

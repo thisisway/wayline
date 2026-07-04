@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input } from "@wayline/ui";
 import { registerAction } from "@/actions/auth";
+import { safeNext } from "@/components/auth/login-form";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export function RegisterForm() {
       if (login?.error) {
         setError("Conta criada, mas falhou o login. Tente entrar.");
       } else {
-        router.push("/app");
+        router.push(safeNext());
         router.refresh();
       }
     } catch {

@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   index,
   integer,
   jsonb,
@@ -242,4 +243,26 @@ export const customFieldValues = pgTable(
     index("cfv_task_idx").on(t.taskId),
     index("cfv_org_idx").on(t.orgId),
   ],
+);
+
+/**
+ * CONVITES por link. SEM RLS (como `organizations`): a busca por token acontece
+ * antes de o usuário ser membro, então não há org no contexto. O `token` é o
+ * segredo; criar/listar/revogar são guardados por `assertMember` na action.
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    role: text("role").notNull().default("member"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revoked: boolean("revoked").notNull().default(false),
+  },
+  (t) => [index("invitations_org_idx").on(t.orgId)],
 );

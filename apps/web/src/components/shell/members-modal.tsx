@@ -1,10 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, UserPlus, X } from "lucide-react";
-import type { WorkspaceMember } from "@wayline/db";
+import { Check, Copy, Link2, Trash2, UserPlus, X } from "lucide-react";
+import type { InvitationDTO, WorkspaceMember } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { addMemberAction, listMembersAction, removeMemberAction } from "@/actions/org";
+import {
+  createInviteAction,
+  listInvitesAction,
+  revokeInviteAction,
+} from "@/actions/invitations";
 
 const STATUS_MSG: Record<string, { text: string; ok: boolean }> = {
   added: { text: "Membro adicionado.", ok: true },
@@ -91,6 +96,7 @@ export function MembersModal({ orgId, onClose }: { orgId: string; onClose: () =>
           {msg && (
             <p className={cn("text-dense", msg.ok ? "text-success" : "text-muted")}>{msg.text}</p>
           )}
+          <InviteSection orgId={orgId} />
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
@@ -125,6 +131,100 @@ export function MembersModal({ orgId, onClose }: { orgId: string; onClose: () =>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function InviteSection({ orgId }: { orgId: string }) {
+  const [invites, setInvites] = React.useState<InvitationDTO[] | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [copied, setCopied] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    listInvitesAction(orgId).then(setInvites);
+  }, [orgId]);
+
+  const linkFor = (token: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/invite/${token}` : "";
+
+  async function generate() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const invite = await createInviteAction(orgId);
+      if (invite) {
+        setInvites((v) => [invite, ...(v ?? [])]);
+        await copy(invite.token);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy(token: string) {
+    try {
+      await navigator.clipboard.writeText(linkFor(token));
+      setCopied(token);
+      setTimeout(() => setCopied((c) => (c === token ? null : c)), 1500);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
+
+  async function revoke(id: string) {
+    setInvites((v) => (v ?? []).filter((i) => i.id !== id));
+    await revokeInviteAction(orgId, id).catch(() => {});
+  }
+
+  return (
+    <div className="mt-1 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-dense text-subtle">
+          <Link2 className="size-3.5" /> Convite por link
+        </span>
+        <button
+          type="button"
+          onClick={generate}
+          disabled={busy}
+          className="text-dense font-medium text-brand hover:underline disabled:opacity-50"
+        >
+          {busy ? "Gerando…" : "Gerar link"}
+        </button>
+      </div>
+      {invites && invites.length > 0 && (
+        <div className="space-y-1">
+          {invites.map((i) => (
+            <div
+              key={i.id}
+              className="group flex items-center gap-2 rounded-md bg-elevated/60 px-2 py-1.5"
+            >
+              <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">
+                /invite/{i.token.slice(0, 10)}…
+              </span>
+              <button
+                type="button"
+                onClick={() => copy(i.token)}
+                aria-label="Copiar link"
+                className="flex items-center gap-1 rounded px-1.5 h-6 text-[11px] text-brand hover:bg-brand/10"
+              >
+                {copied === i.token ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied === i.token ? "Copiado" : "Copiar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => revoke(i.id)}
+                aria-label="Revogar convite"
+                className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-subtle">
+        Qualquer pessoa com o link e uma conta entra como membro (expira em 7 dias).
+      </p>
     </div>
   );
 }

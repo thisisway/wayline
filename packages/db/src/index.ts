@@ -40,6 +40,16 @@ export {
   type AddMemberStatus,
 } from "./queries/members";
 export {
+  createInvitation,
+  listInvitations,
+  revokeInvitation,
+  getInvitationByToken,
+  acceptInvitation,
+  type InvitationDTO,
+  type InvitationLookup,
+  type AcceptResult,
+} from "./queries/invitations";
+export {
   saveBoardOrder,
   saveBoardOrderLogged,
   createTask,
