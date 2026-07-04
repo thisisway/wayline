@@ -41,6 +41,7 @@ export {
 } from "./queries/members";
 export {
   saveBoardOrder,
+  saveBoardOrderLogged,
   createTask,
   updateTask,
   duplicateTask,

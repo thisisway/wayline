@@ -1,6 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { withOrg } from "../client";
-import { statuses, taskAssignees, tasks } from "../schema";
+import { activityLog, statuses, taskAssignees, tasks } from "../schema";
 
 /** Nova ordem do board: para cada coluna (status), a sequência de task ids. */
 export interface BoardOrderInput {
@@ -39,6 +39,67 @@ export async function saveBoardOrder(orgId: string, order: BoardOrderInput[]): P
           .set({ statusId: column.statusId, position: i, updatedAt: new Date() })
           .where(eq(tasks.id, column.taskIds[i]!));
       }
+    }
+  });
+}
+
+/**
+ * Como `saveBoardOrder`, mas registra no histórico as tarefas que mudaram de
+ * coluna (status) — usado quando a mudança vem de um drag no board.
+ */
+export async function saveBoardOrderLogged(
+  orgId: string,
+  order: BoardOrderInput[],
+  actorId: string | null,
+  actorName: string,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const desired = new Map<string, string>();
+    for (const col of order) for (const id of col.taskIds) desired.set(id, col.statusId);
+    const ids = [...desired.keys()];
+    if (ids.length === 0) return;
+
+    const current = await tx
+      .select({ id: tasks.id, statusId: tasks.statusId })
+      .from(tasks)
+      .where(inArray(tasks.id, ids));
+    const curMap = new Map(current.map((r) => [r.id, r.statusId]));
+
+    const changes = ids
+      .map((id) => ({ taskId: id, from: curMap.get(id) ?? null, to: desired.get(id)! }))
+      .filter((c) => c.from !== c.to);
+
+    for (const column of order) {
+      for (let i = 0; i < column.taskIds.length; i++) {
+        await tx
+          .update(tasks)
+          .set({ statusId: column.statusId, position: i, updatedAt: new Date() })
+          .where(eq(tasks.id, column.taskIds[i]!));
+      }
+    }
+
+    if (changes.length > 0) {
+      const statusIds = [
+        ...new Set(changes.flatMap((c) => [c.from, c.to]).filter((x): x is string => !!x)),
+      ];
+      const names = statusIds.length
+        ? await tx
+            .select({ id: statuses.id, name: statuses.name })
+            .from(statuses)
+            .where(inArray(statuses.id, statusIds))
+        : [];
+      const nameOf = (id: string | null) =>
+        (id && names.find((n) => n.id === id)?.name) || "—";
+      await tx.insert(activityLog).values(
+        changes.map((c) => ({
+          orgId,
+          taskId: c.taskId,
+          actorId,
+          actorName,
+          action: "status",
+          detail: `${nameOf(c.from)} → ${nameOf(c.to)}`,
+        })),
+      );
     }
   });
 }

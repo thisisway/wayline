@@ -20,6 +20,7 @@ import {
   notifyReply,
   notifyTaskAssignees,
   saveBoardOrder,
+  saveBoardOrderLogged,
   setSubtaskDone,
   updateTask,
   type BoardOrderInput,
@@ -47,7 +48,9 @@ function normalize(input: TaskFormInput) {
 /** Persiste a nova ordem/coluna dos cards após um drag-and-drop. */
 export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promise<void> {
   if (!(await assertMember(orgId))) return;
-  await saveBoardOrder(orgId, order);
+  const user = await getSessionUser();
+  if (user) await saveBoardOrderLogged(orgId, order, user.id, user.name);
+  else await saveBoardOrder(orgId, order);
   revalidatePath("/app");
 }
 
