@@ -60,6 +60,15 @@ export function presignGet(key: string, fileName: string): Promise<string> {
   );
 }
 
+/** URL pré-assinada para exibir inline no navegador (preview de imagem). */
+export function presignGetInline(key: string): Promise<string> {
+  return getSignedUrl(
+    client(),
+    new GetObjectCommand({ Bucket: bucket, Key: key, ResponseContentDisposition: "inline" }),
+    { expiresIn: 300 },
+  );
+}
+
 export async function deleteObject(key: string): Promise<void> {
   await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

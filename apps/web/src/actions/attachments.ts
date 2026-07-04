@@ -10,7 +10,13 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember, getSessionUserId } from "@/lib/authz";
-import { deleteObject, presignGet, presignPut, storageEnabled } from "@/lib/storage";
+import {
+  deleteObject,
+  presignGet,
+  presignGetInline,
+  presignPut,
+  storageEnabled,
+} from "@/lib/storage";
 
 const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -75,6 +81,14 @@ export async function downloadUrlAction(orgId: string, id: string): Promise<stri
   const meta = await getAttachmentKey(orgId, id);
   if (!meta) return null;
   return presignGet(meta.storageKey, meta.fileName);
+}
+
+/** URL de preview inline (usada para thumbnails de imagem). */
+export async function previewUrlAction(orgId: string, id: string): Promise<string | null> {
+  if (!(await assertMember(orgId)) || !storageEnabled()) return null;
+  const meta = await getAttachmentKey(orgId, id);
+  if (!meta) return null;
+  return presignGetInline(meta.storageKey);
 }
 
 export async function deleteAttachmentAction(orgId: string, id: string): Promise<void> {
