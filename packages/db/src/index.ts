@@ -34,6 +34,13 @@ export {
 } from "./queries/auth";
 export { createOrg, createSpace, createList } from "./queries/orgs";
 export {
+  upsertVerification,
+  getVerification,
+  bumpVerificationAttempts,
+  deleteVerification,
+  type VerificationRow,
+} from "./queries/email-verification";
+export {
   listClients,
   createClient,
   updateClient,

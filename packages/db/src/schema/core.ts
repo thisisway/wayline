@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "./_shared";
 
 /**
@@ -29,6 +29,21 @@ export const users = pgTable("users", {
   // Auth.js (Credentials): hash bcrypt. Nulo p/ usuários ainda sem senha.
   passwordHash: text("password_hash"),
   ...timestamps,
+});
+
+/**
+ * Verificação de email no cadastro. Guarda os dados pendentes + hash do código;
+ * a conta (users) só é criada quando o código é confirmado. Sem RLS (pré-conta).
+ */
+export const emailVerifications = pgTable("email_verifications", {
+  id: idColumn(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
 /** Vínculo user↔org com papel. Guests são o acesso do portal do cliente. */

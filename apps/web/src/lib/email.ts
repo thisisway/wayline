@@ -108,6 +108,18 @@ export async function sendInviteEmail(
   return sendEmail(to, `${inviterName} convidou você para ${orgName}`, html);
 }
 
+/** Email com o código de verificação de cadastro. */
+export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 16px">Seu código de confirmação é:</p>
+    <div style="font-size:32px;font-weight:800;letter-spacing:8px;background:#F1F5F9;border-radius:10px;padding:16px;text-align:center;color:#0B1023">${escapeHtml(code)}</div>
+    <p style="font-size:13px;color:#64748B;margin-top:16px">Expira em 15 minutos. Se você não tentou criar uma conta, ignore este email.</p>
+  </div>`;
+  return sendEmail(to, `${code} é o seu código Wayline`, html);
+}
+
 /** Email de boas-vindas no cadastro. */
 export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
   const link = appUrl ? `${appUrl}/app` : undefined;
