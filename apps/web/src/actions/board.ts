@@ -12,6 +12,7 @@ import {
   getSubtasks,
   getTaskActivity,
   getTaskCard,
+  getUsersByIds,
   logCreated,
   logTaskChanges,
   type ActivityDTO,
@@ -31,6 +32,7 @@ import {
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
 import { assertMember, getSessionUser } from "@/lib/authz";
+import { emailEnabled, notificationEmail, sendEmail } from "@/lib/email";
 
 function parseDue(due: string | null): Date | null {
   return due ? new Date(due) : null;
@@ -131,7 +133,28 @@ export async function addCommentAction(
   const created = await addComment(orgId, { taskId, authorId: user.id, body, parentId });
   if (parentId) await notifyReply(orgId, parentId, user.id, user.name);
   else await notifyTaskAssignees(orgId, taskId, user.id, user.name, "comment");
-  if (mentionIds?.length) await notifyMentions(orgId, taskId, user.id, user.name, mentionIds);
+  if (mentionIds?.length) {
+    const { recipientIds, taskTitle } = await notifyMentions(
+      orgId,
+      taskId,
+      user.id,
+      user.name,
+      mentionIds,
+    );
+    if (emailEnabled() && recipientIds.length) {
+      const recipients = await getUsersByIds(recipientIds);
+      const html = notificationEmail({
+        heading: "Menção",
+        actorName: user.name,
+        action: "mencionou você em",
+        taskTitle,
+        taskId,
+      });
+      await Promise.allSettled(
+        recipients.map((r) => sendEmail(r.email, `${user.name} mencionou você no Wayline`, html)),
+      );
+    }
+  }
   revalidatePath("/app");
   return created;
 }

@@ -24,6 +24,7 @@ export {
 } from "./queries/board";
 export {
   getUserByEmail,
+  getUsersByIds,
   createUser,
   resolveUserOrg,
   getUserOrgs,

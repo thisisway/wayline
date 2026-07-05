@@ -73,19 +73,22 @@ export async function notifyAssigned(
   });
 }
 
-/** Notifica usuários @mencionados num comentário (exceto o autor). */
+/**
+ * Notifica usuários @mencionados num comentário (exceto o autor).
+ * Retorna os destinatários efetivos e o título da tarefa (para email).
+ */
 export async function notifyMentions(
   orgId: string,
   taskId: string,
   actorId: string,
   actorName: string,
   mentionedIds: string[],
-): Promise<void> {
+): Promise<{ recipientIds: string[]; taskTitle: string }> {
   const recipients = [...new Set(mentionedIds)].filter((id) => id !== actorId);
-  if (recipients.length === 0) return;
-  await withOrg(orgId, async (tx) => {
+  if (recipients.length === 0) return { recipientIds: [], taskTitle: "" };
+  return withOrg(orgId, async (tx) => {
     const task = await tx.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
-    if (!task) return;
+    if (!task) return { recipientIds: [], taskTitle: "" };
     await tx.insert(notifications).values(
       recipients.map((userId) => ({
         orgId,
@@ -97,6 +100,7 @@ export async function notifyMentions(
         actorName,
       })),
     );
+    return { recipientIds: recipients, taskTitle: task.title };
   });
 }
 

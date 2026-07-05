@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { getDb, withOrg, withUser } from "../client";
 import { lists, memberships, users } from "../schema";
 
@@ -16,6 +16,16 @@ export async function getUserByEmail(email: string): Promise<AuthUser | null> {
   return u
     ? { id: u.id, name: u.name, email: u.email, passwordHash: u.passwordHash }
     : null;
+}
+
+/** Usuários por id (para envio de email; users não tem RLS). */
+export async function getUsersByIds(
+  ids: string[],
+): Promise<Array<{ id: string; name: string; email: string }>> {
+  if (ids.length === 0) return [];
+  const db = getDb();
+  const rows = await db.query.users.findMany({ where: inArray(users.id, ids) });
+  return rows.map((u) => ({ id: u.id, name: u.name, email: u.email }));
 }
 
 /** Cria um usuário (signup). Retorna null se o email já existe. */
