@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "./_shared";
 
 /**
@@ -66,6 +66,8 @@ export const clients = pgTable(
     contactEmail: text("contact_email"),
     status: clientStatus("status").notNull().default("active"),
     color: text("color").notNull().default("#1D66FF"),
+    /** Meta de horas por mês (para orçamento nos relatórios). */
+    hourBudget: integer("hour_budget"),
     ...timestamps,
     ...softDelete,
   },

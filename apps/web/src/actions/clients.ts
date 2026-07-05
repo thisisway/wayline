@@ -29,7 +29,7 @@ export async function createClientAction(
 export async function updateClientAction(
   orgId: string,
   id: string,
-  patch: { name?: string; color?: string; contactEmail?: string | null },
+  patch: { name?: string; color?: string; contactEmail?: string | null; hourBudget?: number | null },
 ): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await updateClient(orgId, id, patch);

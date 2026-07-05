@@ -7,12 +7,14 @@ export interface ClientDTO {
   name: string;
   color: string;
   contactEmail: string | null;
+  hourBudget: number | null;
 }
 
 export interface CreateClientInput {
   name: string;
   color: string;
   contactEmail?: string | null;
+  hourBudget?: number | null;
 }
 
 export async function listClients(orgId: string): Promise<ClientDTO[]> {
@@ -26,6 +28,7 @@ export async function listClients(orgId: string): Promise<ClientDTO[]> {
       name: c.name,
       color: c.color,
       contactEmail: c.contactEmail,
+      hourBudget: c.hourBudget,
     }));
   });
 }
@@ -39,23 +42,31 @@ export async function createClient(orgId: string, input: CreateClientInput): Pro
         name: input.name.trim(),
         color: input.color,
         contactEmail: input.contactEmail?.trim() || null,
+        hourBudget: input.hourBudget ?? null,
       })
       .returning();
     if (!row) throw new Error("falha ao criar cliente");
-    return { id: row.id, name: row.name, color: row.color, contactEmail: row.contactEmail };
+    return {
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      contactEmail: row.contactEmail,
+      hourBudget: row.hourBudget,
+    };
   });
 }
 
 export async function updateClient(
   orgId: string,
   id: string,
-  patch: { name?: string; color?: string; contactEmail?: string | null },
+  patch: { name?: string; color?: string; contactEmail?: string | null; hourBudget?: number | null },
 ): Promise<void> {
   await withOrg(orgId, async (tx) => {
     const set: Partial<typeof clients.$inferInsert> = { updatedAt: new Date() };
     if (patch.name !== undefined) set.name = patch.name.trim();
     if (patch.color !== undefined) set.color = patch.color;
     if (patch.contactEmail !== undefined) set.contactEmail = patch.contactEmail?.trim() || null;
+    if (patch.hourBudget !== undefined) set.hourBudget = patch.hourBudget;
     await tx.update(clients).set(set).where(eq(clients.id, id));
   });
 }

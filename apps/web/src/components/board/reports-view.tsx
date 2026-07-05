@@ -95,31 +95,49 @@ function BarList({
         <p className="py-6 text-center text-dense text-subtle">{emptyLabel}</p>
       ) : (
         <div className="space-y-2.5">
-          {rows.map((r) => (
-            <div key={r.id} className="space-y-1">
-              <div className="flex items-center justify-between gap-2 text-dense">
-                <span className="flex min-w-0 items-center gap-1.5">
+          {rows.map((r) => {
+            const hasBudget = r.budgetSeconds != null && r.budgetSeconds > 0;
+            const over = hasBudget && r.seconds > r.budgetSeconds!;
+            const pct = hasBudget
+              ? Math.min(100, (r.seconds / r.budgetSeconds!) * 100)
+              : (r.seconds / max) * 100;
+            const barColor = over ? "#FF3B30" : r.color ?? "#1D66FF";
+            return (
+              <div key={r.id} className="space-y-1">
+                <div className="flex items-center justify-between gap-2 text-dense">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: r.color ?? "#94A3B8" }}
+                    />
+                    <span className="truncate text-foreground">{r.name}</span>
+                    {over && (
+                      <span className="shrink-0 rounded-pill bg-danger/10 px-1.5 text-[10px] font-semibold text-danger">
+                        acima
+                      </span>
+                    )}
+                  </span>
                   <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: r.color ?? "#94A3B8" }}
+                    className={cn(
+                      "shrink-0 font-semibold tabular-nums",
+                      over ? "text-danger" : "text-muted",
+                    )}
+                  >
+                    {fmtDuration(r.seconds)}
+                    {hasBudget && (
+                      <span className="text-subtle"> / {fmtDuration(r.budgetSeconds!)}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-pill bg-elevated">
+                  <div
+                    className="h-full rounded-pill transition-all"
+                    style={{ width: `${pct}%`, backgroundColor: barColor }}
                   />
-                  <span className="truncate text-foreground">{r.name}</span>
-                </span>
-                <span className="shrink-0 font-semibold tabular-nums text-muted">
-                  {fmtDuration(r.seconds)}
-                </span>
+                </div>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-pill bg-elevated">
-                <div
-                  className="h-full rounded-pill"
-                  style={{
-                    width: `${(r.seconds / max) * 100}%`,
-                    backgroundColor: r.color ?? "#1D66FF",
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

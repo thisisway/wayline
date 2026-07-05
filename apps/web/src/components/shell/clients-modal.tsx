@@ -43,7 +43,10 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
     }
   }
 
-  async function saveEdit(id: string, patch: { name?: string; color?: string }) {
+  async function saveEdit(
+    id: string,
+    patch: { name?: string; color?: string; hourBudget?: number | null },
+  ) {
     setClients((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, ...patch } : c)));
     await updateClientAction(orgId, id, patch).catch(() => {});
   }
@@ -119,6 +122,11 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
                   <span className="min-w-0 flex-1 truncate text-ui font-medium text-foreground">
                     {c.name}
                   </span>
+                  {c.hourBudget != null && (
+                    <span className="shrink-0 rounded-pill bg-elevated px-2 py-0.5 text-[11px] text-subtle">
+                      {c.hourBudget}h/mês
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setEditingId(c.id)}
@@ -187,11 +195,19 @@ function EditRow({
   onCancel,
 }: {
   client: ClientDTO;
-  onSave: (patch: { name: string; color: string }) => void;
+  onSave: (patch: { name: string; color: string; hourBudget: number | null }) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = React.useState(client.name);
   const [color, setColor] = React.useState(client.color);
+  const [budget, setBudget] = React.useState(client.hourBudget != null ? String(client.hourBudget) : "");
+
+  function commit() {
+    if (!name.trim()) return;
+    const parsed = parseInt(budget, 10);
+    onSave({ name, color, hourBudget: Number.isFinite(parsed) && parsed > 0 ? parsed : null });
+  }
+
   return (
     <div className="flex items-center gap-2 rounded-md bg-elevated/60 px-2 py-2">
       <ColorDots value={color} onChange={setColor} />
@@ -200,14 +216,26 @@ function EditRow({
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && name.trim()) onSave({ name, color });
+          if (e.key === "Enter") commit();
           else if (e.key === "Escape") onCancel();
         }}
         className="h-9 flex-1"
       />
+      <Input
+        value={budget}
+        onChange={(e) => setBudget(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          else if (e.key === "Escape") onCancel();
+        }}
+        inputMode="numeric"
+        placeholder="h/mês"
+        title="Meta de horas por mês"
+        className="h-9 w-20"
+      />
       <button
         type="button"
-        onClick={() => name.trim() && onSave({ name, color })}
+        onClick={commit}
         aria-label="Salvar"
         className="flex size-8 items-center justify-center rounded-md text-success hover:bg-success/10"
       >

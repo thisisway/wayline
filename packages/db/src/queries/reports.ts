@@ -7,6 +7,8 @@ export interface ReportRow {
   name: string;
   color: string | null;
   seconds: number;
+  /** Orçamento em segundos (só clientes com meta de horas). */
+  budgetSeconds?: number | null;
 }
 
 export interface OrgReport {
@@ -50,12 +52,13 @@ export async function getOrgReport(orgId: string, since?: Date | null): Promise<
         name: sql<string>`coalesce(${clients.name}, 'Sem cliente')`,
         color: clients.color,
         seconds: secondsExpr.mapWith(Number),
+        budget: clients.hourBudget,
       })
       .from(timeEntries)
       .innerJoin(tasks, eq(tasks.id, timeEntries.taskId))
       .leftJoin(clients, eq(clients.id, tasks.clientId))
       .where(sinceFilter)
-      .groupBy(clients.id, clients.name, clients.color)
+      .groupBy(clients.id, clients.name, clients.color, clients.hourBudget)
       .orderBy(sql`4 desc`);
 
     const memberRows = await tx
@@ -77,7 +80,13 @@ export async function getOrgReport(orgId: string, since?: Date | null): Promise<
       overdueTasks: summary?.overdue ?? 0,
       trackedSeconds: Math.round(tracked?.seconds ?? 0),
       hoursByClient: clientRows
-        .map((r) => ({ ...r, seconds: Math.round(r.seconds) }))
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          color: r.color,
+          seconds: Math.round(r.seconds),
+          budgetSeconds: r.budget != null ? r.budget * 3600 : null,
+        }))
         .filter((r) => r.seconds > 0),
       hoursByMember: memberRows
         .map((r) => ({ ...r, seconds: Math.round(r.seconds) }))
