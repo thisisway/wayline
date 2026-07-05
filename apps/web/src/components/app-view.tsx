@@ -38,6 +38,7 @@ import {
   EMPTY_FILTERS,
   type BoardFilters,
 } from "@/lib/board-filter";
+import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 
 export function AppView({
   data,
@@ -120,6 +121,12 @@ export function AppView({
     [data],
   );
 
+  function handleExport() {
+    if (!filtered) return;
+    const safe = listName.trim().toLowerCase().replace(/\s+/g, "-") || "tarefas";
+    downloadCsv(`wayline-${safe}.csv`, boardToCsv(filtered));
+  }
+
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail />
@@ -183,6 +190,7 @@ export function AppView({
           tags={tagOptions}
           customFieldOptions={customFieldOptions}
           onOpenFields={() => setFieldsOpen(true)}
+          onExport={handleExport}
         />
 
         {view === "board" ? (

@@ -5,6 +5,7 @@ import {
   BarChart3,
   Calendar,
   Check,
+  Download,
   Filter,
   GanttChartSquare,
   LayoutGrid,
@@ -53,6 +54,7 @@ export function ViewTabs({
   tags,
   customFieldOptions,
   onOpenFields,
+  onExport,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -65,6 +67,7 @@ export function ViewTabs({
   tags: Array<{ label: string; color: string }>;
   customFieldOptions: CustomFieldOption[];
   onOpenFields?: () => void;
+  onExport?: () => void;
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -109,6 +112,15 @@ export function ViewTabs({
           tags={tags}
           customFieldOptions={customFieldOptions}
         />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Exportar CSV"
+          title="Exportar tarefas (CSV)"
+          onClick={onExport}
+        >
+          <Download />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
