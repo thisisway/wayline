@@ -33,6 +33,14 @@ export {
 } from "./queries/auth";
 export { createOrg, createSpace, createList } from "./queries/orgs";
 export {
+  listClients,
+  createClient,
+  updateClient,
+  archiveClient,
+  type ClientDTO,
+  type CreateClientInput,
+} from "./queries/clients";
+export {
   getWorkspaceMembers,
   addMemberByEmail,
   removeMember,

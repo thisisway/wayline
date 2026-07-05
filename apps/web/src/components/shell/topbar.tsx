@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   Bell,
+  Briefcase,
   Check,
   ChevronsUpDown,
   Command,
@@ -17,6 +18,7 @@ import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
 import { MembersModal } from "@/components/shell/members-modal";
+import { ClientsModal } from "@/components/shell/clients-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
@@ -30,6 +32,7 @@ export function Topbar({
   activeOrgId: string;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
+  const [showClients, setShowClients] = React.useState(false);
   const [search, setSearch] = React.useState(false);
 
   React.useEffect(() => {
@@ -48,6 +51,9 @@ export function Topbar({
       <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} />
       {showMembers && (
         <MembersModal orgId={activeOrgId} onClose={() => setShowMembers(false)} />
+      )}
+      {showClients && (
+        <ClientsModal orgId={activeOrgId} onClose={() => setShowClients(false)} />
       )}
       {search && <CommandPalette orgId={activeOrgId} onClose={() => setSearch(false)} />}
 
@@ -70,6 +76,15 @@ export function Topbar({
           <Sparkles className="size-4" />
           Wayline Brain
         </Button>
+        <button
+          type="button"
+          onClick={() => setShowClients(true)}
+          aria-label="Clientes"
+          title="Clientes"
+          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+        >
+          <Briefcase className="size-4.5" />
+        </button>
         <button
           type="button"
           onClick={() => setShowMembers(true)}
