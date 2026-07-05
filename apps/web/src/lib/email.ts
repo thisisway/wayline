@@ -1,4 +1,5 @@
 import "server-only";
+import { getUsersByIds } from "@wayline/db";
 
 /**
  * Envio de email via Resend (REST, sem SDK). 100% opcional: se faltarem as
@@ -56,6 +57,70 @@ export function notificationEmail(opts: {
     <p style="margin:16px 0">${button}</p>
     <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email porque é membro de um workspace no Wayline.</p>
   </div>`;
+}
+
+/**
+ * Envia um email de notificação para uma lista de userIds (busca os emails).
+ * No-op se o email estiver desativado ou sem destinatários.
+ */
+export async function emailNotify(
+  recipientIds: string[],
+  opts: { subject: string; actorName: string; action: string; taskTitle: string; taskId?: string },
+): Promise<void> {
+  if (!emailEnabled() || recipientIds.length === 0) return;
+  try {
+    const recipients = await getUsersByIds(recipientIds);
+    if (recipients.length === 0) return;
+    const html = notificationEmail({
+      heading: opts.subject,
+      actorName: opts.actorName,
+      action: opts.action,
+      taskTitle: opts.taskTitle,
+      taskId: opts.taskId,
+    });
+    await Promise.allSettled(recipients.map((r) => sendEmail(r.email, opts.subject, html)));
+  } catch {
+    /* email nunca deve quebrar a ação */
+  }
+}
+
+/** Email de convite para um workspace, com o link de aceite. */
+export async function sendInviteEmail(
+  to: string,
+  orgName: string,
+  token: string,
+  inviterName: string,
+): Promise<boolean> {
+  const link = appUrl ? `${appUrl}/invite/${token}` : `/invite/${token}`;
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
+      <strong>${escapeHtml(inviterName)}</strong> convidou você para o workspace
+      <strong>${escapeHtml(orgName)}</strong> no Wayline.
+    </p>
+    <p style="margin:16px 0">
+      <a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Aceitar convite</a>
+    </p>
+    <p style="font-size:12px;color:#64748B">Ou copie este link: ${link}</p>
+    <p style="font-size:12px;color:#64748B;margin-top:16px">O convite expira em 7 dias.</p>
+  </div>`;
+  return sendEmail(to, `${inviterName} convidou você para ${orgName}`, html);
+}
+
+/** Email de boas-vindas no cadastro. */
+export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
+  const link = appUrl ? `${appUrl}/app` : undefined;
+  const button = link
+    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o Wayline</a></p>`
+    : "";
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Olá, ${escapeHtml(name.split(" ")[0] ?? name)}! Bem-vindo ao Wayline — seu work OS de agência.</p>
+    ${button}
+  </div>`;
+  return sendEmail(to, "Bem-vindo ao Wayline 🎉", html);
 }
 
 function escapeHtml(s: string): string {

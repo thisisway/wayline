@@ -9,6 +9,7 @@ import {
   createInviteAction,
   listInvitesAction,
   revokeInviteAction,
+  sendInviteByEmailAction,
 } from "@/actions/invitations";
 
 const STATUS_MSG: Record<string, { text: string; ok: boolean }> = {
@@ -139,10 +140,36 @@ function InviteSection({ orgId }: { orgId: string }) {
   const [invites, setInvites] = React.useState<InvitationDTO[] | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = React.useState("");
+  const [emailMsg, setEmailMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+  const [sending, setSending] = React.useState(false);
 
   React.useEffect(() => {
     listInvitesAction(orgId).then(setInvites);
   }, [orgId]);
+
+  async function sendByEmail() {
+    const to = inviteEmail.trim();
+    if (!to || sending) return;
+    setSending(true);
+    setEmailMsg(null);
+    try {
+      const status = await sendInviteByEmailAction(orgId, to);
+      const map: Record<string, { text: string; ok: boolean }> = {
+        sent: { text: `Convite enviado para ${to}.`, ok: true },
+        disabled: { text: "Email não configurado neste ambiente.", ok: false },
+        forbidden: { text: "Sem permissão.", ok: false },
+        error: { text: "Não foi possível enviar. Tente o link.", ok: false },
+      };
+      setEmailMsg(map[status] ?? null);
+      if (status === "sent") {
+        setInviteEmail("");
+        listInvitesAction(orgId).then(setInvites);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
 
   const linkFor = (token: string) =>
     typeof window !== "undefined" ? `${window.location.origin}/invite/${token}` : "";
@@ -191,6 +218,29 @@ function InviteSection({ orgId }: { orgId: string }) {
           {busy ? "Gerando…" : "Gerar link"}
         </button>
       </div>
+      <div className="flex items-center gap-2">
+        <Input
+          type="email"
+          value={inviteEmail}
+          placeholder="Enviar convite por email…"
+          onChange={(e) => setInviteEmail(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendByEmail()}
+          className="h-9"
+        />
+        <Button
+          variant="secondary"
+          onClick={sendByEmail}
+          disabled={!inviteEmail.trim() || sending}
+        >
+          {sending ? "Enviando…" : "Enviar"}
+        </Button>
+      </div>
+      {emailMsg && (
+        <p className={cn("text-dense", emailMsg.ok ? "text-success" : "text-muted")}>
+          {emailMsg.text}
+        </p>
+      )}
+
       {invites && invites.length > 0 && (
         <div className="space-y-1">
           {invites.map((i) => (

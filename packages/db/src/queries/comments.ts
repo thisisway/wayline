@@ -130,13 +130,15 @@ export async function notifyReply(
   parentId: string,
   actorId: string,
   actorName: string,
-): Promise<void> {
-  await withOrg(orgId, async (tx) => {
+): Promise<{ recipientIds: string[]; taskTitle: string }> {
+  return withOrg(orgId, async (tx) => {
     const parent = await tx.query.comments.findFirst({
       where: eq(comments.id, parentId),
       with: { task: true },
     });
-    if (!parent || parent.authorId === actorId || !parent.task) return;
+    if (!parent || parent.authorId === actorId || !parent.task) {
+      return { recipientIds: [], taskTitle: "" };
+    }
     await tx.insert(notifications).values({
       orgId,
       userId: parent.authorId,
@@ -146,6 +148,7 @@ export async function notifyReply(
       taskTitle: parent.task.title,
       actorName,
     });
+    return { recipientIds: [parent.authorId], taskTitle: parent.task.title };
   });
 }
 

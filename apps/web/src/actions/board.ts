@@ -12,7 +12,6 @@ import {
   getSubtasks,
   getTaskActivity,
   getTaskCard,
-  getUsersByIds,
   logCreated,
   logTaskChanges,
   type ActivityDTO,
@@ -32,7 +31,7 @@ import {
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
 import { assertMember, getSessionUser } from "@/lib/authz";
-import { emailEnabled, notificationEmail, sendEmail } from "@/lib/email";
+import { emailNotify } from "@/lib/email";
 
 function parseDue(due: string | null): Date | null {
   return due ? new Date(due) : null;
@@ -64,7 +63,20 @@ export async function createTaskAction(
   const id = await createTask(orgId, normalize(input));
   const user = await getSessionUser();
   if (user) {
-    await notifyTaskAssignees(orgId, id, user.id, user.name, "assigned");
+    const { recipientIds, taskTitle } = await notifyTaskAssignees(
+      orgId,
+      id,
+      user.id,
+      user.name,
+      "assigned",
+    );
+    await emailNotify(recipientIds, {
+      subject: `${user.name} atribuiu uma tarefa a você`,
+      actorName: user.name,
+      action: "atribuiu você a",
+      taskTitle,
+      taskId: id,
+    });
     await logCreated(orgId, id, user.id, user.name);
   }
   revalidatePath("/app");
@@ -131,8 +143,40 @@ export async function addCommentAction(
   const user = await getSessionUser();
   if (!user) return null;
   const created = await addComment(orgId, { taskId, authorId: user.id, body, parentId });
-  if (parentId) await notifyReply(orgId, parentId, user.id, user.name);
-  else await notifyTaskAssignees(orgId, taskId, user.id, user.name, "comment");
+  const mentioned = new Set(mentionIds ?? []);
+
+  if (parentId) {
+    const { recipientIds, taskTitle } = await notifyReply(orgId, parentId, user.id, user.name);
+    await emailNotify(
+      recipientIds.filter((id) => !mentioned.has(id)),
+      {
+        subject: `${user.name} respondeu seu comentário`,
+        actorName: user.name,
+        action: "respondeu seu comentário em",
+        taskTitle,
+        taskId,
+      },
+    );
+  } else {
+    const { recipientIds, taskTitle } = await notifyTaskAssignees(
+      orgId,
+      taskId,
+      user.id,
+      user.name,
+      "comment",
+    );
+    await emailNotify(
+      recipientIds.filter((id) => !mentioned.has(id)),
+      {
+        subject: `${user.name} comentou em ${taskTitle}`,
+        actorName: user.name,
+        action: "comentou em",
+        taskTitle,
+        taskId,
+      },
+    );
+  }
+
   if (mentionIds?.length) {
     const { recipientIds, taskTitle } = await notifyMentions(
       orgId,
@@ -141,19 +185,13 @@ export async function addCommentAction(
       user.name,
       mentionIds,
     );
-    if (emailEnabled() && recipientIds.length) {
-      const recipients = await getUsersByIds(recipientIds);
-      const html = notificationEmail({
-        heading: "Menção",
-        actorName: user.name,
-        action: "mencionou você em",
-        taskTitle,
-        taskId,
-      });
-      await Promise.allSettled(
-        recipients.map((r) => sendEmail(r.email, `${user.name} mencionou você no Wayline`, html)),
-      );
-    }
+    await emailNotify(recipientIds, {
+      subject: `${user.name} mencionou você no Wayline`,
+      actorName: user.name,
+      action: "mencionou você em",
+      taskTitle,
+      taskId,
+    });
   }
   revalidatePath("/app");
   return created;

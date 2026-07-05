@@ -20,17 +20,17 @@ export async function notifyTaskAssignees(
   actorId: string,
   actorName: string,
   type: "comment" | "assigned",
-): Promise<void> {
-  await withOrg(orgId, async (tx) => {
+): Promise<{ recipientIds: string[]; taskTitle: string }> {
+  return withOrg(orgId, async (tx) => {
     const task = await tx.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       with: { assignees: true },
     });
-    if (!task) return;
+    if (!task) return { recipientIds: [], taskTitle: "" };
     const recipients = task.assignees
       .map((a) => a.userId)
       .filter((uid) => uid !== actorId);
-    if (recipients.length === 0) return;
+    if (recipients.length === 0) return { recipientIds: [], taskTitle: task.title };
 
     await tx.insert(notifications).values(
       recipients.map((userId) => ({
@@ -43,6 +43,7 @@ export async function notifyTaskAssignees(
         actorName,
       })),
     );
+    return { recipientIds: recipients, taskTitle: task.title };
   });
 }
 

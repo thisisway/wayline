@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { createOrg, createUser } from "@wayline/db";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
 
@@ -21,5 +22,6 @@ export async function registerAction(
   if (!userId) return { ok: false, error: "Esse email já está cadastrado." };
 
   await createOrg(userId, "Meu Workspace");
+  await sendWelcomeEmail(e, n).catch(() => {});
   return { ok: true };
 }
