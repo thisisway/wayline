@@ -70,6 +70,7 @@ export {
   getOrCreateShare,
   revokeShares,
   getShareByToken,
+  resolveShareTask,
   type ShareLookup,
 } from "./queries/board-shares";
 export {
@@ -91,11 +92,14 @@ export {
   getAssignedComments,
   notifyReply,
   getMyReplies,
+  getPublicComments,
+  addPublicComment,
   type CommentDTO,
   type CommentAuthor,
   type AddCommentInput,
   type AssignedComment,
   type ReplyDTO,
+  type PublicCommentDTO,
 } from "./queries/comments";
 export {
   getSubtasks,

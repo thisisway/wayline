@@ -31,6 +31,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
   return {
     id: t.id,
     title: t.title,
+    description: t.description,
     client: t.client ?? undefined,
     assignees: t.assignees.map((a) => ({
       id: a.id,

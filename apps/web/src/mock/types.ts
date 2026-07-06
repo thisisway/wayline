@@ -23,6 +23,7 @@ export interface ClientRef {
 export interface TaskCard {
   id: string;
   title: string;
+  description?: string | null;
   client?: ClientRef;
   assignees: Person[];
   priority: Priority;

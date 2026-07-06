@@ -1,15 +1,23 @@
-import type { BoardColumn } from "@/mock/types";
+"use client";
+
+import * as React from "react";
+import type { BoardColumn, TaskCard as TaskCardType } from "@/mock/types";
 import { TaskCard } from "@/components/board/task-card";
+import { PublicTaskPanel } from "@/components/public/public-task-panel";
 
 /** Board somente-leitura para o link público (portal do cliente). */
 export function PublicBoard({
+  token,
   listName,
   columns,
 }: {
+  token: string;
   listName: string;
   columns: BoardColumn[];
 }) {
+  const [selected, setSelected] = React.useState<TaskCardType | null>(null);
   const total = columns.reduce((n, c) => n + c.cards.length, 0);
+
   return (
     <div className="min-h-dvh bg-canvas text-foreground">
       <header className="flex h-14 items-center justify-between border-b border-border bg-surface px-4">
@@ -34,10 +42,7 @@ export function PublicBoard({
           {columns.map((col) => (
             <div key={col.id} className="w-80 shrink-0">
               <div className="mb-3 flex items-center gap-2">
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: col.color }}
-                />
+                <span className="size-2.5 rounded-full" style={{ backgroundColor: col.color }} />
                 <span className="text-dense font-bold uppercase tracking-wide text-foreground">
                   {col.name}
                 </span>
@@ -45,12 +50,23 @@ export function PublicBoard({
               </div>
               <div className="space-y-3">
                 {col.cards.map((card) => (
-                  <TaskCard key={card.id} card={card} />
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => setSelected(card)}
+                    className="block w-full text-left"
+                  >
+                    <TaskCard card={card} />
+                  </button>
                 ))}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {selected && (
+        <PublicTaskPanel token={token} card={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

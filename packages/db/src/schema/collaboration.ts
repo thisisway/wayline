@@ -29,9 +29,10 @@ export const comments = pgTable(
     taskId: uuid("task_id")
       .notNull()
       .references(() => tasks.id, { onDelete: "cascade" }),
-    authorId: uuid("author_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // Nulo quando o comentário vem do cliente pelo link público (usa guest_name).
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "cascade" }),
+    /** Nome do convidado (portal do cliente) quando não há author_id. */
+    guestName: text("guest_name"),
     // Comentário atribuível (ClickUp-style): "resolva isto".
     assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
     parentId: uuid("parent_id"),

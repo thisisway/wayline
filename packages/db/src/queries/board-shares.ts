@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { getDb, withOrg } from "../client";
-import { boardShares } from "../schema";
+import { boardShares, tasks } from "../schema";
 
 export interface ShareLookup {
   orgId: string;
@@ -63,4 +63,17 @@ export async function getShareByToken(token: string): Promise<ShareLookup | null
     where: and(eq(boardShares.token, token), eq(boardShares.revoked, false)),
   });
   return row ? { orgId: row.orgId, listId: row.listId } : null;
+}
+
+/** Valida o token E que a tarefa pertence à lista compartilhada. */
+export async function resolveShareTask(
+  token: string,
+  taskId: string,
+): Promise<ShareLookup | null> {
+  const share = await getShareByToken(token);
+  if (!share) return null;
+  return withOrg(share.orgId, async (tx) => {
+    const t = await tx.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
+    return t && t.listId === share.listId ? share : null;
+  });
 }

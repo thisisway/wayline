@@ -32,5 +32,5 @@ export default async function SharePage({
   const data = await getBoardForOrg(share.orgId, null, share.listId);
   if (!data) return <Invalid />;
 
-  return <PublicBoard listName={data.listName} columns={mapBoard(data)} />;
+  return <PublicBoard token={token} listName={data.listName} columns={mapBoard(data)} />;
 }

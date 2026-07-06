@@ -673,12 +673,19 @@ function CommentsSection({
   }
 
   function renderComment(c: CommentDTO) {
+    const isGuest = !c.author;
+    const authorName = c.author?.name ?? c.guestName ?? "Cliente";
     return (
       <div className="group flex gap-2.5">
-        <Avatar name={c.author.name} src={c.author.avatarUrl ?? undefined} size="sm" />
+        <Avatar name={authorName} src={c.author?.avatarUrl ?? undefined} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-dense font-semibold text-foreground">{c.author.name}</span>
+            <span className="text-dense font-semibold text-foreground">{authorName}</span>
+            {isGuest && (
+              <span className="rounded-pill bg-brand/10 px-1.5 text-[10px] font-semibold text-brand">
+                Cliente
+              </span>
+            )}
             <span className="text-[11px] text-subtle">{timeAgo(c.createdAt)}</span>
             <div className="relative ml-auto flex items-center gap-1">
               {c.assignedTo ? (

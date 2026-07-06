@@ -13,7 +13,9 @@ export interface CommentDTO {
   body: string;
   createdAt: Date;
   parentId: string | null;
-  author: CommentAuthor;
+  /** Nulo em comentários do cliente (portal público) — usa `guestName`. */
+  author: CommentAuthor | null;
+  guestName: string | null;
   assignedTo: CommentAuthor | null;
 }
 
@@ -29,7 +31,8 @@ type CommentRow = {
   body: string;
   createdAt: Date;
   parentId: string | null;
-  author: CommentAuthor;
+  guestName: string | null;
+  author: CommentAuthor | null;
   assignee: CommentAuthor | null;
 };
 
@@ -39,7 +42,10 @@ function toCommentDTO(row: CommentRow): CommentDTO {
     body: row.body,
     createdAt: row.createdAt,
     parentId: row.parentId,
-    author: { id: row.author.id, name: row.author.name, avatarUrl: row.author.avatarUrl },
+    author: row.author
+      ? { id: row.author.id, name: row.author.name, avatarUrl: row.author.avatarUrl }
+      : null,
+    guestName: row.guestName,
     assignedTo: row.assignee
       ? { id: row.assignee.id, name: row.assignee.name, avatarUrl: row.assignee.avatarUrl }
       : null,
@@ -55,6 +61,54 @@ export async function getTaskComments(orgId: string, taskId: string): Promise<Co
       with: { author: true, assignee: true },
     });
     return rows.map(toCommentDTO);
+  });
+}
+
+export interface PublicCommentDTO {
+  id: string;
+  name: string;
+  body: string;
+  createdAt: Date;
+}
+
+/** Thread de comentários do cliente (guest) de uma tarefa. */
+export async function getPublicComments(
+  orgId: string,
+  taskId: string,
+): Promise<PublicCommentDTO[]> {
+  return withOrg(orgId, async (tx) => {
+    const rows = await tx.query.comments.findMany({
+      where: and(
+        eq(comments.taskId, taskId),
+        isNull(comments.authorId),
+        isNull(comments.deletedAt),
+      ),
+      orderBy: [asc(comments.createdAt)],
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.guestName ?? "Cliente",
+      body: r.body,
+      createdAt: r.createdAt,
+    }));
+  });
+}
+
+/** Comentário do cliente pelo link público (sem conta). */
+export async function addPublicComment(
+  orgId: string,
+  taskId: string,
+  guestName: string,
+  body: string,
+): Promise<PublicCommentDTO> {
+  return withOrg(orgId, async (tx) => {
+    const name = guestName.trim().slice(0, 60) || "Cliente";
+    const [created] = await tx
+      .insert(comments)
+      .values({ orgId, taskId, authorId: null, guestName: name, body: body.trim() })
+      .returning();
+    if (!created) throw new Error("falha ao comentar");
+    return { id: created.id, name: created.guestName ?? "Cliente", body: created.body, createdAt: created.createdAt };
   });
 }
 
@@ -136,7 +190,8 @@ export async function notifyReply(
       where: eq(comments.id, parentId),
       with: { task: true },
     });
-    if (!parent || parent.authorId === actorId || !parent.task) {
+    // Sem author (comentário do cliente) ou o próprio autor → não notifica.
+    if (!parent || !parent.authorId || parent.authorId === actorId || !parent.task) {
       return { recipientIds: [], taskTitle: "" };
     }
     await tx.insert(notifications).values({
