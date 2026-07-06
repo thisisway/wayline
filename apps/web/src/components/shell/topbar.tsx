@@ -26,10 +26,14 @@ export function Topbar({
   userName,
   orgs,
   activeOrgId,
+  inboxUnread = 0,
+  onOpenInbox,
 }: {
   userName: string;
   orgs: UserOrg[];
   activeOrgId: string;
+  inboxUnread?: number;
+  onOpenInbox?: () => void;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
@@ -96,11 +100,17 @@ export function Topbar({
         </button>
         <button
           type="button"
+          onClick={onOpenInbox}
           aria-label="Notificações"
+          title="Notificações"
           className="relative flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
         >
           <Bell className="size-4.5" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-danger ring-2 ring-surface" />
+          {inboxUnread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white ring-2 ring-surface">
+              {inboxUnread > 9 ? "9+" : inboxUnread}
+            </span>
+          )}
         </button>
         <ThemeToggle />
         <Avatar name={userName} size="md" title={userName} />

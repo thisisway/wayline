@@ -177,7 +177,13 @@ export function AppView({
       )}
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Topbar userName={userName} orgs={orgs} activeOrgId={activeOrgId} />
+        <Topbar
+          userName={userName}
+          orgs={orgs}
+          activeOrgId={activeOrgId}
+          inboxUnread={inbox.unread}
+          onOpenInbox={() => setInboxOpen(true)}
+        />
         <ViewTabs
           value={view}
           onValueChange={setView}
