@@ -2,6 +2,7 @@
 
 import {
   addComment,
+  applyAutomations,
   assignComment,
   createSubtask,
   createTask,
@@ -53,8 +54,12 @@ function normalize(input: TaskFormInput) {
 export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promise<void> {
   if (!(await assertMember(orgId))) return;
   const user = await getSessionUser();
-  if (user) await saveBoardOrderLogged(orgId, order, user.id, user.name);
-  else await saveBoardOrder(orgId, order);
+  if (user) {
+    const changes = await saveBoardOrderLogged(orgId, order, user.id, user.name);
+    for (const c of changes) await applyAutomations(orgId, c.to, c.taskId).catch(() => {});
+  } else {
+    await saveBoardOrder(orgId, order);
+  }
   revalidatePath("/app");
 }
 
@@ -94,10 +99,15 @@ export async function updateTaskAction(
   if (!(await assertMember(orgId))) return null;
   const before = await getTaskCard(orgId, id);
   await updateTask(orgId, { id, ...normalize(input) });
-  const after = await getTaskCard(orgId, id);
+  let after = await getTaskCard(orgId, id);
   const user = await getSessionUser();
   if (user && before && after) {
     await logTaskChanges(orgId, id, user.id, user.name, before, after);
+  }
+  // Automações: se a coluna mudou, dispara e recarrega o card.
+  if (after && before?.statusId !== after.statusId && after.statusId) {
+    const changed = await applyAutomations(orgId, after.statusId, id).catch(() => false);
+    if (changed) after = await getTaskCard(orgId, id);
   }
   revalidatePath("/app");
   return after;

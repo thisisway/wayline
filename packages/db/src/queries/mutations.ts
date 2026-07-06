@@ -53,12 +53,12 @@ export async function saveBoardOrderLogged(
   order: BoardOrderInput[],
   actorId: string | null,
   actorName: string,
-): Promise<void> {
-  await withOrg(orgId, async (tx) => {
+): Promise<Array<{ taskId: string; to: string }>> {
+  return withOrg(orgId, async (tx) => {
     const desired = new Map<string, string>();
     for (const col of order) for (const id of col.taskIds) desired.set(id, col.statusId);
     const ids = [...desired.keys()];
-    if (ids.length === 0) return;
+    if (ids.length === 0) return [];
 
     const current = await tx
       .select({ id: tasks.id, statusId: tasks.statusId })
@@ -102,6 +102,7 @@ export async function saveBoardOrderLogged(
         })),
       );
     }
+    return changes.map((c) => ({ taskId: c.taskId, to: c.to }));
   });
 }
 

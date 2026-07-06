@@ -12,7 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
-import { lists, tasks } from "./hierarchy";
+import { lists, statuses, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
 
 /**
@@ -266,6 +266,34 @@ export const invitations = pgTable(
     revoked: boolean("revoked").notNull().default(false),
   },
   (t) => [index("invitations_org_idx").on(t.orgId)],
+);
+
+/**
+ * AUTOMAÇÕES por lista. Gatilho: tarefa entra numa coluna (trigger_status_id).
+ * Ação: `action_type` ('assign' | 'priority') com `action_value` (userId ou prioridade).
+ */
+export const automations = pgTable(
+  "automations",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    triggerStatusId: uuid("trigger_status_id")
+      .notNull()
+      .references(() => statuses.id, { onDelete: "cascade" }),
+    actionType: text("action_type").notNull(),
+    actionValue: text("action_value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [
+    index("automations_status_idx").on(t.triggerStatusId),
+    index("automations_list_idx").on(t.listId),
+    index("automations_org_idx").on(t.orgId),
+  ],
 );
 
 /**

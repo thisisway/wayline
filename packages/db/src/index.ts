@@ -74,6 +74,14 @@ export {
   type ShareLookup,
 } from "./queries/board-shares";
 export {
+  listAutomations,
+  createAutomation,
+  deleteAutomation,
+  applyAutomations,
+  type AutomationDTO,
+  type AutomationActionType,
+} from "./queries/automations";
+export {
   saveBoardOrder,
   saveBoardOrderLogged,
   createTask,

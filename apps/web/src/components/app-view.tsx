@@ -28,6 +28,7 @@ import { GanttView } from "@/components/board/gantt-view";
 import { ChatView } from "@/components/board/chat-view";
 import { ReportsView } from "@/components/board/reports-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
+import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
@@ -77,6 +78,7 @@ export function AppView({
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [fieldsOpen, setFieldsOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [automationsOpen, setAutomationsOpen] = React.useState(false);
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -185,6 +187,16 @@ export function AppView({
           onClose={() => setShareOpen(false)}
         />
       )}
+      {automationsOpen && data && (
+        <AutomationsManager
+          orgId={activeOrgId}
+          listId={data.listId}
+          listName={listName}
+          columns={data.columns.map((c) => ({ id: c.id, name: c.name }))}
+          members={data.members}
+          onClose={() => setAutomationsOpen(false)}
+        />
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar
@@ -208,6 +220,7 @@ export function AppView({
           onOpenFields={() => setFieldsOpen(true)}
           onExport={handleExport}
           onShare={() => setShareOpen(true)}
+          onOpenAutomations={() => setAutomationsOpen(true)}
         />
 
         {view === "board" ? (
