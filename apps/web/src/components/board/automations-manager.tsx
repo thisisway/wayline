@@ -40,9 +40,15 @@ export function AutomationsManager({
   const [actionType, setActionType] = React.useState<AutomationActionType>("assign");
   const [actionValue, setActionValue] = React.useState(members[0]?.id ?? "");
   const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    listAutomationsAction(orgId, listId).then(setRules);
+    listAutomationsAction(orgId, listId)
+      .then(setRules)
+      .catch(() => {
+        setRules([]);
+        setError("Não foi possível carregar (a migração 0021 já foi aplicada?).");
+      });
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -98,6 +104,7 @@ export function AutomationsManager({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
+          {error && <p className="mb-3 text-dense text-danger">{error}</p>}
           <div className="space-y-1.5">
             {rules === null ? (
               <p className="text-dense text-subtle">Carregando…</p>
