@@ -147,7 +147,10 @@ export function TaskModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+        className={cn(
+          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl",
+          mode === "edit" ? "max-w-4xl" : "max-w-lg",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
@@ -164,7 +167,18 @@ export function TaskModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            mode === "edit" && "lg:flex-row lg:overflow-hidden",
+          )}
+        >
+          <div
+            className={cn(
+              mode === "edit" &&
+                "lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-border",
+            )}
+          >
           {mode === "edit" && (approvalStatus === "approved" || approvalStatus === "changes") && (
             <div
               className={cn(
@@ -367,8 +381,11 @@ export function TaskModal({
 
             <TagsEditor tags={form.tags} onChange={(tags) => set("tags", tags)} />
           </form>
+          </div>
 
-          {mode === "edit" && taskId && <CustomFieldsSection orgId={orgId} taskId={taskId} />}
+          {mode === "edit" && taskId && (
+            <div className="lg:w-1/2 lg:min-h-0 lg:overflow-y-auto">
+              <CustomFieldsSection orgId={orgId} taskId={taskId} />
 
           {mode === "edit" && taskId && (
             <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />
@@ -405,7 +422,9 @@ export function TaskModal({
             />
           )}
 
-          {mode === "edit" && taskId && <ActivitySection orgId={orgId} taskId={taskId} />}
+              <ActivitySection orgId={orgId} taskId={taskId} />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-5 py-3.5">
