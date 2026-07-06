@@ -55,6 +55,7 @@ export function ViewTabs({
   customFieldOptions,
   onOpenFields,
   onExport,
+  onShare,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -68,6 +69,7 @@ export function ViewTabs({
   customFieldOptions: CustomFieldOption[];
   onOpenFields?: () => void;
   onExport?: () => void;
+  onShare?: () => void;
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -130,7 +132,7 @@ export function ViewTabs({
         >
           <SlidersHorizontal />
         </Button>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={onShare}>
           <UserPlus className="size-4" />
           Compartilhar
         </Button>

@@ -266,3 +266,25 @@ export const invitations = pgTable(
   },
   (t) => [index("invitations_org_idx").on(t.orgId)],
 );
+
+/**
+ * COMPARTILHAMENTO de board por link público (read-only). SEM RLS (como
+ * `invitations`): a busca por token acontece sem sessão. O token é o segredo.
+ */
+export const boardShares = pgTable(
+  "board_shares",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+    revoked: boolean("revoked").notNull().default(false),
+  },
+  (t) => [index("board_shares_list_idx").on(t.listId), index("board_shares_org_idx").on(t.orgId)],
+);

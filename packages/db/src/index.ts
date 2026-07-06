@@ -66,6 +66,13 @@ export {
   type AcceptResult,
 } from "./queries/invitations";
 export {
+  getActiveShare,
+  getOrCreateShare,
+  revokeShares,
+  getShareByToken,
+  type ShareLookup,
+} from "./queries/board-shares";
+export {
   saveBoardOrder,
   saveBoardOrderLogged,
   createTask,
