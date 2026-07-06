@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Copy, Plus, Square, Trash2, UserPlus, X } from "lucide-react";
+import { CheckSquare, Copy, Plus, Sparkles, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type {
   ActivityDTO,
@@ -27,6 +27,7 @@ import {
   listSubtasksAction,
   toggleSubtaskAction,
 } from "@/actions/board";
+import { aiEnabledAction, suggestSubtasksAction } from "@/actions/ai";
 
 const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
   { value: "urgent", label: "Urgente" },
@@ -512,14 +513,32 @@ function SubtasksSection({
   const [subs, setSubs] = React.useState<Subtask[] | null>(null);
   const [title, setTitle] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [ai, setAi] = React.useState(false);
+  const [aiBusy, setAiBusy] = React.useState(false);
 
   React.useEffect(() => {
     let alive = true;
     listSubtasksAction(orgId, taskId).then((s) => alive && setSubs(s));
+    aiEnabledAction().then((e) => alive && setAi(e));
     return () => {
       alive = false;
     };
   }, [orgId, taskId]);
+
+  async function suggest() {
+    if (aiBusy) return;
+    setAiBusy(true);
+    try {
+      const created = await suggestSubtasksAction(orgId, taskId);
+      if (created.length) {
+        const next = [...(subs ?? []), ...created];
+        setSubs(next);
+        emit(next);
+      }
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   function emit(list: Subtask[]) {
     onCountsChange?.(list.filter((s) => s.completed).length, list.length);
@@ -560,16 +579,30 @@ function SubtasksSection({
 
   return (
     <div className="border-t border-border px-5 py-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <span className={fieldLabel}>Subtarefas {total > 0 ? `(${done}/${total})` : ""}</span>
-        {total > 0 && (
-          <div className="h-1.5 w-24 overflow-hidden rounded-pill bg-elevated">
-            <div
-              className="h-full rounded-pill bg-success transition-all"
-              style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {total > 0 && (
+            <div className="h-1.5 w-20 overflow-hidden rounded-pill bg-elevated">
+              <div
+                className="h-full rounded-pill bg-success transition-all"
+                style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+              />
+            </div>
+          )}
+          {ai && (
+            <button
+              type="button"
+              onClick={() => void suggest()}
+              disabled={aiBusy}
+              title="Sugerir subtarefas com IA (Wayline Brain)"
+              className="flex h-7 items-center gap-1 rounded-md px-1.5 text-dense font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-50"
+            >
+              <Sparkles className="size-3.5" />
+              {aiBusy ? "Gerando…" : "Sugerir"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1">
