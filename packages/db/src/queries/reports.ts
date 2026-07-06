@@ -16,6 +16,10 @@ export interface OrgReport {
   completedTasks: number;
   overdueTasks: number;
   trackedSeconds: number;
+  /** Estimativa somada (todas as tarefas) — não depende do período. */
+  estimatedSeconds: number;
+  /** Tempo rastreado total (todo o histórico) — base do comparativo estimado×realizado. */
+  trackedTotalSeconds: number;
   hoursByClient: ReportRow[];
   hoursByMember: ReportRow[];
 }
@@ -45,6 +49,17 @@ export async function getOrgReport(orgId: string, since?: Date | null): Promise<
       .select({ seconds: secondsExpr.mapWith(Number) })
       .from(timeEntries)
       .where(sinceFilter);
+
+    const [trackedTotal] = await tx
+      .select({ seconds: secondsExpr.mapWith(Number) })
+      .from(timeEntries);
+
+    const [estimated] = await tx
+      .select({
+        mins: sql<number>`coalesce(sum(${tasks.estimateMinutes}), 0)`.mapWith(Number),
+      })
+      .from(tasks)
+      .where(and(isNull(tasks.parentId), isNull(tasks.deletedAt)));
 
     const clientRows = await tx
       .select({
@@ -79,6 +94,8 @@ export async function getOrgReport(orgId: string, since?: Date | null): Promise<
       completedTasks: summary?.completed ?? 0,
       overdueTasks: summary?.overdue ?? 0,
       trackedSeconds: Math.round(tracked?.seconds ?? 0),
+      estimatedSeconds: Math.round((estimated?.mins ?? 0) * 60),
+      trackedTotalSeconds: Math.round(trackedTotal?.seconds ?? 0),
       hoursByClient: clientRows
         .map((r) => ({
           id: r.id,

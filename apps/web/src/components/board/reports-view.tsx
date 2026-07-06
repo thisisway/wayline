@@ -144,6 +144,41 @@ function BarList({
   );
 }
 
+function EstimatedVsActual({ estimated, actual }: { estimated: number; actual: number }) {
+  const over = actual > estimated;
+  const pct = estimated > 0 ? Math.min(100, (actual / estimated) * 100) : 0;
+  const ratio = estimated > 0 ? Math.round((actual / estimated) * 100) : 0;
+  return (
+    <div className="mb-5 rounded-xl border border-border bg-surface p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-label uppercase text-subtle">Estimado vs Realizado (total)</h3>
+        <span className={cn("text-dense font-semibold", over ? "text-danger" : "text-muted")}>
+          {ratio}%
+        </span>
+      </div>
+      <div className="mb-2 flex items-center justify-between text-dense">
+        <span className="text-muted">
+          Realizado <strong className="text-foreground">{fmtDuration(actual)}</strong>
+        </span>
+        <span className="text-muted">
+          Estimado <strong className="text-foreground">{fmtDuration(estimated)}</strong>
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-pill bg-elevated">
+        <div
+          className={cn("h-full rounded-pill transition-all", over ? "bg-danger" : "bg-brand")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {over && (
+        <p className="mt-2 text-[11px] font-semibold text-danger">
+          Acima do estimado em {fmtDuration(actual - estimated)}.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ReportsView({ orgId }: { orgId: string }) {
   const [report, setReport] = React.useState<OrgReport | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -242,6 +277,13 @@ export function ReportsView({ orgId }: { orgId: string }) {
             accent={report.overdueTasks > 0 ? "#FF3B30" : "#94A3B8"}
           />
         </div>
+
+        {report.estimatedSeconds > 0 && (
+          <EstimatedVsActual
+            estimated={report.estimatedSeconds}
+            actual={report.trackedTotalSeconds}
+          />
+        )}
 
         <div className="grid gap-3 lg:grid-cols-2">
           <BarList
