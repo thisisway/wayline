@@ -1,32 +1,73 @@
 import "server-only";
 
 /**
- * Integração de IA (Claude) via REST — sem SDK, dependency-free. 100% opcional:
- * se faltar `ANTHROPIC_API_KEY`, `aiEnabled()` retorna false e nada é chamado.
+ * Integração de IA — suporta **OpenAI (GPT)** e **Anthropic (Claude)**, via REST
+ * (sem SDK, dependency-free). 100% opcional: sem chave, `aiEnabled()` é false.
  *
  * Envs:
- *   ANTHROPIC_API_KEY — chave da API Anthropic
- *   AI_MODEL          — (opcional) id do modelo; default claude-sonnet-5
+ *   OPENAI_API_KEY     — usa GPT (OpenAI)
+ *   ANTHROPIC_API_KEY  — usa Claude (Anthropic)
+ *   AI_PROVIDER        — (opcional) força "openai" ou "anthropic"
+ *   AI_MODEL           — (opcional) id do modelo; default por provedor
+ *
+ * Resolução: AI_PROVIDER (se setado) → senão OPENAI_API_KEY → senão Anthropic.
  */
-const apiKey = process.env.ANTHROPIC_API_KEY;
-const model = process.env.AI_MODEL ?? "claude-sonnet-5";
+type Provider = "openai" | "anthropic";
+
+function resolveProvider(): Provider {
+  const p = process.env.AI_PROVIDER?.toLowerCase();
+  if (p === "openai" || p === "anthropic") return p;
+  if (process.env.OPENAI_API_KEY) return "openai";
+  return "anthropic";
+}
+
+function keyFor(provider: Provider): string | undefined {
+  return provider === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
+}
+
+function modelFor(provider: Provider): string {
+  if (process.env.AI_MODEL) return process.env.AI_MODEL;
+  return provider === "openai" ? "gpt-4o-mini" : "claude-sonnet-5";
+}
 
 export function aiEnabled(): boolean {
-  return Boolean(apiKey);
+  return Boolean(keyFor(resolveProvider()));
 }
 
 async function complete(system: string, user: string, maxTokens = 512): Promise<string | null> {
-  if (!aiEnabled()) return null;
+  const provider = resolveProvider();
+  const key = keyFor(provider);
+  if (!key) return null;
   try {
+    if (provider === "openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          model: modelFor(provider),
+          max_tokens: maxTokens,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      return data.choices?.[0]?.message?.content ?? null;
+    }
+
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey!,
+        "x-api-key": key,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model,
+        model: modelFor(provider),
         max_tokens: maxTokens,
         system,
         messages: [{ role: "user", content: user }],
@@ -34,8 +75,7 @@ async function complete(system: string, user: string, maxTokens = 512): Promise<
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
-    const text = data.content?.find((b) => b.type === "text")?.text;
-    return text ?? null;
+    return data.content?.find((b) => b.type === "text")?.text ?? null;
   } catch {
     return null;
   }
