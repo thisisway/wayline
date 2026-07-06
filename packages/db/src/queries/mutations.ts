@@ -105,6 +105,26 @@ export async function saveBoardOrderLogged(
   });
 }
 
+/** Define (ou limpa) a aprovação do cliente numa tarefa. */
+export async function setTaskApproval(
+  orgId: string,
+  taskId: string,
+  status: "approved" | "changes" | null,
+  by: string | null,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(tasks)
+      .set({
+        approvalStatus: status,
+        approvalBy: status ? by : null,
+        approvalAt: status ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(tasks.id, taskId));
+  });
+}
+
 /** Cria uma tarefa no fim da coluna (status), com responsáveis. Retorna o id. */
 export async function createTask(orgId: string, input: CreateTaskInput): Promise<string> {
   return withOrg(orgId, async (tx) => {

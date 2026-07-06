@@ -1,6 +1,15 @@
 "use client";
 
-import { Ban, CalendarDays, CheckSquare, Clock, MessageSquare, Paperclip } from "lucide-react";
+import {
+  AlertTriangle,
+  Ban,
+  CalendarDays,
+  Check,
+  CheckSquare,
+  Clock,
+  MessageSquare,
+  Paperclip,
+} from "lucide-react";
 import { AvatarGroup, Card, cn } from "@wayline/ui";
 import type { Priority, TaskCard as TaskCardType } from "@/mock/types";
 import { fmtDuration } from "./time-tracking-section";
@@ -51,6 +60,17 @@ export function TaskCard({ card }: { card: TaskCardType }) {
           {prio.label}
         </span>
       </div>
+
+      {/* Aprovação do cliente */}
+      {card.approvalStatus === "approved" ? (
+        <span className="inline-flex w-fit items-center gap-1 rounded-pill bg-success/10 px-2 h-5 text-[11px] font-semibold text-success">
+          <Check className="size-3" /> Aprovado
+        </span>
+      ) : card.approvalStatus === "changes" ? (
+        <span className="inline-flex w-fit items-center gap-1 rounded-pill bg-warning/10 px-2 h-5 text-[11px] font-semibold text-warning">
+          <AlertTriangle className="size-3" /> Ajustes pedidos
+        </span>
+      ) : null}
 
       {/* Bloqueio */}
       {card.blocked && (

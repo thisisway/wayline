@@ -73,6 +73,10 @@ export interface TaskModalProps {
   onAttachmentCountChange?: (count: number) => void;
   onDependenciesChange?: () => void;
   onTrackedChange?: (seconds: number) => void;
+  approvalStatus?: string | null;
+  approvalBy?: string | null;
+  approvalAt?: Date | null;
+  onClearApproval?: () => void;
 }
 
 export function TaskModal({
@@ -94,6 +98,10 @@ export function TaskModal({
   onAttachmentCountChange,
   onDependenciesChange,
   onTrackedChange,
+  approvalStatus,
+  approvalBy,
+  approvalAt,
+  onClearApproval,
 }: TaskModalProps) {
   const [form, setForm] = React.useState<TaskFormInput>(initial);
   const set = <K extends keyof TaskFormInput>(key: K, value: TaskFormInput[K]) =>
@@ -142,6 +150,38 @@ export function TaskModal({
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {mode === "edit" && (approvalStatus === "approved" || approvalStatus === "changes") && (
+            <div
+              className={cn(
+                "mx-5 mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-dense",
+                approvalStatus === "approved"
+                  ? "bg-success/10 text-success"
+                  : "bg-warning/10 text-warning",
+              )}
+            >
+              {approvalStatus === "approved" ? (
+                <CheckSquare className="size-4 shrink-0" />
+              ) : (
+                <Square className="size-4 shrink-0" />
+              )}
+              <span className="flex-1 font-semibold">
+                {approvalStatus === "approved" ? "Aprovado" : "Ajustes pedidos"}
+                {approvalBy && ` por ${approvalBy}`}
+                {approvalAt &&
+                  ` · ${new Date(approvalAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}`}
+              </span>
+              {onClearApproval && (
+                <button
+                  type="button"
+                  onClick={onClearApproval}
+                  className="rounded px-1.5 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          )}
+
           <form
             id="task-form"
             onSubmit={(e) => {

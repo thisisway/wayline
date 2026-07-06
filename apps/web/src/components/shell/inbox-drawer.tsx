@@ -2,7 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { AtSign, CheckCheck, Inbox, MessageSquare, UserPlus, X } from "lucide-react";
+import {
+  AlertTriangle,
+  AtSign,
+  CheckCheck,
+  CheckCircle2,
+  Inbox,
+  MessageSquare,
+  UserPlus,
+  X,
+} from "lucide-react";
 import type { NotificationDTO } from "@wayline/db";
 import { cn } from "@wayline/ui";
 import { markInboxReadAction, switchList } from "@/actions/org";
@@ -21,6 +30,8 @@ function message(n: NotificationDTO): string {
   if (n.type === "comment") return `${n.actorName} comentou em`;
   if (n.type === "assigned") return `${n.actorName} atribuiu você a`;
   if (n.type === "mention") return `${n.actorName} mencionou você em`;
+  if (n.type === "approved") return `${n.actorName} aprovou`;
+  if (n.type === "changes") return `${n.actorName} pediu ajustes em`;
   return `${n.actorName} atualizou`;
 }
 
@@ -108,13 +119,19 @@ export function InboxDrawer({
                 <span
                   className={cn(
                     "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
-                    n.type === "comment" || n.type === "mention"
-                      ? "bg-brand/15 text-brand"
-                      : "bg-success/15 text-success",
+                    n.type === "changes"
+                      ? "bg-warning/15 text-warning"
+                      : n.type === "comment" || n.type === "mention"
+                        ? "bg-brand/15 text-brand"
+                        : "bg-success/15 text-success",
                   )}
                 >
                   {n.type === "mention" ? (
                     <AtSign className="size-4" />
+                  ) : n.type === "approved" ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : n.type === "changes" ? (
+                    <AlertTriangle className="size-4" />
                   ) : n.type === "comment" ? (
                     <MessageSquare className="size-4" />
                   ) : (

@@ -34,6 +34,9 @@ export interface BoardTaskDTO {
   dueDate: Date | null;
   completed: boolean;
   estimateMinutes: number | null;
+  approvalStatus: string | null;
+  approvalBy: string | null;
+  approvalAt: Date | null;
   client: { id: string; name: string; color: string } | null;
   assignees: Array<{ id: string; name: string; avatarUrl: string | null }>;
   tags: Array<{ label: string; color: string }>;
@@ -96,6 +99,9 @@ type TaskRow = {
   dueDate: Date | null;
   completed: boolean;
   estimateMinutes: number | null;
+  approvalStatus: string | null;
+  approvalBy: string | null;
+  approvalAt: Date | null;
   tags: Array<{ label: string; color: string }>;
   client: { id: string; name: string; color: string } | null;
   assignees: Array<{ user: { id: string; name: string; avatarUrl: string | null } }>;
@@ -111,6 +117,9 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     startDate: t.startDate,
     dueDate: t.dueDate,
     estimateMinutes: t.estimateMinutes,
+    approvalStatus: t.approvalStatus,
+    approvalBy: t.approvalBy,
+    approvalAt: t.approvalAt,
     completed: t.completed,
     client: t.client ? { id: t.client.id, name: t.client.name, color: t.client.color } : null,
     assignees: t.assignees.map((a) => ({

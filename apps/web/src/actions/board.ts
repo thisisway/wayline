@@ -22,6 +22,7 @@ import {
   saveBoardOrder,
   saveBoardOrderLogged,
   setSubtaskDone,
+  setTaskApproval,
   updateTask,
   type BoardOrderInput,
   type BoardTaskDTO,
@@ -100,6 +101,17 @@ export async function updateTaskAction(
   }
   revalidatePath("/app");
   return after;
+}
+
+/** Limpa a aprovação do cliente (após o time endereçar os ajustes). */
+export async function clearApprovalAction(
+  orgId: string,
+  id: string,
+): Promise<BoardTaskDTO | null> {
+  if (!(await assertMember(orgId))) return null;
+  await setTaskApproval(orgId, id, null, null);
+  revalidatePath("/app");
+  return getTaskCard(orgId, id);
 }
 
 /** Recarrega um card (para reconciliar flags derivadas, ex.: bloqueio). */

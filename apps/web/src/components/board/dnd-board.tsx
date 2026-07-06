@@ -26,6 +26,7 @@ import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { TaskCard } from "./task-card";
 import { TaskModal } from "./task-modal";
 import {
+  clearApprovalAction,
   createTaskAction,
   deleteTaskAction,
   duplicateTaskAction,
@@ -373,6 +374,21 @@ export function DndBoard({ data }: { data: BoardData }) {
           onTrackedChange={
             modal.mode === "edit"
               ? (seconds) => updateTrackedSeconds(modal.task.id, seconds)
+              : undefined
+          }
+          approvalStatus={modal.mode === "edit" ? modal.task.approvalStatus : null}
+          approvalBy={modal.mode === "edit" ? modal.task.approvalBy : null}
+          approvalAt={modal.mode === "edit" ? modal.task.approvalAt : null}
+          onClearApproval={
+            modal.mode === "edit"
+              ? async () => {
+                  const dto = await clearApprovalAction(orgId, modal.task.id).catch(() => null);
+                  if (dto) {
+                    upsertCard(dto);
+                    setModal({ mode: "edit", task: dto });
+                    poke();
+                  }
+                }
               : undefined
           }
         />

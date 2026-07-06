@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { dtoToForm, type TaskFormInput } from "@/lib/board";
 import {
+  clearApprovalAction,
   createTaskAction,
   deleteTaskAction,
   duplicateTaskAction,
@@ -127,6 +128,19 @@ export function useTaskEditor(data: BoardData | null) {
           void pokeList(data.listId);
           router.refresh();
         }}
+        approvalStatus={state.mode === "edit" ? state.task.approvalStatus : null}
+        approvalBy={state.mode === "edit" ? state.task.approvalBy : null}
+        approvalAt={state.mode === "edit" ? state.task.approvalAt : null}
+        onClearApproval={
+          state.mode === "edit"
+            ? async () => {
+                const dto = await clearApprovalAction(data.orgId, state.task.id).catch(() => null);
+                if (dto) setState({ mode: "edit", task: dto });
+                void pokeList(data.listId);
+                router.refresh();
+              }
+            : undefined
+        }
       />
     ) : null;
 

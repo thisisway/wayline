@@ -3,8 +3,10 @@
 import {
   addPublicComment,
   getPublicComments,
+  notifyApproval,
   notifyTaskAssignees,
   resolveShareTask,
+  setTaskApproval,
   type PublicCommentDTO,
 } from "@wayline/db";
 import { pokeList } from "@/actions/live";
@@ -39,4 +41,23 @@ export async function addPublicCommentAction(
   );
   await pokeList(share.listId).catch(() => {});
   return created;
+}
+
+export async function setPublicApprovalAction(
+  token: string,
+  taskId: string,
+  status: "approved" | "changes",
+  name: string,
+): Promise<boolean> {
+  const who = name.trim().slice(0, 60);
+  if (!who) return false;
+  const share = await resolveShareTask(token, taskId);
+  if (!share) return false;
+
+  await setTaskApproval(share.orgId, taskId, status, who);
+  await notifyApproval(share.orgId, taskId, `${who} (cliente)`, status === "approved").catch(
+    () => {},
+  );
+  await pokeList(share.listId).catch(() => {});
+  return true;
 }

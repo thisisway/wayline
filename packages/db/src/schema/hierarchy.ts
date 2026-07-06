@@ -114,6 +114,10 @@ export const tasks = pgTable(
     completed: boolean("completed").notNull().default(false),
     /** Estimativa de esforço em minutos (comparar com o tempo rastreado). */
     estimateMinutes: integer("estimate_minutes"),
+    /** Aprovação do cliente (portal): 'approved' | 'changes' | null. */
+    approvalStatus: text("approval_status"),
+    approvalBy: text("approval_by"),
+    approvalAt: timestamp("approval_at", { withTimezone: true }),
 
     // Tags com cor — atalho pragmático (JSONB) na Fase 1.1; pode virar
     // tags/task_tags normalizadas depois se a busca por tag exigir.

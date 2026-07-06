@@ -105,6 +105,35 @@ export async function notifyMentions(
   });
 }
 
+/** Notifica os responsáveis quando o cliente aprova/pede ajustes (portal). */
+export async function notifyApproval(
+  orgId: string,
+  taskId: string,
+  actorName: string,
+  approved: boolean,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const task = await tx.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+      with: { assignees: true },
+    });
+    if (!task) return;
+    const recipients = task.assignees.map((a) => a.userId);
+    if (recipients.length === 0) return;
+    await tx.insert(notifications).values(
+      recipients.map((userId) => ({
+        orgId,
+        userId,
+        type: approved ? "approved" : "changes",
+        taskId,
+        listId: task.listId,
+        taskTitle: task.title,
+        actorName,
+      })),
+    );
+  });
+}
+
 export async function getNotifications(
   orgId: string,
   userId: string,

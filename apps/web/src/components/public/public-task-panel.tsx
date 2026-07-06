@@ -1,11 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Send, X } from "lucide-react";
+import { AlertTriangle, Check, Send, X } from "lucide-react";
 import type { PublicCommentDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import type { TaskCard as TaskCardType } from "@/mock/types";
-import { addPublicCommentAction, listPublicCommentsAction } from "@/actions/public-board";
+import {
+  addPublicCommentAction,
+  listPublicCommentsAction,
+  setPublicApprovalAction,
+} from "@/actions/public-board";
 
 const NAME_KEY = "wayline_guest_name";
 
@@ -32,6 +36,7 @@ export function PublicTaskPanel({
   const [name, setName] = React.useState("");
   const [body, setBody] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [approval, setApproval] = React.useState<string | null>(card.approvalStatus ?? null);
 
   React.useEffect(() => {
     setName(localStorage.getItem(NAME_KEY) ?? "");
@@ -40,6 +45,14 @@ export function PublicTaskPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [token, card.id, onClose]);
+
+  async function decide(status: "approved" | "changes") {
+    const n = name.trim();
+    if (!n) return;
+    localStorage.setItem(NAME_KEY, n);
+    setApproval(status);
+    await setPublicApprovalAction(token, card.id, status, n).catch(() => {});
+  }
 
   async function send() {
     const n = name.trim();
@@ -119,6 +132,41 @@ export function PublicTaskPanel({
               ))}
             </div>
           )}
+
+          <div className="border-t border-border pt-3">
+            <span className="text-label uppercase text-subtle">Aprovação</span>
+            {approval === "approved" ? (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-dense font-semibold text-success">
+                <Check className="size-4" /> Aprovado por você
+              </div>
+            ) : approval === "changes" ? (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-dense font-semibold text-warning">
+                <AlertTriangle className="size-4" /> Ajustes solicitados
+              </div>
+            ) : null}
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                onClick={() => decide("approved")}
+                disabled={!name.trim()}
+                className="flex-1 gap-1.5 bg-success hover:bg-success/90"
+              >
+                <Check className="size-4" /> Aprovar
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => decide("changes")}
+                disabled={!name.trim()}
+                className="flex-1 gap-1.5"
+              >
+                <AlertTriangle className="size-4" /> Pedir ajustes
+              </Button>
+            </div>
+            {!name.trim() && (
+              <p className="mt-1.5 text-[11px] text-subtle">Informe seu nome abaixo para aprovar.</p>
+            )}
+          </div>
 
           <div className="border-t border-border pt-3">
             <span className="text-label uppercase text-subtle">Comentários</span>
