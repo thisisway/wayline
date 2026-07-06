@@ -32,6 +32,33 @@ function fmtClock(seconds: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
+function EstimateBar({
+  totalSeconds,
+  estimateSeconds,
+}: {
+  totalSeconds: number;
+  estimateSeconds: number;
+}) {
+  const over = totalSeconds > estimateSeconds;
+  const pct = Math.min(100, (totalSeconds / estimateSeconds) * 100);
+  return (
+    <div className="mb-3">
+      <div className="mb-1 flex items-center justify-between text-[11px]">
+        <span className="text-subtle">
+          {fmtDuration(totalSeconds)} de {fmtDuration(estimateSeconds)} estimadas
+        </span>
+        {over && <span className="font-semibold text-danger">acima do estimado</span>}
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-pill bg-elevated">
+        <div
+          className={cn("h-full rounded-pill transition-all", over ? "bg-danger" : "bg-brand")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function fmtDate(d: Date): string {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
@@ -39,10 +66,12 @@ function fmtDate(d: Date): string {
 export function TimeTrackingSection({
   orgId,
   taskId,
+  estimateMinutes,
   onTrackedChange,
 }: {
   orgId: string;
   taskId: string;
+  estimateMinutes?: number | null;
   onTrackedChange?: (seconds: number) => void;
 }) {
   const [entries, setEntries] = React.useState<TimeEntryDTO[] | null>(null);
@@ -172,6 +201,10 @@ export function TimeTrackingSection({
           </span>
         </span>
       </div>
+
+      {estimateMinutes != null && estimateMinutes > 0 && (
+        <EstimateBar totalSeconds={total} estimateSeconds={estimateMinutes * 60} />
+      )}
 
       <div className="mb-3 flex items-center gap-2">
         <Button

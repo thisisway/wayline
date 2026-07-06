@@ -301,6 +301,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           clientId: null,
           startDate: null,
           dueDate: null,
+          estimateHours: "",
           assigneeIds: [],
           tags: [],
         };

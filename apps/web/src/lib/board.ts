@@ -46,6 +46,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     subtasks: t.subtaskTotal > 0 ? { done: t.subtaskDone, total: t.subtaskTotal } : undefined,
     blocked: t.blocked,
     trackedSeconds: t.trackedSeconds,
+    estimateMinutes: t.estimateMinutes,
     customFields: t.customFields,
   };
 }
@@ -59,6 +60,8 @@ export interface TaskFormInput {
   clientId: string | null;
   startDate: string | null;
   dueDate: string | null;
+  /** Estimativa em horas (string p/ aceitar vazio/decimal). */
+  estimateHours: string;
   assigneeIds: string[];
   tags: Array<{ label: string; color: string }>;
 }
@@ -73,6 +76,8 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
     clientId: dto.client?.id ?? null,
     startDate: dto.startDate ? dto.startDate.toISOString().slice(0, 10) : null,
     dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,
+    estimateHours:
+      dto.estimateMinutes != null ? String(+(dto.estimateMinutes / 60).toFixed(2)) : "",
     assigneeIds: dto.assignees.map((a) => a.id),
     tags: dto.tags,
   };

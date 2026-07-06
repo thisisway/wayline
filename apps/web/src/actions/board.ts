@@ -38,10 +38,12 @@ function parseDue(due: string | null): Date | null {
 }
 
 function normalize(input: TaskFormInput) {
+  const est = parseFloat(input.estimateHours.replace(",", "."));
   return {
     ...input,
     startDate: parseDue(input.startDate),
     dueDate: parseDue(input.dueDate),
+    estimateMinutes: Number.isFinite(est) && est > 0 ? Math.round(est * 60) : null,
     description: input.description.trim() || null,
   };
 }

@@ -133,12 +133,25 @@ export function TaskCard({ card }: { card: TaskCardType }) {
               {card.comments}
             </span>
           )}
-          {card.trackedSeconds != null && card.trackedSeconds >= 60 && (
-            <span className="inline-flex items-center gap-1" title="Tempo rastreado">
-              <Clock className="size-3.5" />
-              {fmtDuration(card.trackedSeconds)}
-            </span>
-          )}
+          {(() => {
+            const tracked = card.trackedSeconds ?? 0;
+            const est = card.estimateMinutes ?? 0;
+            if (est <= 0 && tracked < 60) return null;
+            const over = est > 0 && tracked > est * 60;
+            return (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1",
+                  over && "font-semibold text-danger",
+                )}
+                title="Tempo rastreado / estimativa"
+              >
+                <Clock className="size-3.5" />
+                {tracked >= 60 ? fmtDuration(tracked) : "0m"}
+                {est > 0 && ` / ${fmtDuration(est * 60)}`}
+              </span>
+            );
+          })()}
         </div>
 
         <AvatarGroup people={card.assignees} size="xs" max={3} />

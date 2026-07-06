@@ -18,6 +18,7 @@ export interface CreateTaskInput {
   clientId: string | null;
   startDate: Date | null;
   dueDate: Date | null;
+  estimateMinutes: number | null;
   assigneeIds: string[];
   tags: Array<{ label: string; color: string }>;
 }
@@ -127,6 +128,7 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
         clientId: input.clientId,
         startDate: input.startDate,
         dueDate: input.dueDate,
+        estimateMinutes: input.estimateMinutes,
         tags: input.tags,
         position,
       })
@@ -165,6 +167,7 @@ export async function updateTask(orgId: string, input: UpdateTaskInput): Promise
         clientId: input.clientId,
         startDate: input.startDate,
         dueDate: input.dueDate,
+        estimateMinutes: input.estimateMinutes,
         statusId: input.statusId,
         tags: input.tags,
         position,

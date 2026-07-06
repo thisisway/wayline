@@ -39,6 +39,11 @@ const fieldLabel = "text-label uppercase text-subtle";
 const selectClass =
   "h-10 w-full rounded-md border border-border bg-surface px-3 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+function estimateMinutesOf(hours: string): number | null {
+  const h = parseFloat(hours.replace(",", "."));
+  return Number.isFinite(h) && h > 0 ? Math.round(h * 60) : null;
+}
+
 function timeAgo(value: Date): string {
   const s = Math.floor((Date.now() - new Date(value).getTime()) / 1000);
   if (s < 60) return "agora";
@@ -251,6 +256,19 @@ export function TaskModal({
                   onChange={(e) => set("dueDate", e.target.value || null)}
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className={fieldLabel} htmlFor="task-estimate">
+                  Estimativa (h)
+                </label>
+                <Input
+                  id="task-estimate"
+                  inputMode="decimal"
+                  placeholder="ex.: 4"
+                  value={form.estimateHours}
+                  onChange={(e) => set("estimateHours", e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -292,7 +310,12 @@ export function TaskModal({
           )}
 
           {mode === "edit" && taskId && (
-            <TimeTrackingSection orgId={orgId} taskId={taskId} onTrackedChange={onTrackedChange} />
+            <TimeTrackingSection
+              orgId={orgId}
+              taskId={taskId}
+              estimateMinutes={estimateMinutesOf(form.estimateHours)}
+              onTrackedChange={onTrackedChange}
+            />
           )}
 
           {mode === "edit" && taskId && (

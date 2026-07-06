@@ -112,6 +112,8 @@ export const tasks = pgTable(
     dueDate: timestamp("due_date", { withTimezone: true }),
     position: integer("position").notNull().default(0),
     completed: boolean("completed").notNull().default(false),
+    /** Estimativa de esforço em minutos (comparar com o tempo rastreado). */
+    estimateMinutes: integer("estimate_minutes"),
 
     // Tags com cor — atalho pragmático (JSONB) na Fase 1.1; pode virar
     // tags/task_tags normalizadas depois se a busca por tag exigir.

@@ -34,6 +34,7 @@ export interface TaskCard {
   subtasks?: { done: number; total: number };
   blocked?: boolean;
   trackedSeconds?: number;
+  estimateMinutes?: number | null;
   customFields?: Array<{ name: string; type: string; value: string }>;
 }
 
