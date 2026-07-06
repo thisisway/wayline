@@ -224,7 +224,7 @@ export function AppView({
                     <DocPanel />
                   </div>
                   <div className="pointer-events-none absolute bottom-5 right-4 z-20">
-                    <ExecutiveSummaryPanel />
+                    <ExecutiveSummaryPanel data={data} />
                   </div>
                 </>
               )}

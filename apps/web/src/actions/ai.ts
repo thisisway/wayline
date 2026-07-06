@@ -1,9 +1,9 @@
 "use server";
 
-import { createSubtask, getTaskCard, type Subtask } from "@wayline/db";
+import { createSubtask, getBoardForOrg, getTaskCard, type Subtask } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember } from "@/lib/authz";
-import { aiEnabled, suggestSubtasks, writeDescription } from "@/lib/ai";
+import { aiEnabled, suggestSubtasks, summarizeBoard, writeDescription } from "@/lib/ai";
 
 export async function aiEnabledAction(): Promise<boolean> {
   return aiEnabled();
@@ -38,4 +38,23 @@ export async function suggestSubtasksAction(
   }
   revalidatePath("/app");
   return created;
+}
+
+/** Insights executivos do board (lista atual) via IA. */
+export async function boardInsightsAction(orgId: string, listId: string): Promise<string[]> {
+  if (!aiEnabled() || !(await assertMember(orgId))) return [];
+  const board = await getBoardForOrg(orgId, null, listId);
+  if (!board) return [];
+  const now = Date.now();
+  const lines: string[] = [];
+  for (const col of board.columns) {
+    for (const t of col.tasks) {
+      const overdue = t.dueDate && !t.completed && new Date(t.dueDate).getTime() < now;
+      const due = t.dueDate
+        ? ` (prazo ${new Date(t.dueDate).toLocaleDateString("pt-BR")}${overdue ? ", ATRASADA" : ""})`
+        : "";
+      lines.push(`[${col.name}] ${t.title}${due}`);
+    }
+  }
+  return summarizeBoard(lines);
 }

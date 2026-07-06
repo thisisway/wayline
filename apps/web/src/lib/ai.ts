@@ -113,6 +113,17 @@ export async function writeDescription(
   return raw?.trim() || null;
 }
 
+/** Gera 2-3 insights executivos a partir das tarefas do board (pt-BR). */
+export async function summarizeBoard(lines: string[]): Promise<string[]> {
+  if (lines.length === 0) return [];
+  const system =
+    "Você é um diretor de operações de uma agência de marketing. Com base na lista de tarefas " +
+    "(coluna/status e prazo), escreva de 2 a 3 insights executivos curtos e úteis em português do " +
+    "Brasil: progresso, riscos/atrasos e próximo passo. Responda APENAS com um array JSON de strings curtas.";
+  const raw = await complete(system, lines.join("\n").slice(0, 6000), 400);
+  return raw ? parseStringArray(raw) : [];
+}
+
 /** Quebra uma tarefa em subtarefas concretas (títulos curtos, em pt-BR). */
 export async function suggestSubtasks(
   title: string,
