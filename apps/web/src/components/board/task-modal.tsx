@@ -27,7 +27,7 @@ import {
   listSubtasksAction,
   toggleSubtaskAction,
 } from "@/actions/board";
-import { aiEnabledAction, suggestSubtasksAction } from "@/actions/ai";
+import { aiEnabledAction, suggestSubtasksAction, writeDescriptionAction } from "@/actions/ai";
 
 const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
   { value: "urgent", label: "Urgente" },
@@ -107,12 +107,26 @@ export function TaskModal({
   const [form, setForm] = React.useState<TaskFormInput>(initial);
   const set = <K extends keyof TaskFormInput>(key: K, value: TaskFormInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+  const [ai, setAi] = React.useState(false);
+  const [descBusy, setDescBusy] = React.useState(false);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
+    aiEnabledAction().then(setAi);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  async function writeDesc() {
+    if (descBusy || !form.title.trim()) return;
+    setDescBusy(true);
+    try {
+      const text = await writeDescriptionAction(orgId, form.title, form.description);
+      if (text) set("description", text);
+    } finally {
+      setDescBusy(false);
+    }
+  }
 
   const canSave = form.title.trim().length > 0 && form.statusId.length > 0 && !submitting;
 
@@ -205,9 +219,23 @@ export function TaskModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className={fieldLabel} htmlFor="task-desc">
-                Descrição
-              </label>
+              <div className="flex items-center justify-between">
+                <label className={fieldLabel} htmlFor="task-desc">
+                  Descrição
+                </label>
+                {ai && (
+                  <button
+                    type="button"
+                    onClick={() => void writeDesc()}
+                    disabled={descBusy || !form.title.trim()}
+                    title="Gerar/melhorar a descrição com IA (Wayline Brain)"
+                    className="flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-40"
+                  >
+                    <Sparkles className="size-3" />
+                    {descBusy ? "Escrevendo…" : "Gerar com IA"}
+                  </button>
+                )}
+              </div>
               <textarea
                 id="task-desc"
                 value={form.description}

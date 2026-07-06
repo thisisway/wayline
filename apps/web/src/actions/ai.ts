@@ -3,10 +3,20 @@
 import { createSubtask, getTaskCard, type Subtask } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember } from "@/lib/authz";
-import { aiEnabled, suggestSubtasks } from "@/lib/ai";
+import { aiEnabled, suggestSubtasks, writeDescription } from "@/lib/ai";
 
 export async function aiEnabledAction(): Promise<boolean> {
   return aiEnabled();
+}
+
+/** Gera/melhora a descrição a partir do título (funciona em criar e editar). */
+export async function writeDescriptionAction(
+  orgId: string,
+  title: string,
+  description: string,
+): Promise<string | null> {
+  if (!aiEnabled() || !title.trim() || !(await assertMember(orgId))) return null;
+  return writeDescription(title.trim(), description);
 }
 
 /** Gera subtarefas com IA e as cria na tarefa. Retorna as subtarefas criadas. */

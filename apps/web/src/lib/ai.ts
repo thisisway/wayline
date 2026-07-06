@@ -98,6 +98,21 @@ function parseStringArray(raw: string): string[] {
   }
 }
 
+/** Escreve/melhora a descrição de uma tarefa (2-4 frases, pt-BR, sem markdown). */
+export async function writeDescription(
+  title: string,
+  current: string | null,
+): Promise<string | null> {
+  const system =
+    "Você é um assistente de uma agência de marketing. Escreva uma descrição de tarefa clara e " +
+    "objetiva em português do Brasil, em 2 a 4 frases. Sem títulos, sem markdown, apenas o texto.";
+  const user = current?.trim()
+    ? `Título: ${title}\nRascunho atual: ${current.trim()}\nMelhore e complete a descrição.`
+    : `Título: ${title}\nEscreva a descrição.`;
+  const raw = await complete(system, user, 300);
+  return raw?.trim() || null;
+}
+
 /** Quebra uma tarefa em subtarefas concretas (títulos curtos, em pt-BR). */
 export async function suggestSubtasks(
   title: string,
