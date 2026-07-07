@@ -33,6 +33,7 @@ import { ShareModal } from "@/components/shell/share-modal";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
 import { useBoardLive } from "@/lib/use-board-live";
+import { useNotificationsLive } from "@/lib/use-notifications-live";
 import {
   applyFilters,
   collectCustomFieldOptions,
@@ -117,6 +118,7 @@ export function AppView({
   }, [data, focusEditor]);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
   const viewers = useBoardLive(data?.listId ?? "");
+  useNotificationsLive();
 
   const filtered = React.useMemo(() => (data ? applyFilters(data, filters) : null), [data, filters]);
   const tagOptions = React.useMemo(() => (data ? collectTags(data) : []), [data]);

@@ -37,6 +37,7 @@ import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
 import { assertMember, getSessionUser } from "@/lib/authz";
 import { emailNotify } from "@/lib/email";
+import { pokeUsers } from "@/actions/live";
 
 function parseDue(due: string | null): Date | null {
   return due ? new Date(due) : null;
@@ -89,6 +90,7 @@ export async function createTaskAction(
       taskTitle,
       taskId: id,
     });
+    await pokeUsers(recipientIds);
     await logCreated(orgId, id, user.id, user.name);
   }
   revalidatePath("/app");
@@ -203,8 +205,11 @@ export async function addCommentAction(
   const created = await addComment(orgId, { taskId, authorId: user.id, body, parentId });
   const mentioned = new Set(mentionIds ?? []);
 
+  const liveRecipients = new Set<string>();
+
   if (parentId) {
     const { recipientIds, taskTitle } = await notifyReply(orgId, parentId, user.id, user.name);
+    recipientIds.forEach((id) => liveRecipients.add(id));
     await emailNotify(
       recipientIds.filter((id) => !mentioned.has(id)),
       {
@@ -223,6 +228,7 @@ export async function addCommentAction(
       user.name,
       "comment",
     );
+    recipientIds.forEach((id) => liveRecipients.add(id));
     await emailNotify(
       recipientIds.filter((id) => !mentioned.has(id)),
       {
@@ -243,6 +249,7 @@ export async function addCommentAction(
       user.name,
       mentionIds,
     );
+    recipientIds.forEach((id) => liveRecipients.add(id));
     await emailNotify(recipientIds, {
       subject: `${user.name} mencionou você no Wayline`,
       actorName: user.name,
@@ -251,6 +258,7 @@ export async function addCommentAction(
       taskId,
     });
   }
+  await pokeUsers([...liveRecipients]);
   revalidatePath("/app");
   return created;
 }

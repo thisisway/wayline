@@ -10,6 +10,13 @@ export async function pokeList(listId: string): Promise<void> {
   if (listId) send(listId, "board", String(Date.now()));
 }
 
+/** Avisa usuários (canal por usuário) que há uma nova notificação. */
+export async function pokeUsers(userIds: string[]): Promise<void> {
+  for (const id of [...new Set(userIds)]) {
+    if (id) send(`user:${id}`, "notify", String(Date.now()));
+  }
+}
+
 /** Registra/renova presença na lista e devolve os viewers atuais. */
 export async function heartbeatAction(listId: string): Promise<Viewer[]> {
   const session = await auth();
