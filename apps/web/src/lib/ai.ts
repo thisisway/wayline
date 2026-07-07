@@ -98,6 +98,16 @@ function parseStringArray(raw: string): string[] {
   }
 }
 
+/** Resume uma thread de comentários (2-3 frases, pt-BR, sem markdown). */
+export async function summarizeComments(lines: string[]): Promise<string | null> {
+  if (lines.length === 0) return null;
+  const system =
+    "Resuma a conversa a seguir em 2 a 3 frases objetivas, em português do Brasil, destacando " +
+    "decisões, pedidos do cliente e pendências. Sem markdown, apenas o texto.";
+  const raw = await complete(system, lines.join("\n").slice(0, 6000), 300);
+  return raw?.trim() || null;
+}
+
 /** Escreve/melhora a descrição de uma tarefa (2-4 frases, pt-BR, sem markdown). */
 export async function writeDescription(
   title: string,

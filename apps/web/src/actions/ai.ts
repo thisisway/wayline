@@ -1,9 +1,21 @@
 "use server";
 
-import { createSubtask, getBoardForOrg, getTaskCard, type Subtask } from "@wayline/db";
+import {
+  createSubtask,
+  getBoardForOrg,
+  getTaskCard,
+  getTaskComments,
+  type Subtask,
+} from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember } from "@/lib/authz";
-import { aiEnabled, suggestSubtasks, summarizeBoard, writeDescription } from "@/lib/ai";
+import {
+  aiEnabled,
+  suggestSubtasks,
+  summarizeBoard,
+  summarizeComments,
+  writeDescription,
+} from "@/lib/ai";
 
 export async function aiEnabledAction(): Promise<boolean> {
   return aiEnabled();
@@ -38,6 +50,20 @@ export async function suggestSubtasksAction(
   }
   revalidatePath("/app");
   return created;
+}
+
+/** Resume a thread de comentários de uma tarefa via IA. */
+export async function summarizeCommentsAction(
+  orgId: string,
+  taskId: string,
+): Promise<string | null> {
+  if (!aiEnabled() || !(await assertMember(orgId))) return null;
+  const comments = await getTaskComments(orgId, taskId);
+  if (comments.length === 0) return null;
+  const lines = comments.map(
+    (c) => `${c.author?.name ?? c.guestName ?? "Cliente"}: ${c.body}`,
+  );
+  return summarizeComments(lines);
 }
 
 /** Insights executivos do board (lista atual) via IA. */

@@ -27,7 +27,12 @@ import {
   listSubtasksAction,
   toggleSubtaskAction,
 } from "@/actions/board";
-import { aiEnabledAction, suggestSubtasksAction, writeDescriptionAction } from "@/actions/ai";
+import {
+  aiEnabledAction,
+  suggestSubtasksAction,
+  summarizeCommentsAction,
+  writeDescriptionAction,
+} from "@/actions/ai";
 
 const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
   { value: "urgent", label: "Urgente" },
@@ -732,6 +737,9 @@ function CommentsSection({
   const [posting, setPosting] = React.useState(false);
   const [assigningId, setAssigningId] = React.useState<string | null>(null);
   const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
+  const [ai, setAi] = React.useState(false);
+  const [summary, setSummary] = React.useState<string | null>(null);
+  const [summarizing, setSummarizing] = React.useState(false);
 
   const reload = React.useCallback(() => {
     listCommentsAction(orgId, taskId).then(setComments);
@@ -740,10 +748,21 @@ function CommentsSection({
   React.useEffect(() => {
     let alive = true;
     listCommentsAction(orgId, taskId).then((c) => alive && setComments(c));
+    aiEnabledAction().then((e) => alive && setAi(e));
     return () => {
       alive = false;
     };
   }, [orgId, taskId]);
+
+  async function summarize() {
+    if (summarizing) return;
+    setSummarizing(true);
+    try {
+      setSummary(await summarizeCommentsAction(orgId, taskId));
+    } finally {
+      setSummarizing(false);
+    }
+  }
 
   async function assign(commentId: string, userId: string | null) {
     setAssigningId(null);
@@ -885,9 +904,27 @@ function CommentsSection({
 
   return (
     <div className="border-t border-border px-5 py-4">
-      <span className={cn(fieldLabel, "mb-3 block")}>
-        Comentários {comments ? `(${comments.length})` : ""}
-      </span>
+      <div className="mb-3 flex items-center justify-between">
+        <span className={fieldLabel}>Comentários {comments ? `(${comments.length})` : ""}</span>
+        {ai && (comments?.length ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={() => void summarize()}
+            disabled={summarizing}
+            title="Resumir a conversa com IA (Wayline Brain)"
+            className="flex h-7 items-center gap-1 rounded-md px-1.5 text-dense font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-50"
+          >
+            <Sparkles className="size-3.5" />
+            {summarizing ? "Resumindo…" : "Resumir"}
+          </button>
+        )}
+      </div>
+      {summary && (
+        <div className="mb-3 flex gap-2 rounded-lg border border-brand/20 bg-brand/5 px-3 py-2 text-dense text-muted">
+          <Sparkles className="mt-0.5 size-3.5 shrink-0 text-brand" />
+          <p>{summary}</p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {comments === null ? (
