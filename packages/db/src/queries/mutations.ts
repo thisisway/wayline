@@ -108,8 +108,9 @@ export async function saveBoardOrderLogged(
 }
 
 /**
- * Se a tarefa é recorrente e entrou numa coluna de conclusão ('done'), gera a
- * PRÓXIMA ocorrência (copia campos, avança o prazo, volta pra 1ª coluna).
+ * Se a tarefa é recorrente e entrou numa coluna de conclusão — do tipo 'done'
+ * OU a última coluna da lista — gera a PRÓXIMA ocorrência (copia campos, avança
+ * o prazo, volta pra 1ª coluna).
  */
 export async function spawnRecurrence(
   orgId: string,
@@ -117,13 +118,21 @@ export async function spawnRecurrence(
   newStatusId: string,
 ): Promise<boolean> {
   return withOrg(orgId, async (tx) => {
-    const status = await tx.query.statuses.findFirst({ where: eq(statuses.id, newStatusId) });
-    if (!status || status.kind !== "done") return false;
     const task = await tx.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       with: { assignees: true },
     });
     if (!task || !task.recurrence) return false;
+
+    const listStatuses = await tx.query.statuses.findMany({
+      where: eq(statuses.listId, task.listId),
+      orderBy: [asc(statuses.position)],
+    });
+    if (listStatuses.length === 0) return false;
+    const entered = listStatuses.find((s) => s.id === newStatusId);
+    const last = listStatuses[listStatuses.length - 1]!;
+    // Conclusão = coluna tipo 'done' OU a última coluda da lista.
+    if (!entered || (entered.kind !== "done" && entered.id !== last.id)) return false;
 
     const base = task.dueDate ? new Date(task.dueDate) : new Date();
     const next = new Date(base);
@@ -138,11 +147,7 @@ export async function spawnRecurrence(
     }
 
     // Volta pra 1ª coluna da lista.
-    const first = await tx.query.statuses.findFirst({
-      where: eq(statuses.listId, task.listId),
-      orderBy: [asc(statuses.position)],
-    });
-    const targetStatus = first?.id ?? newStatusId;
+    const targetStatus = listStatuses[0]!.id;
     const position = await tx.$count(
       tasks,
       and(eq(tasks.statusId, targetStatus), isNull(tasks.deletedAt)),
