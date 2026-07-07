@@ -34,6 +34,12 @@ export {
 } from "./queries/auth";
 export { createOrg, createSpace, createList, duplicateListStructure } from "./queries/orgs";
 export {
+  createStatus,
+  renameStatus,
+  deleteStatus,
+  type StatusDTO,
+} from "./queries/statuses";
+export {
   upsertVerification,
   getVerification,
   bumpVerificationAttempts,

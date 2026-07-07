@@ -7,8 +7,11 @@ import {
   bulkDeleteTasks,
   bulkSetPriority,
   bulkSetStatus,
+  createStatus,
   createSubtask,
   createTask,
+  deleteStatus,
+  renameStatus,
   deleteComment,
   deleteSubtask,
   deleteTask,
@@ -151,6 +154,34 @@ export async function deleteTaskAction(orgId: string, id: string): Promise<void>
   if (!(await assertMember(orgId))) return;
   await deleteTask(orgId, id);
   revalidatePath("/app");
+}
+
+// --- Colunas (statuses) ----------------------------------------------------
+export async function createColumnAction(
+  orgId: string,
+  listId: string,
+  name: string,
+): Promise<void> {
+  if (!name.trim() || !(await assertMember(orgId))) return;
+  await createStatus(orgId, listId, name);
+  revalidatePath("/app");
+}
+
+export async function renameColumnAction(
+  orgId: string,
+  id: string,
+  name: string,
+): Promise<void> {
+  if (!name.trim() || !(await assertMember(orgId))) return;
+  await renameStatus(orgId, id, name);
+  revalidatePath("/app");
+}
+
+export async function deleteColumnAction(orgId: string, id: string): Promise<boolean> {
+  if (!(await assertMember(orgId))) return false;
+  const ok = await deleteStatus(orgId, id);
+  revalidatePath("/app");
+  return ok;
 }
 
 // --- Ações em massa (List view) --------------------------------------------

@@ -20,17 +20,21 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MoreHorizontal, Plus } from "lucide-react";
-import { cn } from "@wayline/ui";
+import { useRouter } from "next/navigation";
+import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Input, cn } from "@wayline/ui";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { TaskCard } from "./task-card";
 import { TaskModal } from "./task-modal";
 import {
   clearApprovalAction,
+  createColumnAction,
   createTaskAction,
+  deleteColumnAction,
   deleteTaskAction,
   duplicateTaskAction,
   refreshCardAction,
+  renameColumnAction,
   saveBoard,
   updateTaskAction,
 } from "@/actions/board";
@@ -67,6 +71,31 @@ export function DndBoard({ data }: { data: BoardData }) {
   }, []);
 
   const poke = React.useCallback(() => void pokeList(data.listId), [data.listId]);
+  const router = useRouter();
+
+  function addColumn(name: string) {
+    commit([...columnsRef.current, { id: `tmp-${Date.now()}`, name, color: "#94A3B8", cards: [] }]);
+    startTransition(async () => {
+      await createColumnAction(orgId, data.listId, name);
+      router.refresh();
+      poke();
+    });
+  }
+  function renameColumn(id: string, name: string) {
+    commit(columnsRef.current.map((c) => (c.id === id ? { ...c, name } : c)));
+    startTransition(async () => {
+      await renameColumnAction(orgId, id, name);
+      poke();
+    });
+  }
+  function deleteColumn(id: string) {
+    commit(columnsRef.current.filter((c) => c.id !== id));
+    startTransition(async () => {
+      await deleteColumnAction(orgId, id);
+      router.refresh();
+      poke();
+    });
+  }
 
   // Reconcilia o estado local com os dados novos do servidor (refetch), exceto
   // durante um drag ativo. `data` só muda de referência num refetch/navegação.
@@ -322,10 +351,14 @@ export function DndBoard({ data }: { data: BoardData }) {
             <Column
               key={column.id}
               column={column}
+              canDelete={columns.length > 1}
               onCreate={() => setModal({ mode: "create", statusId: column.id })}
               onEdit={(task) => setModal({ mode: "edit", task })}
+              onRename={(name) => renameColumn(column.id, name)}
+              onDelete={() => deleteColumn(column.id)}
             />
           ))}
+          <AddColumn onAdd={addColumn} />
         </div>
 
         <DragOverlay dropAnimation={null}>
@@ -398,28 +431,115 @@ export function DndBoard({ data }: { data: BoardData }) {
   );
 }
 
+function AddColumn({ onAdd }: { onAdd: (name: string) => void }) {
+  const [adding, setAdding] = React.useState(false);
+  const [name, setName] = React.useState("");
+  function submit() {
+    const v = name.trim();
+    if (v) onAdd(v);
+    setName("");
+    setAdding(false);
+  }
+  return (
+    <div className="w-72 shrink-0">
+      {adding ? (
+        <Input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => (name.trim() ? submit() : setAdding(false))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+            else if (e.key === "Escape") {
+              setName("");
+              setAdding(false);
+            }
+          }}
+          placeholder="Nome da coluna"
+          className="h-9"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="flex h-10 w-full items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-dense font-medium text-muted transition-colors hover:border-brand-40 hover:text-foreground"
+        >
+          <Plus className="size-4" /> Coluna
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Column({
   column,
+  canDelete,
   onCreate,
   onEdit,
+  onRename,
+  onDelete,
 }: {
   column: UIColumn;
+  canDelete: boolean;
   onCreate: () => void;
   onEdit: (task: BoardTaskDTO) => void;
+  onRename: (name: string) => void;
+  onDelete: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [name, setName] = React.useState(column.name);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, [menuOpen]);
+
+  function commitRename() {
+    const v = name.trim();
+    setEditing(false);
+    if (v && v !== column.name) onRename(v);
+    else setName(column.name);
+  }
 
   return (
     <section className="flex w-80 shrink-0 flex-col">
       <div className="mb-3 flex items-center gap-2">
         <span className="size-2.5 rounded-full" style={{ backgroundColor: column.color }} />
-        <h2 className="text-dense font-bold uppercase tracking-wide text-foreground">
-          {column.name}
-        </h2>
+        {editing ? (
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitRename();
+              else if (e.key === "Escape") {
+                setName(column.name);
+                setEditing(false);
+              }
+            }}
+            className="h-6 flex-1 text-dense font-bold uppercase"
+          />
+        ) : (
+          <h2
+            className="cursor-text text-dense font-bold uppercase tracking-wide text-foreground"
+            onDoubleClick={() => setEditing(true)}
+            title="Duplo clique para renomear"
+          >
+            {column.name}
+          </h2>
+        )}
         <span className="flex h-5 min-w-5 items-center justify-center rounded-pill bg-elevated px-1.5 text-[11px] font-semibold text-muted">
           {column.cards.length}
         </span>
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="relative ml-auto flex items-center gap-0.5" ref={menuRef}>
           <button
             type="button"
             onClick={onCreate}
@@ -430,11 +550,42 @@ function Column({
           </button>
           <button
             type="button"
+            onClick={() => setMenuOpen((o) => !o)}
             aria-label="Opções da coluna"
             className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
           >
             <MoreHorizontal className="size-4" />
           </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-7 z-20 w-40 rounded-lg border border-border bg-surface p-1 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setName(column.name);
+                  setEditing(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
+              >
+                <Pencil className="size-3.5" /> Renomear
+              </button>
+              <button
+                type="button"
+                disabled={!canDelete}
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (
+                    canDelete &&
+                    confirm("Excluir a coluna? As tarefas dela vão para a primeira coluna.")
+                  )
+                    onDelete();
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-danger hover:bg-danger/10 disabled:opacity-40"
+              >
+                <Trash2 className="size-3.5" /> Excluir
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
