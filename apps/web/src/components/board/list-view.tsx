@@ -1,13 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { CalendarDays, ChevronDown, MessageSquare, Plus } from "lucide-react";
-import type { BoardData, BoardTaskDTO } from "@wayline/db";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ChevronDown, MessageSquare, Plus, Trash2, X } from "lucide-react";
+import type { BoardColumnDTO, BoardData, BoardTaskDTO } from "@wayline/db";
 import { AvatarGroup, cn } from "@wayline/ui";
 import { mapTaskDTO } from "@/lib/board";
 import { useTaskEditor } from "@/lib/use-task-editor";
 import { priorityMeta } from "@/components/board/task-card";
 import { collectCustomFieldOptions } from "@/lib/board-filter";
+import { bulkDeleteAction, bulkPriorityAction, bulkStatusAction } from "@/actions/board";
+import { pokeList } from "@/actions/live";
 
 /** "status" | "priority" | "assignee" | "client" | `cf:<nome do campo>` */
 type GroupBy = string;
@@ -146,9 +149,28 @@ function buildGroups(data: BoardData, groupBy: GroupBy): Group[] {
 /** Renderizador em LISTA sobre os mesmos dados do board (engine de views). */
 export function ListView({ data }: { data: BoardData }) {
   const editor = useTaskEditor(data);
+  const router = useRouter();
   const [groupBy, setGroupBy] = React.useState<GroupBy>("status");
   const [sortBy, setSortBy] = React.useState<SortBy>("default");
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function clearSelection() {
+    setSelected(new Set());
+  }
+  function afterBulk() {
+    clearSelection();
+    void pokeList(data.listId);
+    router.refresh();
+  }
 
   const groupOptions = React.useMemo(() => {
     const custom = collectCustomFieldOptions(data).map((cf) => ({
@@ -236,6 +258,8 @@ export function ListView({ data }: { data: BoardData }) {
                         key={dto.id}
                         dto={dto}
                         first={i === 0}
+                        selected={selected.has(dto.id)}
+                        onToggleSelect={() => toggleSelect(dto.id)}
                         onClick={() => editor.openEdit(dto)}
                       />
                     ))}
@@ -260,7 +284,116 @@ export function ListView({ data }: { data: BoardData }) {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <BulkBar
+          orgId={data.orgId}
+          ids={[...selected]}
+          count={selected.size}
+          columns={data.columns}
+          onClear={clearSelection}
+          onDone={afterBulk}
+        />
+      )}
+
       {editor.modal}
+    </div>
+  );
+}
+
+function BulkBar({
+  orgId,
+  ids,
+  count,
+  columns,
+  onClear,
+  onDone,
+}: {
+  orgId: string;
+  ids: string[];
+  count: number;
+  columns: BoardColumnDTO[];
+  onClear: () => void;
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = React.useState(false);
+
+  async function run(fn: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+      onDone();
+    }
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+      <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 shadow-xl">
+        <span className="text-dense font-semibold text-foreground">
+          {count} selecionada{count > 1 ? "s" : ""}
+        </span>
+        <div className="h-5 w-px bg-border" />
+        <select
+          defaultValue=""
+          disabled={busy}
+          onChange={(e) => e.target.value && run(() => bulkStatusAction(orgId, ids, e.target.value))}
+          className="h-8 rounded-md border border-border bg-surface px-2 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="" disabled>
+            Mover para…
+          </option>
+          {columns.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          defaultValue=""
+          disabled={busy}
+          onChange={(e) =>
+            e.target.value &&
+            run(() =>
+              bulkPriorityAction(
+                orgId,
+                ids,
+                e.target.value as "urgent" | "high" | "normal" | "low",
+              ),
+            )
+          }
+          className="h-8 rounded-md border border-border bg-surface px-2 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="" disabled>
+            Prioridade…
+          </option>
+          {PRIORITIES.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            if (confirm(`Excluir ${count} tarefa(s)?`)) void run(() => bulkDeleteAction(orgId, ids));
+          }}
+          aria-label="Excluir selecionadas"
+          className="flex size-8 items-center justify-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+        >
+          <Trash2 className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Limpar seleção"
+          className="flex size-8 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -268,31 +401,49 @@ export function ListView({ data }: { data: BoardData }) {
 function Row({
   dto,
   first,
+  selected,
+  onToggleSelect,
   onClick,
 }: {
   dto: BoardTaskDTO;
   first: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onClick: () => void;
 }) {
   const card = mapTaskDTO(dto);
   const prio = priorityMeta[card.priority];
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
-        "flex w-full items-center gap-3 bg-surface px-3 h-11 text-left transition-colors hover:bg-elevated",
+        "group flex w-full items-center gap-2 px-3 h-11 transition-colors",
+        selected ? "bg-brand/5" : "bg-surface hover:bg-elevated",
         !first && "border-t border-border",
       )}
     >
-      <span
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: prio.color }}
-        title={prio.label}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        aria-label="Selecionar tarefa"
+        className={cn(
+          "size-4 shrink-0 cursor-pointer accent-brand transition-opacity",
+          !selected && "opacity-0 group-hover:opacity-100",
+        )}
       />
-      <span className="min-w-0 flex-1 truncate text-ui font-medium text-foreground">
-        {card.title}
-      </span>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        <span
+          className="size-2 shrink-0 rounded-full"
+          style={{ backgroundColor: prio.color }}
+          title={prio.label}
+        />
+        <span className="min-w-0 flex-1 truncate text-ui font-medium text-foreground">
+          {card.title}
+        </span>
 
       {card.client && (
         <span className="hidden items-center gap-1.5 text-[11px] font-semibold text-muted sm:flex">
@@ -329,7 +480,8 @@ function Row({
         </span>
       )}
 
-      <AvatarGroup people={card.assignees} size="xs" max={3} className="shrink-0" />
-    </button>
+        <AvatarGroup people={card.assignees} size="xs" max={3} className="shrink-0" />
+      </button>
+    </div>
   );
 }

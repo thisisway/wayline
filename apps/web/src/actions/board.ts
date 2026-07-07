@@ -4,6 +4,9 @@ import {
   addComment,
   applyAutomations,
   assignComment,
+  bulkDeleteTasks,
+  bulkSetPriority,
+  bulkSetStatus,
   createSubtask,
   createTask,
   deleteComment,
@@ -136,6 +139,33 @@ export async function refreshCardAction(
 export async function deleteTaskAction(orgId: string, id: string): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await deleteTask(orgId, id);
+  revalidatePath("/app");
+}
+
+// --- Ações em massa (List view) --------------------------------------------
+export async function bulkStatusAction(
+  orgId: string,
+  ids: string[],
+  statusId: string,
+): Promise<void> {
+  if (!statusId || !(await assertMember(orgId))) return;
+  await bulkSetStatus(orgId, ids, statusId);
+  revalidatePath("/app");
+}
+
+export async function bulkPriorityAction(
+  orgId: string,
+  ids: string[],
+  priority: "urgent" | "high" | "normal" | "low",
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await bulkSetPriority(orgId, ids, priority);
+  revalidatePath("/app");
+}
+
+export async function bulkDeleteAction(orgId: string, ids: string[]): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await bulkDeleteTasks(orgId, ids);
   revalidatePath("/app");
 }
 

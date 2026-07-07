@@ -106,6 +106,45 @@ export async function saveBoardOrderLogged(
   });
 }
 
+/** Ações em massa (List view): status, prioridade e exclusão. */
+export async function bulkSetStatus(
+  orgId: string,
+  ids: string[],
+  statusId: string,
+): Promise<void> {
+  if (ids.length === 0) return;
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(tasks)
+      .set({ statusId, updatedAt: new Date() })
+      .where(inArray(tasks.id, ids));
+  });
+}
+
+export async function bulkSetPriority(
+  orgId: string,
+  ids: string[],
+  priority: Priority,
+): Promise<void> {
+  if (ids.length === 0) return;
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(tasks)
+      .set({ priority, updatedAt: new Date() })
+      .where(inArray(tasks.id, ids));
+  });
+}
+
+export async function bulkDeleteTasks(orgId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(tasks)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(inArray(tasks.id, ids));
+  });
+}
+
 /** Define (ou limpa) a aprovação do cliente numa tarefa. */
 export async function setTaskApproval(
   orgId: string,
