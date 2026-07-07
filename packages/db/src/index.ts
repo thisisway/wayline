@@ -153,6 +153,7 @@ export {
   type RunningTimer,
 } from "./queries/time-tracking";
 export { getOrgReport, type OrgReport, type ReportRow } from "./queries/reports";
+export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,
   logCreated,

@@ -98,6 +98,22 @@ function parseStringArray(raw: string): string[] {
   }
 }
 
+/** Gera um brief de projeto (seções Objetivo/Público/Entregáveis/Riscos). */
+export async function generateBrief(
+  listName: string,
+  taskTitles: string[],
+): Promise<string | null> {
+  const system =
+    "Você é um estrategista de uma agência de marketing. Escreva um brief de projeto conciso em " +
+    "português do Brasil com as seções: Objetivo, Público-alvo, Entregáveis, Riscos. Cada seção " +
+    "começa com o título numa linha própria, seguido do texto. Sem markdown — só quebras de linha.";
+  const user = `Projeto: ${listName}\nTarefas atuais:\n${taskTitles
+    .map((t) => `- ${t}`)
+    .join("\n")}`.slice(0, 4000);
+  const raw = await complete(system, user, 600);
+  return raw?.trim() || null;
+}
+
 /** Resume uma thread de comentários (2-3 frases, pt-BR, sem markdown). */
 export async function summarizeComments(lines: string[]): Promise<string | null> {
   if (lines.length === 0) return null;

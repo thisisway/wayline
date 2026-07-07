@@ -234,7 +234,7 @@ export function AppView({
               {data.columns.some((c) => c.tasks.length > 0) && (
                 <>
                   <div className="pointer-events-none absolute bottom-5 left-4 z-20">
-                    <DocPanel />
+                    <DocPanel orgId={data.orgId} listId={data.listId} listName={listName} />
                   </div>
                   <div className="pointer-events-none absolute bottom-5 right-4 z-20">
                     <ExecutiveSummaryPanel data={data} />
