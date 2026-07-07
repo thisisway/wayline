@@ -48,7 +48,17 @@ export function ExecutiveSummaryPanel({ data }: { data: BoardData }) {
     return b;
   }, [metrics]);
 
-  if (!open) return null;
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-dense font-medium text-white shadow-lg transition-colors hover:bg-brand-80"
+      >
+        <Sparkles className="size-3.5" /> Resumo
+      </button>
+    );
+  }
   const shown = bullets && bullets.length > 0 ? bullets : fallback;
 
   return (

@@ -44,7 +44,17 @@ export function DocPanel({
     };
   }, [orgId, listId]);
 
-  if (!open) return null;
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-dense font-medium text-muted shadow-lg transition-colors hover:text-foreground"
+      >
+        <FileText className="size-3.5" /> Brief
+      </button>
+    );
+  }
 
   return (
     <>
