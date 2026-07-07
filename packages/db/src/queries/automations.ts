@@ -2,17 +2,23 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "../client";
 import { automations, notifications, statuses, taskAssignees, tasks, users } from "../schema";
 
-export type AutomationActionType = "assign" | "priority";
+export type AutomationTriggerType = "status" | "approved" | "changes";
+export type AutomationActionType = "assign" | "priority" | "move";
 
 export interface AutomationDTO {
   id: string;
-  triggerStatusId: string;
-  triggerStatusName: string;
+  triggerType: AutomationTriggerType;
+  triggerStatusId: string | null;
+  triggerLabel: string;
   actionType: AutomationActionType;
   actionValue: string;
-  /** Rótulo legível do alvo (nome do membro ou da prioridade). */
   actionLabel: string;
 }
+
+export type AutomationTrigger =
+  | { type: "status"; statusId: string }
+  | { type: "approved" }
+  | { type: "changes" };
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: "Urgente",
@@ -21,39 +27,57 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: "Baixa",
 };
 
+const TRIGGER_LABELS: Record<string, string> = {
+  approved: "Cliente aprovar",
+  changes: "Cliente pedir ajustes",
+};
+
 export async function listAutomations(orgId: string, listId: string): Promise<AutomationDTO[]> {
   return withOrg(orgId, async (tx) => {
-    // Só join com statuses (uuid=uuid). Nomes de membros vêm numa busca à parte
-    // — evita o mismatch uuid=text (users.id vs action_value textual).
-    const rows = await tx
-      .select({
-        id: automations.id,
-        triggerStatusId: automations.triggerStatusId,
-        statusName: statuses.name,
-        actionType: automations.actionType,
-        actionValue: automations.actionValue,
-      })
-      .from(automations)
-      .leftJoin(statuses, eq(statuses.id, automations.triggerStatusId))
-      .where(eq(automations.listId, listId))
-      .orderBy(asc(automations.createdAt));
+    const rows = await tx.query.automations.findMany({
+      where: eq(automations.listId, listId),
+      orderBy: [asc(automations.createdAt)],
+    });
+    if (rows.length === 0) return [];
 
-    const assignIds = rows.filter((r) => r.actionType === "assign").map((r) => r.actionValue);
-    const memberRows = assignIds.length
-      ? await tx.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, assignIds))
+    // Nomes de status (gatilho 'status' e ação 'move') e de membros (ação 'assign').
+    const statusIds = [
+      ...new Set(
+        rows
+          .flatMap((r) => [
+            r.triggerType === "status" ? r.triggerStatusId : null,
+            r.actionType === "move" ? r.actionValue : null,
+          ])
+          .filter((x): x is string => !!x),
+      ),
+    ];
+    const memberIds = rows.filter((r) => r.actionType === "assign").map((r) => r.actionValue);
+
+    const statusRows = statusIds.length
+      ? await tx.select({ id: statuses.id, name: statuses.name }).from(statuses).where(inArray(statuses.id, statusIds))
       : [];
-    const nameById = new Map(memberRows.map((u) => [u.id, u.name]));
+    const memberRows = memberIds.length
+      ? await tx.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, memberIds))
+      : [];
+    const statusName = new Map(statusRows.map((s) => [s.id, s.name]));
+    const memberName = new Map(memberRows.map((u) => [u.id, u.name]));
 
     return rows.map((r) => ({
       id: r.id,
+      triggerType: r.triggerType as AutomationTriggerType,
       triggerStatusId: r.triggerStatusId,
-      triggerStatusName: r.statusName ?? "—",
+      triggerLabel:
+        r.triggerType === "status"
+          ? `Entrar em ${statusName.get(r.triggerStatusId ?? "") ?? "—"}`
+          : (TRIGGER_LABELS[r.triggerType] ?? r.triggerType),
       actionType: r.actionType as AutomationActionType,
       actionValue: r.actionValue,
       actionLabel:
         r.actionType === "priority"
           ? (PRIORITY_LABELS[r.actionValue] ?? r.actionValue)
-          : (nameById.get(r.actionValue) ?? "—"),
+          : r.actionType === "move"
+            ? (statusName.get(r.actionValue) ?? "—")
+            : (memberName.get(r.actionValue) ?? "—"),
     }));
   });
 }
@@ -61,12 +85,20 @@ export async function listAutomations(orgId: string, listId: string): Promise<Au
 export async function createAutomation(
   orgId: string,
   listId: string,
-  triggerStatusId: string,
+  triggerType: AutomationTriggerType,
+  triggerStatusId: string | null,
   actionType: AutomationActionType,
   actionValue: string,
 ): Promise<void> {
   await withOrg(orgId, async (tx) => {
-    await tx.insert(automations).values({ orgId, listId, triggerStatusId, actionType, actionValue });
+    await tx.insert(automations).values({
+      orgId,
+      listId,
+      triggerType,
+      triggerStatusId: triggerType === "status" ? triggerStatusId : null,
+      actionType,
+      actionValue,
+    });
   });
 }
 
@@ -76,19 +108,21 @@ export async function deleteAutomation(orgId: string, id: string): Promise<void>
   });
 }
 
-/**
- * Aplica as automações disparadas quando uma tarefa entra numa coluna.
- * Retorna true se algo mudou (para recarregar o card).
- */
+/** Aplica as automações disparadas por um gatilho numa tarefa. */
 export async function applyAutomations(
   orgId: string,
-  statusId: string,
   taskId: string,
+  trigger: AutomationTrigger,
 ): Promise<boolean> {
   return withOrg(orgId, async (tx) => {
-    const rules = await tx.query.automations.findMany({
-      where: eq(automations.triggerStatusId, statusId),
-    });
+    const where =
+      trigger.type === "status"
+        ? and(
+            eq(automations.triggerType, "status"),
+            eq(automations.triggerStatusId, trigger.statusId),
+          )
+        : eq(automations.triggerType, trigger.type);
+    const rules = await tx.query.automations.findMany({ where });
     if (rules.length === 0) return false;
     const task = await tx.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
     if (!task) return false;
@@ -99,6 +133,13 @@ export async function applyAutomations(
         await tx
           .update(tasks)
           .set({ priority: r.actionValue as "urgent" | "high" | "normal" | "low", updatedAt: new Date() })
+          .where(eq(tasks.id, taskId));
+        changed = true;
+      } else if (r.actionType === "move") {
+        // Move sem re-disparar automações de status (evita loop).
+        await tx
+          .update(tasks)
+          .set({ statusId: r.actionValue, updatedAt: new Date() })
           .where(eq(tasks.id, taskId));
         changed = true;
       } else if (r.actionType === "assign") {

@@ -2,6 +2,7 @@
 
 import {
   addPublicComment,
+  applyAutomations,
   getPublicComments,
   notifyApproval,
   notifyTaskAssignees,
@@ -58,6 +59,7 @@ export async function setPublicApprovalAction(
   await notifyApproval(share.orgId, taskId, `${who} (cliente)`, status === "approved").catch(
     () => {},
   );
+  await applyAutomations(share.orgId, taskId, { type: status }).catch(() => {});
   await pokeList(share.listId).catch(() => {});
   return true;
 }

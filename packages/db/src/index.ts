@@ -80,6 +80,8 @@ export {
   applyAutomations,
   type AutomationDTO,
   type AutomationActionType,
+  type AutomationTriggerType,
+  type AutomationTrigger,
 } from "./queries/automations";
 export {
   saveBoardOrder,

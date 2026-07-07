@@ -6,6 +6,7 @@ import {
   listAutomations,
   type AutomationActionType,
   type AutomationDTO,
+  type AutomationTriggerType,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember } from "@/lib/authz";
@@ -21,12 +22,14 @@ export async function listAutomationsAction(
 export async function createAutomationAction(
   orgId: string,
   listId: string,
-  triggerStatusId: string,
+  triggerType: AutomationTriggerType,
+  triggerStatusId: string | null,
   actionType: AutomationActionType,
   actionValue: string,
 ): Promise<boolean> {
-  if (!triggerStatusId || !actionValue || !(await assertMember(orgId))) return false;
-  await createAutomation(orgId, listId, triggerStatusId, actionType, actionValue);
+  if (!actionValue || (triggerType === "status" && !triggerStatusId)) return false;
+  if (!(await assertMember(orgId))) return false;
+  await createAutomation(orgId, listId, triggerType, triggerStatusId, actionType, actionValue);
   revalidatePath("/app");
   return true;
 }

@@ -304,9 +304,12 @@ export const automations = pgTable(
     listId: uuid("list_id")
       .notNull()
       .references(() => lists.id, { onDelete: "cascade" }),
-    triggerStatusId: uuid("trigger_status_id")
-      .notNull()
-      .references(() => statuses.id, { onDelete: "cascade" }),
+    /** 'status' (entra na coluna) | 'approved' | 'changes'. */
+    triggerType: text("trigger_type").notNull().default("status"),
+    /** Coluna do gatilho (só quando trigger_type = 'status'). */
+    triggerStatusId: uuid("trigger_status_id").references(() => statuses.id, {
+      onDelete: "cascade",
+    }),
     actionType: text("action_type").notNull(),
     actionValue: text("action_value").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),

@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { ArrowRight, Plus, Trash2, X, Zap } from "lucide-react";
-import type { AutomationActionType, AutomationDTO, BoardMemberDTO } from "@wayline/db";
+import type {
+  AutomationActionType,
+  AutomationDTO,
+  AutomationTriggerType,
+  BoardMemberDTO,
+} from "@wayline/db";
 import { Button, cn } from "@wayline/ui";
 import {
   createAutomationAction,
@@ -36,6 +41,7 @@ export function AutomationsManager({
   onClose: () => void;
 }) {
   const [rules, setRules] = React.useState<AutomationDTO[] | null>(null);
+  const [triggerType, setTriggerType] = React.useState<AutomationTriggerType>("status");
   const [statusId, setStatusId] = React.useState(columns[0]?.id ?? "");
   const [actionType, setActionType] = React.useState<AutomationActionType>("assign");
   const [actionValue, setActionValue] = React.useState(members[0]?.id ?? "");
@@ -56,14 +62,27 @@ export function AutomationsManager({
 
   // Ao trocar o tipo de ação, reseta o valor para uma opção válida.
   React.useEffect(() => {
-    setActionValue(actionType === "assign" ? (members[0]?.id ?? "") : "normal");
-  }, [actionType, members]);
+    setActionValue(
+      actionType === "assign"
+        ? (members[0]?.id ?? "")
+        : actionType === "move"
+          ? (columns[0]?.id ?? "")
+          : "normal",
+    );
+  }, [actionType, members, columns]);
 
   async function add() {
-    if (!statusId || !actionValue || busy) return;
+    if (!actionValue || (triggerType === "status" && !statusId) || busy) return;
     setBusy(true);
     try {
-      const ok = await createAutomationAction(orgId, listId, statusId, actionType, actionValue);
+      const ok = await createAutomationAction(
+        orgId,
+        listId,
+        triggerType,
+        triggerType === "status" ? statusId : null,
+        actionType,
+        actionValue,
+      );
       if (ok) listAutomationsAction(orgId, listId).then(setRules);
     } finally {
       setBusy(false);
@@ -116,11 +135,15 @@ export function AutomationsManager({
                   key={r.id}
                   className="group flex items-center gap-2 rounded-md bg-elevated/60 px-3 py-2 text-dense"
                 >
-                  <span className="text-subtle">Entrar em</span>
-                  <span className="font-semibold text-foreground">{r.triggerStatusName}</span>
+                  <span className="text-subtle">Quando</span>
+                  <span className="font-semibold text-foreground">{r.triggerLabel}</span>
                   <ArrowRight className="size-3.5 shrink-0 text-subtle" />
                   <span className="min-w-0 flex-1 truncate text-foreground">
-                    {r.actionType === "assign" ? "Atribuir a " : "Prioridade "}
+                    {r.actionType === "assign"
+                      ? "Atribuir a "
+                      : r.actionType === "move"
+                        ? "Mover para "
+                        : "Prioridade "}
                     <span className="font-semibold">{r.actionLabel}</span>
                   </span>
                   <button
@@ -138,21 +161,33 @@ export function AutomationsManager({
 
           <div className="mt-4 space-y-2 border-t border-border pt-4">
             <span className="text-label uppercase text-subtle">Nova automação</span>
-            <div className="flex items-center gap-1.5 text-dense text-subtle">
-              <span>Quando a tarefa entrar em</span>
+            <p className="text-dense text-subtle">Quando…</p>
+            <div className="flex gap-2">
+              <select
+                className={cn(selectClass, triggerType === "status" ? "w-56" : "flex-1")}
+                value={triggerType}
+                onChange={(e) => setTriggerType(e.target.value as AutomationTriggerType)}
+              >
+                <option value="status">A tarefa entrar numa coluna</option>
+                <option value="approved">O cliente aprovar</option>
+                <option value="changes">O cliente pedir ajustes</option>
+              </select>
+              {triggerType === "status" && (
+                <select
+                  className={cn(selectClass, "flex-1")}
+                  value={statusId}
+                  onChange={(e) => setStatusId(e.target.value)}
+                >
+                  {columns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-            <select
-              className={cn(selectClass, "w-full")}
-              value={statusId}
-              onChange={(e) => setStatusId(e.target.value)}
-            >
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
 
+            <p className="text-dense text-subtle">Então…</p>
             <div className="flex gap-2">
               <select
                 className={cn(selectClass, "w-40")}
@@ -161,6 +196,7 @@ export function AutomationsManager({
               >
                 <option value="assign">Atribuir a</option>
                 <option value="priority">Definir prioridade</option>
+                <option value="move">Mover para</option>
               </select>
               <select
                 className={cn(selectClass, "flex-1")}
@@ -173,18 +209,24 @@ export function AutomationsManager({
                         {m.name}
                       </option>
                     ))
-                  : PRIORITIES.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
-                      </option>
-                    ))}
+                  : actionType === "move"
+                    ? columns.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))
+                    : PRIORITIES.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
               </select>
             </div>
 
             <Button
               type="button"
               onClick={add}
-              disabled={!statusId || !actionValue || busy}
+              disabled={(triggerType === "status" && !statusId) || !actionValue || busy}
               className="w-full gap-1.5"
             >
               <Plus className="size-4" />
