@@ -32,7 +32,7 @@ export {
   type AuthUser,
   type UserOrg,
 } from "./queries/auth";
-export { createOrg, createSpace, createList } from "./queries/orgs";
+export { createOrg, createSpace, createList, duplicateListStructure } from "./queries/orgs";
 export {
   upsertVerification,
   getVerification,

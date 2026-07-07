@@ -7,6 +7,7 @@ import {
   createList,
   createOrg,
   createSpace,
+  duplicateListStructure,
   getWorkspaceMembers,
   markNotificationsRead,
   removeMember,
@@ -66,6 +67,14 @@ export async function createListAction(
   if (!name.trim() || !(await assertMember(orgId))) return;
   const listId = await createList(orgId, spaceId, name);
   await setActiveListCookie(listId);
+  revalidatePath("/app");
+}
+
+/** Duplica a estrutura de uma lista (sem tarefas) e ativa a cópia. */
+export async function duplicateListAction(orgId: string, listId: string): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  const newId = await duplicateListStructure(orgId, listId);
+  await setActiveListCookie(newId);
   revalidatePath("/app");
 }
 

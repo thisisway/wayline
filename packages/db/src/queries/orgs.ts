@@ -1,6 +1,15 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, withOrg } from "../client";
-import { lists, memberships, organizations, spaces, statuses } from "../schema";
+import {
+  automations,
+  customFieldDefs,
+  documents,
+  lists,
+  memberships,
+  organizations,
+  spaces,
+  statuses,
+} from "../schema";
 
 /** Colunas padrão de um board novo. */
 function defaultStatuses(orgId: string, listId: string) {
@@ -99,5 +108,92 @@ export async function createList(orgId: string, spaceId: string, name: string): 
 
     await tx.insert(statuses).values(defaultStatuses(orgId, list.id));
     return list.id;
+  });
+}
+
+/**
+ * Duplica a ESTRUTURA de uma lista (colunas + campos customizados + automações
+ * + brief) numa nova lista do mesmo space — sem copiar as tarefas. Retorna o id.
+ */
+export async function duplicateListStructure(orgId: string, listId: string): Promise<string> {
+  return withOrg(orgId, async (tx) => {
+    const src = await tx.query.lists.findFirst({
+      where: and(eq(lists.id, listId), isNull(lists.deletedAt)),
+    });
+    if (!src) throw new Error("lista inválida");
+
+    const [newList] = await tx
+      .insert(lists)
+      .values({ orgId, spaceId: src.spaceId, name: `${src.name} (cópia)` })
+      .returning();
+    if (!newList) throw new Error("falha ao criar lista");
+
+    // Colunas (statuses) — mapeia id antigo → novo para remapear automações.
+    const srcStatuses = await tx.query.statuses.findMany({
+      where: eq(statuses.listId, listId),
+      orderBy: [asc(statuses.position)],
+    });
+    const statusMap = new Map<string, string>();
+    for (const s of srcStatuses) {
+      const [ns] = await tx
+        .insert(statuses)
+        .values({
+          orgId,
+          listId: newList.id,
+          name: s.name,
+          kind: s.kind,
+          color: s.color,
+          position: s.position,
+        })
+        .returning({ id: statuses.id });
+      if (ns) statusMap.set(s.id, ns.id);
+    }
+
+    // Campos customizados.
+    const srcFields = await tx.query.customFieldDefs.findMany({
+      where: eq(customFieldDefs.listId, listId),
+    });
+    for (const f of srcFields) {
+      await tx.insert(customFieldDefs).values({
+        orgId,
+        listId: newList.id,
+        name: f.name,
+        type: f.type,
+        options: f.options,
+        position: f.position,
+      });
+    }
+
+    // Automações (remapeia referências de status).
+    const srcAutos = await tx.query.automations.findMany({
+      where: eq(automations.listId, listId),
+    });
+    for (const a of srcAutos) {
+      const triggerStatusId =
+        a.triggerType === "status" && a.triggerStatusId
+          ? (statusMap.get(a.triggerStatusId) ?? null)
+          : null;
+      if (a.triggerType === "status" && !triggerStatusId) continue;
+      const actionValue =
+        a.actionType === "move" ? (statusMap.get(a.actionValue) ?? a.actionValue) : a.actionValue;
+      await tx.insert(automations).values({
+        orgId,
+        listId: newList.id,
+        triggerType: a.triggerType,
+        triggerStatusId,
+        actionType: a.actionType,
+        actionValue,
+      });
+    }
+
+    // Brief (documento).
+    const doc = await tx.query.documents.findFirst({ where: eq(documents.listId, listId) });
+    if (doc) {
+      await tx
+        .insert(documents)
+        .values({ orgId, listId: newList.id, title: doc.title, content: doc.content });
+    }
+
+    return newList.id;
   });
 }

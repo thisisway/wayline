@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   ChevronDown,
+  Copy,
   Inbox,
   ListChecks,
   MessageSquare,
@@ -13,7 +14,12 @@ import {
 } from "lucide-react";
 import type { NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
-import { createListAction, createSpaceAction, switchList } from "@/actions/org";
+import {
+  createListAction,
+  createSpaceAction,
+  duplicateListAction,
+  switchList,
+} from "@/actions/org";
 import { homeItems } from "@/mock/data";
 import type { HomeItem } from "@/mock/types";
 
@@ -101,6 +107,9 @@ export function HomePanel({
   function addList(spaceId: string, name: string) {
     setAddingListIn(null);
     startTransition(() => void createListAction(activeOrgId, spaceId, name));
+  }
+  function duplicateList(listId: string) {
+    startTransition(() => void duplicateListAction(activeOrgId, listId));
   }
 
   return (
@@ -205,15 +214,37 @@ export function HomePanel({
 
               {isOpen && (
                 <>
-                  {space.lists.map((list) => (
-                    <SidebarItem
-                      key={list.id}
-                      label={list.name}
-                      indent
-                      active={list.id === activeListId}
-                      onClick={() => selectList(list.id)}
-                    />
-                  ))}
+                  {space.lists.map((list) => {
+                    const active = list.id === activeListId;
+                    return (
+                      <div
+                        key={list.id}
+                        className={cn(
+                          "group flex h-8 items-center gap-1 rounded-md pl-8 pr-1.5 text-dense transition-colors",
+                          active
+                            ? "bg-brand/10 font-medium text-brand"
+                            : "text-muted hover:bg-elevated hover:text-foreground",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => selectList(list.id)}
+                          className="min-w-0 flex-1 truncate text-left"
+                        >
+                          {list.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => duplicateList(list.id)}
+                          aria-label={`Duplicar ${list.name}`}
+                          title="Duplicar lista (estrutura, sem tarefas)"
+                          className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent
