@@ -1,15 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Check, Send, X } from "lucide-react";
-import type { PublicCommentDTO } from "@wayline/db";
+import { AlertTriangle, Check, Download, FileText, Send, X } from "lucide-react";
+import type { AttachmentDTO, PublicCommentDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import type { TaskCard as TaskCardType } from "@/mock/types";
 import {
   addPublicCommentAction,
+  listPublicAttachmentsAction,
   listPublicCommentsAction,
+  publicDownloadUrlAction,
   setPublicApprovalAction,
 } from "@/actions/public-board";
+
+function fmtSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const NAME_KEY = "wayline_guest_name";
 
@@ -33,6 +41,7 @@ export function PublicTaskPanel({
   onClose: () => void;
 }) {
   const [comments, setComments] = React.useState<PublicCommentDTO[] | null>(null);
+  const [attachments, setAttachments] = React.useState<AttachmentDTO[]>([]);
   const [name, setName] = React.useState("");
   const [body, setBody] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -41,10 +50,16 @@ export function PublicTaskPanel({
   React.useEffect(() => {
     setName(localStorage.getItem(NAME_KEY) ?? "");
     listPublicCommentsAction(token, card.id).then(setComments);
+    listPublicAttachmentsAction(token, card.id).then(setAttachments);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [token, card.id, onClose]);
+
+  async function download(a: AttachmentDTO) {
+    const url = await publicDownloadUrlAction(token, card.id, a.id);
+    if (url) window.open(url, "_blank");
+  }
 
   async function decide(status: "approved" | "changes") {
     const n = name.trim();
@@ -130,6 +145,31 @@ export function PublicTaskPanel({
                   {t.label}
                 </span>
               ))}
+            </div>
+          )}
+
+          {attachments.length > 0 && (
+            <div className="border-t border-border pt-3">
+              <span className="text-label uppercase text-subtle">Anexos</span>
+              <div className="mt-2 space-y-1">
+                {attachments.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => void download(a)}
+                    className="group flex w-full items-center gap-2.5 rounded-md px-1 py-1.5 text-left hover:bg-elevated"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-elevated text-muted">
+                      <FileText className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-ui text-foreground">{a.fileName}</p>
+                      <p className="text-[11px] text-subtle">{fmtSize(a.size)}</p>
+                    </div>
+                    <Download className="size-4 shrink-0 text-subtle group-hover:text-brand" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

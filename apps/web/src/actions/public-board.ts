@@ -3,14 +3,18 @@
 import {
   addPublicComment,
   applyAutomations,
+  getAttachmentForTask,
   getPublicComments,
+  getTaskAttachments,
   notifyApproval,
   notifyTaskAssignees,
   resolveShareTask,
   setTaskApproval,
+  type AttachmentDTO,
   type PublicCommentDTO,
 } from "@wayline/db";
 import { pokeList } from "@/actions/live";
+import { presignGet, storageEnabled } from "@/lib/storage";
 
 const MAX_BODY = 2000;
 
@@ -42,6 +46,29 @@ export async function addPublicCommentAction(
   );
   await pokeList(share.listId).catch(() => {});
   return created;
+}
+
+export async function listPublicAttachmentsAction(
+  token: string,
+  taskId: string,
+): Promise<AttachmentDTO[]> {
+  const share = await resolveShareTask(token, taskId);
+  if (!share) return [];
+  return getTaskAttachments(share.orgId, taskId);
+}
+
+/** URL de download de um anexo pelo portal (valida token + tarefa). */
+export async function publicDownloadUrlAction(
+  token: string,
+  taskId: string,
+  attachmentId: string,
+): Promise<string | null> {
+  if (!storageEnabled()) return null;
+  const share = await resolveShareTask(token, taskId);
+  if (!share) return null;
+  const meta = await getAttachmentForTask(share.orgId, taskId, attachmentId);
+  if (!meta) return null;
+  return presignGet(meta.storageKey, meta.fileName);
 }
 
 export async function setPublicApprovalAction(

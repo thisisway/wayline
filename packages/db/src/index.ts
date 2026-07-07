@@ -129,6 +129,7 @@ export {
   createAttachment,
   getTaskAttachments,
   getAttachmentKey,
+  getAttachmentForTask,
   deleteAttachmentRow,
   type AttachmentDTO,
   type CreateAttachmentInput,

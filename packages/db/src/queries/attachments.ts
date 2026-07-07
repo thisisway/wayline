@@ -78,6 +78,20 @@ export async function getAttachmentKey(
   });
 }
 
+/** Chave do anexo escopada a uma tarefa (para download seguro pelo portal). */
+export async function getAttachmentForTask(
+  orgId: string,
+  taskId: string,
+  id: string,
+): Promise<{ storageKey: string; fileName: string } | null> {
+  return withOrg(orgId, async (tx) => {
+    const row = await tx.query.attachments.findFirst({
+      where: and(eq(attachments.id, id), eq(attachments.taskId, taskId)),
+    });
+    return row ? { storageKey: row.storageKey, fileName: row.fileName } : null;
+  });
+}
+
 export async function deleteAttachmentRow(orgId: string, id: string): Promise<void> {
   await withOrg(orgId, async (tx) => {
     await tx.delete(attachments).where(and(eq(attachments.orgId, orgId), eq(attachments.id, id)));
