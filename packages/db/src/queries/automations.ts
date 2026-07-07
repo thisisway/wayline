@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "../client";
 import { automations, notifications, statuses, taskAssignees, tasks, users } from "../schema";
 
@@ -23,6 +23,8 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export async function listAutomations(orgId: string, listId: string): Promise<AutomationDTO[]> {
   return withOrg(orgId, async (tx) => {
+    // Só join com statuses (uuid=uuid). Nomes de membros vêm numa busca à parte
+    // — evita o mismatch uuid=text (users.id vs action_value textual).
     const rows = await tx
       .select({
         id: automations.id,
@@ -30,13 +32,17 @@ export async function listAutomations(orgId: string, listId: string): Promise<Au
         statusName: statuses.name,
         actionType: automations.actionType,
         actionValue: automations.actionValue,
-        memberName: users.name,
       })
       .from(automations)
       .leftJoin(statuses, eq(statuses.id, automations.triggerStatusId))
-      .leftJoin(users, eq(users.id, automations.actionValue))
       .where(eq(automations.listId, listId))
       .orderBy(asc(automations.createdAt));
+
+    const assignIds = rows.filter((r) => r.actionType === "assign").map((r) => r.actionValue);
+    const memberRows = assignIds.length
+      ? await tx.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, assignIds))
+      : [];
+    const nameById = new Map(memberRows.map((u) => [u.id, u.name]));
 
     return rows.map((r) => ({
       id: r.id,
@@ -47,7 +53,7 @@ export async function listAutomations(orgId: string, listId: string): Promise<Au
       actionLabel:
         r.actionType === "priority"
           ? (PRIORITY_LABELS[r.actionValue] ?? r.actionValue)
-          : (r.memberName ?? "—"),
+          : (nameById.get(r.actionValue) ?? "—"),
     }));
   });
 }

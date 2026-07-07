@@ -47,7 +47,7 @@ export function AutomationsManager({
       .then(setRules)
       .catch(() => {
         setRules([]);
-        setError("Não foi possível carregar (a migração 0021 já foi aplicada?).");
+        setError("Não foi possível carregar as automações. Tente novamente.");
       });
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
