@@ -118,6 +118,8 @@ export const tasks = pgTable(
     approvalStatus: text("approval_status"),
     approvalBy: text("approval_by"),
     approvalAt: timestamp("approval_at", { withTimezone: true }),
+    /** Recorrência: 'daily' | 'weekly' | 'monthly' | null. Gera a próxima ao concluir. */
+    recurrence: text("recurrence"),
 
     // Tags com cor — atalho pragmático (JSONB) na Fase 1.1; pode virar
     // tags/task_tags normalizadas depois se a busca por tag exigir.

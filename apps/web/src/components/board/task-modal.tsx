@@ -357,6 +357,23 @@ export function TaskModal({
                   onChange={(e) => set("estimateHours", e.target.value)}
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className={fieldLabel} htmlFor="task-recurrence">
+                  Recorrência
+                </label>
+                <select
+                  id="task-recurrence"
+                  className={selectClass}
+                  value={form.recurrence}
+                  onChange={(e) => set("recurrence", e.target.value)}
+                >
+                  <option value="">Nenhuma</option>
+                  <option value="daily">Diária</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="monthly">Mensal</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-1.5">

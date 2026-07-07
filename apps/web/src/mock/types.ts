@@ -35,6 +35,7 @@ export interface TaskCard {
   subtasks?: { done: number; total: number };
   blocked?: boolean;
   approvalStatus?: string | null;
+  recurrence?: string | null;
   trackedSeconds?: number;
   estimateMinutes?: number | null;
   customFields?: Array<{ name: string; type: string; value: string }>;

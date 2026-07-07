@@ -91,6 +91,7 @@ export {
   duplicateTask,
   deleteTask,
   setTaskApproval,
+  spawnRecurrence,
   bulkSetStatus,
   bulkSetPriority,
   bulkDeleteTasks,

@@ -303,6 +303,7 @@ export function DndBoard({ data }: { data: BoardData }) {
           startDate: null,
           dueDate: null,
           estimateHours: "",
+          recurrence: "",
           assigneeIds: [],
           tags: [],
         };

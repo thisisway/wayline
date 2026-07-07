@@ -27,6 +27,7 @@ import {
   saveBoardOrderLogged,
   setSubtaskDone,
   setTaskApproval,
+  spawnRecurrence,
   updateTask,
   type BoardOrderInput,
   type BoardTaskDTO,
@@ -50,6 +51,7 @@ function normalize(input: TaskFormInput) {
     startDate: parseDue(input.startDate),
     dueDate: parseDue(input.dueDate),
     estimateMinutes: Number.isFinite(est) && est > 0 ? Math.round(est * 60) : null,
+    recurrence: input.recurrence || null,
     description: input.description.trim() || null,
   };
 }
@@ -60,8 +62,10 @@ export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promis
   const user = await getSessionUser();
   if (user) {
     const changes = await saveBoardOrderLogged(orgId, order, user.id, user.name);
-    for (const c of changes)
+    for (const c of changes) {
       await applyAutomations(orgId, c.taskId, { type: "status", statusId: c.to }).catch(() => {});
+      await spawnRecurrence(orgId, c.taskId, c.to).catch(() => {});
+    }
   } else {
     await saveBoardOrder(orgId, order);
   }
@@ -116,6 +120,7 @@ export async function updateTaskAction(
       type: "status",
       statusId: after.statusId,
     }).catch(() => false);
+    await spawnRecurrence(orgId, id, after.statusId).catch(() => {});
     if (changed) after = await getTaskCard(orgId, id);
   }
   revalidatePath("/app");

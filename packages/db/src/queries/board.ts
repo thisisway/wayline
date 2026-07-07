@@ -37,6 +37,7 @@ export interface BoardTaskDTO {
   approvalStatus: string | null;
   approvalBy: string | null;
   approvalAt: Date | null;
+  recurrence: string | null;
   client: { id: string; name: string; color: string } | null;
   assignees: Array<{ id: string; name: string; avatarUrl: string | null }>;
   tags: Array<{ label: string; color: string }>;
@@ -102,6 +103,7 @@ type TaskRow = {
   approvalStatus: string | null;
   approvalBy: string | null;
   approvalAt: Date | null;
+  recurrence: string | null;
   tags: Array<{ label: string; color: string }>;
   client: { id: string; name: string; color: string } | null;
   assignees: Array<{ user: { id: string; name: string; avatarUrl: string | null } }>;
@@ -120,6 +122,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     approvalStatus: t.approvalStatus,
     approvalBy: t.approvalBy,
     approvalAt: t.approvalAt,
+    recurrence: t.recurrence,
     completed: t.completed,
     client: t.client ? { id: t.client.id, name: t.client.name, color: t.client.color } : null,
     assignees: t.assignees.map((a) => ({

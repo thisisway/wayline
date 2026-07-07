@@ -88,6 +88,7 @@ export function useTaskEditor(data: BoardData | null) {
           startDate: null,
           dueDate: state?.mode === "create" ? (state.dueDate ?? null) : null,
           estimateHours: "",
+          recurrence: "",
           assigneeIds: [],
           tags: [],
         };

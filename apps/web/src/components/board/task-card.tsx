@@ -9,6 +9,7 @@ import {
   Clock,
   MessageSquare,
   Paperclip,
+  Repeat,
 } from "lucide-react";
 import { AvatarGroup, Card, cn } from "@wayline/ui";
 import type { Priority, TaskCard as TaskCardType } from "@/mock/types";
@@ -151,6 +152,11 @@ export function TaskCard({ card }: { card: TaskCardType }) {
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="size-3.5" />
               {card.comments}
+            </span>
+          )}
+          {card.recurrence && (
+            <span className="inline-flex items-center" title="Tarefa recorrente">
+              <Repeat className="size-3.5" />
             </span>
           )}
           {(() => {

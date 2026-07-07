@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { withOrg } from "../client";
 import { activityLog, statuses, taskAssignees, tasks } from "../schema";
 
@@ -19,6 +19,7 @@ export interface CreateTaskInput {
   startDate: Date | null;
   dueDate: Date | null;
   estimateMinutes: number | null;
+  recurrence: string | null;
   assigneeIds: string[];
   tags: Array<{ label: string; color: string }>;
 }
@@ -106,6 +107,74 @@ export async function saveBoardOrderLogged(
   });
 }
 
+/**
+ * Se a tarefa é recorrente e entrou numa coluna de conclusão ('done'), gera a
+ * PRÓXIMA ocorrência (copia campos, avança o prazo, volta pra 1ª coluna).
+ */
+export async function spawnRecurrence(
+  orgId: string,
+  taskId: string,
+  newStatusId: string,
+): Promise<boolean> {
+  return withOrg(orgId, async (tx) => {
+    const status = await tx.query.statuses.findFirst({ where: eq(statuses.id, newStatusId) });
+    if (!status || status.kind !== "done") return false;
+    const task = await tx.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+      with: { assignees: true },
+    });
+    if (!task || !task.recurrence) return false;
+
+    const base = task.dueDate ? new Date(task.dueDate) : new Date();
+    const next = new Date(base);
+    if (task.recurrence === "daily") next.setDate(next.getDate() + 1);
+    else if (task.recurrence === "weekly") next.setDate(next.getDate() + 7);
+    else if (task.recurrence === "monthly") next.setMonth(next.getMonth() + 1);
+    else return false;
+
+    let nextStart: Date | null = null;
+    if (task.startDate) {
+      nextStart = new Date(new Date(task.startDate).getTime() + (next.getTime() - base.getTime()));
+    }
+
+    // Volta pra 1ª coluna da lista.
+    const first = await tx.query.statuses.findFirst({
+      where: eq(statuses.listId, task.listId),
+      orderBy: [asc(statuses.position)],
+    });
+    const targetStatus = first?.id ?? newStatusId;
+    const position = await tx.$count(
+      tasks,
+      and(eq(tasks.statusId, targetStatus), isNull(tasks.deletedAt)),
+    );
+
+    const [created] = await tx
+      .insert(tasks)
+      .values({
+        orgId,
+        listId: task.listId,
+        statusId: targetStatus,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        clientId: task.clientId,
+        startDate: nextStart,
+        dueDate: next,
+        estimateMinutes: task.estimateMinutes,
+        recurrence: task.recurrence,
+        tags: task.tags,
+        position,
+      })
+      .returning({ id: tasks.id });
+    if (created && task.assignees.length > 0) {
+      await tx
+        .insert(taskAssignees)
+        .values(task.assignees.map((a) => ({ orgId, taskId: created.id, userId: a.userId })));
+    }
+    return true;
+  });
+}
+
 /** Ações em massa (List view): status, prioridade e exclusão. */
 export async function bulkSetStatus(
   orgId: string,
@@ -189,6 +258,7 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
         startDate: input.startDate,
         dueDate: input.dueDate,
         estimateMinutes: input.estimateMinutes,
+        recurrence: input.recurrence,
         tags: input.tags,
         position,
       })
@@ -228,6 +298,7 @@ export async function updateTask(orgId: string, input: UpdateTaskInput): Promise
         startDate: input.startDate,
         dueDate: input.dueDate,
         estimateMinutes: input.estimateMinutes,
+        recurrence: input.recurrence,
         statusId: input.statusId,
         tags: input.tags,
         position,

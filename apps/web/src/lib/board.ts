@@ -47,6 +47,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     subtasks: t.subtaskTotal > 0 ? { done: t.subtaskDone, total: t.subtaskTotal } : undefined,
     blocked: t.blocked,
     approvalStatus: t.approvalStatus,
+    recurrence: t.recurrence,
     trackedSeconds: t.trackedSeconds,
     estimateMinutes: t.estimateMinutes,
     customFields: t.customFields,
@@ -64,6 +65,8 @@ export interface TaskFormInput {
   dueDate: string | null;
   /** Estimativa em horas (string p/ aceitar vazio/decimal). */
   estimateHours: string;
+  /** Recorrência: "" | "daily" | "weekly" | "monthly". */
+  recurrence: string;
   assigneeIds: string[];
   tags: Array<{ label: string; color: string }>;
 }
@@ -80,6 +83,7 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
     dueDate: dto.dueDate ? dto.dueDate.toISOString().slice(0, 10) : null,
     estimateHours:
       dto.estimateMinutes != null ? String(+(dto.estimateMinutes / 60).toFixed(2)) : "",
+    recurrence: dto.recurrence ?? "",
     assigneeIds: dto.assignees.map((a) => a.id),
     tags: dto.tags,
   };
