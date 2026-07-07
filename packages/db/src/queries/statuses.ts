@@ -33,6 +33,12 @@ export async function renameStatus(orgId: string, id: string, name: string): Pro
   });
 }
 
+export async function setStatusColor(orgId: string, id: string, color: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(statuses).set({ color }).where(eq(statuses.id, id));
+  });
+}
+
 /**
  * Exclui uma coluna: move as tarefas dela para a 1ª outra coluna da lista.
  * Não permite excluir a última coluna. Retorna true se excluiu.

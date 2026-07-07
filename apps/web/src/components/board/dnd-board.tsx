@@ -36,6 +36,7 @@ import {
   refreshCardAction,
   renameColumnAction,
   saveBoard,
+  setColumnColorAction,
   updateTaskAction,
 } from "@/actions/board";
 import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
@@ -85,6 +86,13 @@ export function DndBoard({ data }: { data: BoardData }) {
     commit(columnsRef.current.map((c) => (c.id === id ? { ...c, name } : c)));
     startTransition(async () => {
       await renameColumnAction(orgId, id, name);
+      poke();
+    });
+  }
+  function recolorColumn(id: string, color: string) {
+    commit(columnsRef.current.map((c) => (c.id === id ? { ...c, color } : c)));
+    startTransition(async () => {
+      await setColumnColorAction(orgId, id, color);
       poke();
     });
   }
@@ -355,6 +363,7 @@ export function DndBoard({ data }: { data: BoardData }) {
               onCreate={() => setModal({ mode: "create", statusId: column.id })}
               onEdit={(task) => setModal({ mode: "edit", task })}
               onRename={(name) => renameColumn(column.id, name)}
+              onRecolor={(color) => recolorColumn(column.id, color)}
               onDelete={() => deleteColumn(column.id)}
             />
           ))}
@@ -471,12 +480,24 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void }) {
   );
 }
 
+const COLUMN_COLORS = [
+  "#94A3B8",
+  "#1D66FF",
+  "#17C86A",
+  "#FFB800",
+  "#FF3B30",
+  "#7C5CFF",
+  "#0EA5E9",
+  "#EC4899",
+];
+
 function Column({
   column,
   canDelete,
   onCreate,
   onEdit,
   onRename,
+  onRecolor,
   onDelete,
 }: {
   column: UIColumn;
@@ -484,6 +505,7 @@ function Column({
   onCreate: () => void;
   onEdit: (task: BoardTaskDTO) => void;
   onRename: (name: string) => void;
+  onRecolor: (color: string) => void;
   onDelete: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -557,7 +579,26 @@ function Column({
             <MoreHorizontal className="size-4" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-7 z-20 w-40 rounded-lg border border-border bg-surface p-1 shadow-lg">
+            <div className="absolute right-0 top-7 z-20 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+              <div className="flex flex-wrap gap-1.5 px-2 py-2">
+                {COLUMN_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onRecolor(c);
+                    }}
+                    aria-label={`Cor ${c}`}
+                    className={cn(
+                      "size-5 rounded-full border-2 transition-transform hover:scale-110",
+                      column.color === c ? "border-foreground" : "border-transparent",
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <div className="my-1 h-px bg-border" />
               <button
                 type="button"
                 onClick={() => {

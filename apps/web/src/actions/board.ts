@@ -12,6 +12,7 @@ import {
   createTask,
   deleteStatus,
   renameStatus,
+  setStatusColor,
   deleteComment,
   deleteSubtask,
   deleteTask,
@@ -174,6 +175,16 @@ export async function renameColumnAction(
 ): Promise<void> {
   if (!name.trim() || !(await assertMember(orgId))) return;
   await renameStatus(orgId, id, name);
+  revalidatePath("/app");
+}
+
+export async function setColumnColorAction(
+  orgId: string,
+  id: string,
+  color: string,
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await setStatusColor(orgId, id, color);
   revalidatePath("/app");
 }
 

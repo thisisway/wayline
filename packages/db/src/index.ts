@@ -36,6 +36,7 @@ export { createOrg, createSpace, createList, duplicateListStructure } from "./qu
 export {
   createStatus,
   renameStatus,
+  setStatusColor,
   deleteStatus,
   type StatusDTO,
 } from "./queries/statuses";
