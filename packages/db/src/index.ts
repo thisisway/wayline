@@ -39,6 +39,7 @@ export {
   setStatusColor,
   setStatusKind,
   syncTaskCompleted,
+  moveStatus,
   deleteStatus,
   type StatusDTO,
 } from "./queries/statuses";

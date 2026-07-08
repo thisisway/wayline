@@ -11,6 +11,7 @@ import {
   createSubtask,
   createTask,
   deleteStatus,
+  moveStatus,
   renameStatus,
   setStatusColor,
   setStatusKind,
@@ -190,6 +191,16 @@ export async function setColumnColorAction(
 ): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await setStatusColor(orgId, id, color);
+  revalidatePath("/app");
+}
+
+export async function moveColumnAction(
+  orgId: string,
+  id: string,
+  dir: "left" | "right",
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await moveStatus(orgId, id, dir);
   revalidatePath("/app");
 }
 

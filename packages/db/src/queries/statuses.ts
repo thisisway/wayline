@@ -70,6 +70,29 @@ export async function syncTaskCompleted(
   });
 }
 
+/** Move a coluna uma posição para a esquerda/direita (troca com a vizinha). */
+export async function moveStatus(
+  orgId: string,
+  id: string,
+  dir: "left" | "right",
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const col = await tx.query.statuses.findFirst({ where: eq(statuses.id, id) });
+    if (!col?.listId) return;
+    const siblings = await tx.query.statuses.findMany({
+      where: eq(statuses.listId, col.listId),
+      orderBy: [asc(statuses.position)],
+    });
+    const idx = siblings.findIndex((s) => s.id === id);
+    const swapIdx = dir === "left" ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= siblings.length) return;
+    const a = siblings[idx]!;
+    const b = siblings[swapIdx]!;
+    await tx.update(statuses).set({ position: b.position }).where(eq(statuses.id, a.id));
+    await tx.update(statuses).set({ position: a.position }).where(eq(statuses.id, b.id));
+  });
+}
+
 /**
  * Exclui uma coluna: move as tarefas dela para a 1ª outra coluna da lista.
  * Não permite excluir a última coluna. Retorna true se excluiu.

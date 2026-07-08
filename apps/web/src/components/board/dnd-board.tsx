@@ -21,7 +21,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Input, cn } from "@wayline/ui";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { TaskCard } from "./task-card";
@@ -33,6 +41,7 @@ import {
   deleteColumnAction,
   deleteTaskAction,
   duplicateTaskAction,
+  moveColumnAction,
   refreshCardAction,
   renameColumnAction,
   saveBoard,
@@ -98,6 +107,19 @@ export function DndBoard({ data }: { data: BoardData }) {
     commit(columnsRef.current.map((c) => (c.id === id ? { ...c, color } : c)));
     startTransition(async () => {
       await setColumnColorAction(orgId, id, color);
+      poke();
+    });
+  }
+  function moveColumn(id: string, dir: "left" | "right") {
+    const cur = columnsRef.current;
+    const idx = cur.findIndex((c) => c.id === id);
+    const swapIdx = dir === "left" ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= cur.length) return;
+    const next = [...cur];
+    [next[idx], next[swapIdx]] = [next[swapIdx]!, next[idx]!];
+    commit(next);
+    startTransition(async () => {
+      await moveColumnAction(orgId, id, dir);
       poke();
     });
   }
@@ -368,16 +390,19 @@ export function DndBoard({ data }: { data: BoardData }) {
         onDragEnd={onDragEnd}
       >
         <div className="flex h-full gap-5 overflow-x-auto px-4 py-5">
-          {columns.map((column) => (
+          {columns.map((column, i) => (
             <Column
               key={column.id}
               column={column}
               canDelete={columns.length > 1}
+              canMoveLeft={i > 0}
+              canMoveRight={i < columns.length - 1}
               onCreate={() => setModal({ mode: "create", statusId: column.id })}
               onEdit={(task) => setModal({ mode: "edit", task })}
               onRename={(name) => renameColumn(column.id, name)}
               onRecolor={(color) => recolorColumn(column.id, color)}
               onSetKind={(kind) => setColumnKind(column.id, kind)}
+              onMove={(dir) => moveColumn(column.id, dir)}
               onDelete={() => deleteColumn(column.id)}
             />
           ))}
@@ -508,20 +533,26 @@ const COLUMN_COLORS = [
 function Column({
   column,
   canDelete,
+  canMoveLeft,
+  canMoveRight,
   onCreate,
   onEdit,
   onRename,
   onRecolor,
   onSetKind,
+  onMove,
   onDelete,
 }: {
   column: UIColumn;
   canDelete: boolean;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
   onCreate: () => void;
   onEdit: (task: BoardTaskDTO) => void;
   onRename: (name: string) => void;
   onRecolor: (color: string) => void;
   onSetKind: (kind: "active" | "done") => void;
+  onMove: (dir: "left" | "right") => void;
   onDelete: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -644,6 +675,29 @@ function Column({
                 />
                 {column.kind === "done" ? "Não é conclusão" : "Marcar como Concluído"}
               </button>
+              <button
+                type="button"
+                disabled={!canMoveLeft}
+                onClick={() => {
+                  setMenuOpen(false);
+                  onMove("left");
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated disabled:opacity-40"
+              >
+                <ArrowLeft className="size-3.5" /> Mover à esquerda
+              </button>
+              <button
+                type="button"
+                disabled={!canMoveRight}
+                onClick={() => {
+                  setMenuOpen(false);
+                  onMove("right");
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated disabled:opacity-40"
+              >
+                <ArrowRight className="size-3.5" /> Mover à direita
+              </button>
+              <div className="my-1 h-px bg-border" />
               <button
                 type="button"
                 disabled={!canDelete}
