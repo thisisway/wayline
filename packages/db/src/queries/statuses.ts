@@ -39,6 +39,37 @@ export async function setStatusColor(orgId: string, id: string, color: string): 
   });
 }
 
+/** Define o tipo da coluna e sincroniza `completed` das tarefas dela. */
+export async function setStatusKind(
+  orgId: string,
+  id: string,
+  kind: "open" | "active" | "done",
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(statuses).set({ kind }).where(eq(statuses.id, id));
+    await tx
+      .update(tasks)
+      .set({ completed: kind === "done", updatedAt: new Date() })
+      .where(eq(tasks.statusId, id));
+  });
+}
+
+/** Ao mover uma tarefa: marca `completed` conforme o tipo da coluna destino. */
+export async function syncTaskCompleted(
+  orgId: string,
+  taskId: string,
+  statusId: string,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const status = await tx.query.statuses.findFirst({ where: eq(statuses.id, statusId) });
+    if (!status) return;
+    await tx
+      .update(tasks)
+      .set({ completed: status.kind === "done", updatedAt: new Date() })
+      .where(eq(tasks.id, taskId));
+  });
+}
+
 /**
  * Exclui uma coluna: move as tarefas dela para a 1ª outra coluna da lista.
  * Não permite excluir a última coluna. Retorna true se excluiu.

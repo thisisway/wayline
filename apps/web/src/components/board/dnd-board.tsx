@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { Input, cn } from "@wayline/ui";
 import type { BoardData, BoardTaskDTO } from "@wayline/db";
 import { TaskCard } from "./task-card";
@@ -37,6 +37,7 @@ import {
   renameColumnAction,
   saveBoard,
   setColumnColorAction,
+  setColumnKindAction,
   updateTaskAction,
 } from "@/actions/board";
 import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
@@ -46,6 +47,7 @@ interface UIColumn {
   id: string;
   name: string;
   color: string;
+  kind: "open" | "active" | "done";
   cards: BoardTaskDTO[];
 }
 
@@ -58,7 +60,7 @@ type ModalState =
 export function DndBoard({ data }: { data: BoardData }) {
   const orgId = data.orgId;
   const [columns, setColumns] = React.useState<UIColumn[]>(() =>
-    data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, cards: c.tasks })),
+    data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, kind: c.kind, cards: c.tasks })),
   );
   const columnsRef = React.useRef(columns);
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -75,7 +77,10 @@ export function DndBoard({ data }: { data: BoardData }) {
   const router = useRouter();
 
   function addColumn(name: string) {
-    commit([...columnsRef.current, { id: `tmp-${Date.now()}`, name, color: "#94A3B8", cards: [] }]);
+    commit([
+      ...columnsRef.current,
+      { id: `tmp-${Date.now()}`, name, color: "#94A3B8", kind: "active", cards: [] },
+    ]);
     startTransition(async () => {
       await createColumnAction(orgId, data.listId, name);
       router.refresh();
@@ -96,6 +101,14 @@ export function DndBoard({ data }: { data: BoardData }) {
       poke();
     });
   }
+  function setColumnKind(id: string, kind: "active" | "done") {
+    commit(columnsRef.current.map((c) => (c.id === id ? { ...c, kind } : c)));
+    startTransition(async () => {
+      await setColumnKindAction(orgId, id, kind);
+      router.refresh();
+      poke();
+    });
+  }
   function deleteColumn(id: string) {
     commit(columnsRef.current.filter((c) => c.id !== id));
     startTransition(async () => {
@@ -110,7 +123,7 @@ export function DndBoard({ data }: { data: BoardData }) {
   React.useEffect(() => {
     if (activeId) return;
     commit(
-      data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, cards: c.tasks })),
+      data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, kind: c.kind, cards: c.tasks })),
     );
   }, [data]);
 
@@ -364,6 +377,7 @@ export function DndBoard({ data }: { data: BoardData }) {
               onEdit={(task) => setModal({ mode: "edit", task })}
               onRename={(name) => renameColumn(column.id, name)}
               onRecolor={(color) => recolorColumn(column.id, color)}
+              onSetKind={(kind) => setColumnKind(column.id, kind)}
               onDelete={() => deleteColumn(column.id)}
             />
           ))}
@@ -498,6 +512,7 @@ function Column({
   onEdit,
   onRename,
   onRecolor,
+  onSetKind,
   onDelete,
 }: {
   column: UIColumn;
@@ -506,6 +521,7 @@ function Column({
   onEdit: (task: BoardTaskDTO) => void;
   onRename: (name: string) => void;
   onRecolor: (color: string) => void;
+  onSetKind: (kind: "active" | "done") => void;
   onDelete: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -561,6 +577,11 @@ function Column({
         <span className="flex h-5 min-w-5 items-center justify-center rounded-pill bg-elevated px-1.5 text-[11px] font-semibold text-muted">
           {column.cards.length}
         </span>
+        {column.kind === "done" && (
+          <span title="Coluna de conclusão" className="flex text-success">
+            <CheckCircle2 className="size-3.5" />
+          </span>
+        )}
         <div className="relative ml-auto flex items-center gap-0.5" ref={menuRef}>
           <button
             type="button"
@@ -609,6 +630,19 @@ function Column({
                 className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
               >
                 <Pencil className="size-3.5" /> Renomear
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onSetKind(column.kind === "done" ? "active" : "done");
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-8 text-dense text-foreground hover:bg-elevated"
+              >
+                <CheckCircle2
+                  className={cn("size-3.5", column.kind === "done" && "text-success")}
+                />
+                {column.kind === "done" ? "Não é conclusão" : "Marcar como Concluído"}
               </button>
               <button
                 type="button"

@@ -13,6 +13,8 @@ import {
   deleteStatus,
   renameStatus,
   setStatusColor,
+  setStatusKind,
+  syncTaskCompleted,
   deleteComment,
   deleteSubtask,
   deleteTask,
@@ -67,6 +69,7 @@ export async function saveBoard(orgId: string, order: BoardOrderInput[]): Promis
   if (user) {
     const changes = await saveBoardOrderLogged(orgId, order, user.id, user.name);
     for (const c of changes) {
+      await syncTaskCompleted(orgId, c.taskId, c.to).catch(() => {});
       await applyAutomations(orgId, c.taskId, { type: "status", statusId: c.to }).catch(() => {});
       await spawnRecurrence(orgId, c.taskId, c.to).catch(() => {});
     }
@@ -118,14 +121,16 @@ export async function updateTaskAction(
   if (user && before && after) {
     await logTaskChanges(orgId, id, user.id, user.name, before, after);
   }
-  // Automações: se a coluna mudou, dispara e recarrega o card.
+  // Automações + conclusão + recorrência: se a coluna mudou, dispara e recarrega.
   if (after && before?.statusId !== after.statusId && after.statusId) {
+    await syncTaskCompleted(orgId, id, after.statusId).catch(() => {});
     const changed = await applyAutomations(orgId, id, {
       type: "status",
       statusId: after.statusId,
     }).catch(() => false);
     await spawnRecurrence(orgId, id, after.statusId).catch(() => {});
-    if (changed) after = await getTaskCard(orgId, id);
+    after = await getTaskCard(orgId, id);
+    void changed;
   }
   revalidatePath("/app");
   return after;
@@ -185,6 +190,16 @@ export async function setColumnColorAction(
 ): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await setStatusColor(orgId, id, color);
+  revalidatePath("/app");
+}
+
+export async function setColumnKindAction(
+  orgId: string,
+  id: string,
+  kind: "open" | "active" | "done",
+): Promise<void> {
+  if (!(await assertMember(orgId))) return;
+  await setStatusKind(orgId, id, kind);
   revalidatePath("/app");
 }
 
