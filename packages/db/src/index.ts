@@ -61,6 +61,7 @@ export {
 export {
   getWorkspaceMembers,
   addMemberByEmail,
+  setMemberRole,
   removeMember,
   type WorkspaceMember,
   type AddMemberStatus,

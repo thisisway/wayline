@@ -11,7 +11,7 @@ import {
   type AcceptResult,
   type InvitationDTO,
 } from "@wayline/db";
-import { assertMember, getSessionUser, getSessionUserId } from "@/lib/authz";
+import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { emailEnabled, sendInviteEmail } from "@/lib/email";
 
@@ -21,7 +21,7 @@ export async function listInvitesAction(orgId: string): Promise<InvitationDTO[]>
 }
 
 export async function createInviteAction(orgId: string): Promise<InvitationDTO | null> {
-  if (!(await assertMember(orgId))) return null;
+  if (!(await assertRole(orgId, "admin"))) return null;
   const userId = await getSessionUserId();
   const invite = await createInvitation(orgId, userId);
   revalidatePath("/app");
@@ -29,7 +29,7 @@ export async function createInviteAction(orgId: string): Promise<InvitationDTO |
 }
 
 export async function revokeInviteAction(orgId: string, id: string): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   await revokeInvitation(orgId, id);
   revalidatePath("/app");
 }
@@ -41,7 +41,7 @@ export async function sendInviteByEmailAction(
   orgId: string,
   email: string,
 ): Promise<SendInviteStatus> {
-  if (!(await assertMember(orgId))) return "forbidden";
+  if (!(await assertRole(orgId, "admin"))) return "forbidden";
   if (!email.trim()) return "error";
   if (!emailEnabled()) return "disabled";
   const user = await getSessionUser();

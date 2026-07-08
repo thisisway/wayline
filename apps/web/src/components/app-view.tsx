@@ -55,6 +55,7 @@ export function AppView({
   replies,
   listName,
   userName,
+  isAdmin,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -68,6 +69,7 @@ export function AppView({
   replies: ReplyDTO[];
   listName: string;
   userName: string;
+  isAdmin: boolean;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -148,6 +150,7 @@ export function AppView({
         onOpenInbox={() => setInboxOpen(true)}
         onOpenAssigned={() => setAssignedOpen(true)}
         onOpenReplies={() => setRepliesOpen(true)}
+        isAdmin={isAdmin}
       />
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
@@ -207,6 +210,7 @@ export function AppView({
           activeOrgId={activeOrgId}
           inboxUnread={inbox.unread}
           onOpenInbox={() => setInboxOpen(true)}
+          isAdmin={isAdmin}
         />
         <ViewTabs
           value={view}
@@ -223,6 +227,7 @@ export function AppView({
           onExport={handleExport}
           onShare={() => setShareOpen(true)}
           onOpenAutomations={() => setAutomationsOpen(true)}
+          isAdmin={isAdmin}
         />
 
         {view === "board" ? (
@@ -231,7 +236,7 @@ export function AppView({
           ) : (
             <div className="relative min-h-0 flex-1">
               {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
-              <DndBoard key={data.listId} data={filtered!} />
+              <DndBoard key={data.listId} data={filtered!} isAdmin={isAdmin} />
 
               {data.columns.some((c) => c.tasks.length > 0) && (
                 <>

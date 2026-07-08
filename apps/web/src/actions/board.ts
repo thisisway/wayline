@@ -43,7 +43,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import type { TaskFormInput } from "@/lib/board";
-import { assertMember, getSessionUser } from "@/lib/authz";
+import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
 import { emailNotify } from "@/lib/email";
 import { pokeUsers } from "@/actions/live";
 
@@ -169,7 +169,7 @@ export async function createColumnAction(
   listId: string,
   name: string,
 ): Promise<void> {
-  if (!name.trim() || !(await assertMember(orgId))) return;
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   await createStatus(orgId, listId, name);
   revalidatePath("/app");
 }
@@ -179,7 +179,7 @@ export async function renameColumnAction(
   id: string,
   name: string,
 ): Promise<void> {
-  if (!name.trim() || !(await assertMember(orgId))) return;
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   await renameStatus(orgId, id, name);
   revalidatePath("/app");
 }
@@ -189,7 +189,7 @@ export async function setColumnColorAction(
   id: string,
   color: string,
 ): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   await setStatusColor(orgId, id, color);
   revalidatePath("/app");
 }
@@ -199,7 +199,7 @@ export async function moveColumnAction(
   id: string,
   dir: "left" | "right",
 ): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   await moveStatus(orgId, id, dir);
   revalidatePath("/app");
 }
@@ -209,13 +209,13 @@ export async function setColumnKindAction(
   id: string,
   kind: "open" | "active" | "done",
 ): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   await setStatusKind(orgId, id, kind);
   revalidatePath("/app");
 }
 
 export async function deleteColumnAction(orgId: string, id: string): Promise<boolean> {
-  if (!(await assertMember(orgId))) return false;
+  if (!(await assertRole(orgId, "admin"))) return false;
   const ok = await deleteStatus(orgId, id);
   revalidatePath("/app");
   return ok;

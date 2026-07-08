@@ -11,12 +11,13 @@ import {
   getWorkspaceMembers,
   markNotificationsRead,
   removeMember,
+  setMemberRole,
   type AddMemberStatus,
   type WorkspaceMember,
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
-import { assertMember } from "@/lib/authz";
+import { assertMember, assertRole } from "@/lib/authz";
 
 const cookieOpts = {
   httpOnly: true,
@@ -53,7 +54,7 @@ export async function switchList(listId: string): Promise<void> {
 
 /** Cria um space na org ativa. */
 export async function createSpaceAction(orgId: string, name: string): Promise<void> {
-  if (!name.trim() || !(await assertMember(orgId))) return;
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   await createSpace(orgId, name);
   revalidatePath("/app");
 }
@@ -64,7 +65,7 @@ export async function createListAction(
   spaceId: string,
   name: string,
 ): Promise<void> {
-  if (!name.trim() || !(await assertMember(orgId))) return;
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   const listId = await createList(orgId, spaceId, name);
   await setActiveListCookie(listId);
   revalidatePath("/app");
@@ -72,7 +73,7 @@ export async function createListAction(
 
 /** Duplica a estrutura de uma lista (sem tarefas) e ativa a cópia. */
 export async function duplicateListAction(orgId: string, listId: string): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   const newId = await duplicateListStructure(orgId, listId);
   await setActiveListCookie(newId);
   revalidatePath("/app");
@@ -85,18 +86,29 @@ export async function listMembersAction(orgId: string): Promise<WorkspaceMember[
 }
 
 export async function addMemberAction(orgId: string, email: string): Promise<AddMemberStatus> {
-  if (!email.trim() || !(await assertMember(orgId))) return "not_found";
+  if (!email.trim() || !(await assertRole(orgId, "admin"))) return "not_found";
   const status = await addMemberByEmail(orgId, email);
   revalidatePath("/app");
   return status;
 }
 
 export async function removeMemberAction(orgId: string, userId: string): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   const members = await getWorkspaceMembers(orgId);
   const target = members.find((m) => m.userId === userId);
   if (!target || target.role === "owner") return; // não remove owners
   await removeMember(orgId, userId);
+  revalidatePath("/app");
+}
+
+/** Altera o papel de um membro (admin+; não altera owners). */
+export async function setMemberRoleAction(
+  orgId: string,
+  userId: string,
+  role: "admin" | "member" | "guest",
+): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await setMemberRole(orgId, userId, role);
   revalidatePath("/app");
 }
 

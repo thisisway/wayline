@@ -28,12 +28,14 @@ export function Topbar({
   activeOrgId,
   inboxUnread = 0,
   onOpenInbox,
+  isAdmin = false,
 }: {
   userName: string;
   orgs: UserOrg[];
   activeOrgId: string;
   inboxUnread?: number;
   onOpenInbox?: () => void;
+  isAdmin?: boolean;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
@@ -54,7 +56,11 @@ export function Topbar({
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} />
       {showMembers && (
-        <MembersModal orgId={activeOrgId} onClose={() => setShowMembers(false)} />
+        <MembersModal
+          orgId={activeOrgId}
+          isAdmin={isAdmin}
+          onClose={() => setShowMembers(false)}
+        />
       )}
       {showClients && (
         <ClientsModal orgId={activeOrgId} onClose={() => setShowClients(false)} />
@@ -80,15 +86,17 @@ export function Topbar({
           <Sparkles className="size-4" />
           Wayline Brain
         </Button>
-        <button
-          type="button"
-          onClick={() => setShowClients(true)}
-          aria-label="Clientes"
-          title="Clientes"
-          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-        >
-          <Briefcase className="size-4.5" />
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowClients(true)}
+            aria-label="Clientes"
+            title="Clientes"
+            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          >
+            <Briefcase className="size-4.5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowMembers(true)}

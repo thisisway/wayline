@@ -66,7 +66,7 @@ type ModalState =
   | null;
 
 /** Board Kanban com drag-and-drop, persistência e CRUD de tarefas. */
-export function DndBoard({ data }: { data: BoardData }) {
+export function DndBoard({ data, isAdmin }: { data: BoardData; isAdmin: boolean }) {
   const orgId = data.orgId;
   const [columns, setColumns] = React.useState<UIColumn[]>(() =>
     data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, kind: c.kind, cards: c.tasks })),
@@ -394,6 +394,7 @@ export function DndBoard({ data }: { data: BoardData }) {
             <Column
               key={column.id}
               column={column}
+              canManage={isAdmin}
               canDelete={columns.length > 1}
               canMoveLeft={i > 0}
               canMoveRight={i < columns.length - 1}
@@ -406,7 +407,7 @@ export function DndBoard({ data }: { data: BoardData }) {
               onDelete={() => deleteColumn(column.id)}
             />
           ))}
-          <AddColumn onAdd={addColumn} />
+          {isAdmin && <AddColumn onAdd={addColumn} />}
         </div>
 
         <DragOverlay dropAnimation={null}>
@@ -532,6 +533,7 @@ const COLUMN_COLORS = [
 
 function Column({
   column,
+  canManage,
   canDelete,
   canMoveLeft,
   canMoveRight,
@@ -544,6 +546,7 @@ function Column({
   onDelete,
 }: {
   column: UIColumn;
+  canManage: boolean;
   canDelete: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
@@ -598,9 +601,12 @@ function Column({
           />
         ) : (
           <h2
-            className="cursor-text text-dense font-bold uppercase tracking-wide text-foreground"
-            onDoubleClick={() => setEditing(true)}
-            title="Duplo clique para renomear"
+            className={cn(
+              "text-dense font-bold uppercase tracking-wide text-foreground",
+              canManage && "cursor-text",
+            )}
+            onDoubleClick={() => canManage && setEditing(true)}
+            title={canManage ? "Duplo clique para renomear" : undefined}
           >
             {column.name}
           </h2>
@@ -622,15 +628,17 @@ function Column({
           >
             <Plus className="size-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Opções da coluna"
-            className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <MoreHorizontal className="size-4" />
-          </button>
-          {menuOpen && (
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Opções da coluna"
+              className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+          )}
+          {menuOpen && canManage && (
             <div className="absolute right-0 top-7 z-20 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
               <div className="flex flex-wrap gap-1.5 px-2 py-2">
                 {COLUMN_COLORS.map((c) => (

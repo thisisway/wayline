@@ -49,6 +49,24 @@ export async function addMemberByEmail(orgId: string, email: string): Promise<Ad
   });
 }
 
+/** Define o papel de um membro (não altera owners). */
+export async function setMemberRole(
+  orgId: string,
+  userId: string,
+  role: "admin" | "member" | "guest",
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const m = await tx.query.memberships.findFirst({
+      where: and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)),
+    });
+    if (!m || m.role === "owner") return; // não mexe em owners
+    await tx
+      .update(memberships)
+      .set({ role })
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
+  });
+}
+
 /** Remove um membro da org. */
 export async function removeMember(orgId: string, userId: string): Promise<void> {
   await withOrg(orgId, async (tx) => {

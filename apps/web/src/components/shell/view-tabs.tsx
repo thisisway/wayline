@@ -58,6 +58,7 @@ export function ViewTabs({
   onExport,
   onShare,
   onOpenAutomations,
+  isAdmin,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -73,6 +74,7 @@ export function ViewTabs({
   onExport?: () => void;
   onShare?: () => void;
   onOpenAutomations?: () => void;
+  isAdmin: boolean;
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -117,15 +119,17 @@ export function ViewTabs({
           tags={tags}
           customFieldOptions={customFieldOptions}
         />
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Automações"
-          title="Automações"
-          onClick={onOpenAutomations}
-        >
-          <Zap />
-        </Button>
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Automações"
+            title="Automações"
+            onClick={onOpenAutomations}
+          >
+            <Zap />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -135,19 +139,23 @@ export function ViewTabs({
         >
           <Download />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Campos customizados"
-          title="Campos customizados"
-          onClick={onOpenFields}
-        >
-          <SlidersHorizontal />
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onShare}>
-          <UserPlus className="size-4" />
-          Compartilhar
-        </Button>
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Campos customizados"
+            title="Campos customizados"
+            onClick={onOpenFields}
+          >
+            <SlidersHorizontal />
+          </Button>
+        )}
+        {isAdmin && (
+          <Button variant="secondary" size="sm" onClick={onShare}>
+            <UserPlus className="size-4" />
+            Compartilhar
+          </Button>
+        )}
       </div>
     </div>
   );

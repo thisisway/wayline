@@ -9,7 +9,7 @@ import {
   type AutomationTriggerType,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertMember } from "@/lib/authz";
+import { assertMember, assertRole } from "@/lib/authz";
 
 export async function listAutomationsAction(
   orgId: string,
@@ -28,14 +28,14 @@ export async function createAutomationAction(
   actionValue: string,
 ): Promise<boolean> {
   if (!actionValue || (triggerType === "status" && !triggerStatusId)) return false;
-  if (!(await assertMember(orgId))) return false;
+  if (!(await assertRole(orgId, "admin"))) return false;
   await createAutomation(orgId, listId, triggerType, triggerStatusId, actionType, actionValue);
   revalidatePath("/app");
   return true;
 }
 
 export async function deleteAutomationAction(orgId: string, id: string): Promise<void> {
-  if (!(await assertMember(orgId))) return;
+  if (!(await assertRole(orgId, "admin"))) return;
   await deleteAutomation(orgId, id);
   revalidatePath("/app");
 }

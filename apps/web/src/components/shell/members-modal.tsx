@@ -4,7 +4,12 @@ import * as React from "react";
 import { Check, Copy, Link2, Trash2, UserPlus, X } from "lucide-react";
 import type { InvitationDTO, WorkspaceMember } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
-import { addMemberAction, listMembersAction, removeMemberAction } from "@/actions/org";
+import {
+  addMemberAction,
+  listMembersAction,
+  removeMemberAction,
+  setMemberRoleAction,
+} from "@/actions/org";
 import {
   createInviteAction,
   listInvitesAction,
@@ -18,11 +23,24 @@ const STATUS_MSG: Record<string, { text: string; ok: boolean }> = {
   not_found: { text: "Nenhum usuário com esse email. Peça para criar uma conta primeiro.", ok: false },
 };
 
-export function MembersModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+export function MembersModal({
+  orgId,
+  isAdmin,
+  onClose,
+}: {
+  orgId: string;
+  isAdmin: boolean;
+  onClose: () => void;
+}) {
   const [members, setMembers] = React.useState<WorkspaceMember[] | null>(null);
   const [email, setEmail] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+
+  async function changeRole(userId: string, role: "admin" | "member" | "guest") {
+    setMembers((ms) => (ms ?? []).map((m) => (m.userId === userId ? { ...m, role } : m)));
+    await setMemberRoleAction(orgId, userId, role).catch(() => {});
+  }
 
   const reload = React.useCallback(() => {
     listMembersAction(orgId).then(setMembers);
@@ -80,25 +98,27 @@ export function MembersModal({ orgId, onClose }: { orgId: string; onClose: () =>
           </button>
         </div>
 
-        <div className="space-y-2 border-b border-border p-5">
-          <div className="flex items-center gap-2">
-            <Input
-              type="email"
-              value={email}
-              placeholder="email@doteammate.com"
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && add()}
-            />
-            <Button onClick={add} disabled={!email.trim() || busy}>
-              <UserPlus className="size-4" />
-              Adicionar
-            </Button>
+        {isAdmin && (
+          <div className="space-y-2 border-b border-border p-5">
+            <div className="flex items-center gap-2">
+              <Input
+                type="email"
+                value={email}
+                placeholder="email@doteammate.com"
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && add()}
+              />
+              <Button onClick={add} disabled={!email.trim() || busy}>
+                <UserPlus className="size-4" />
+                Adicionar
+              </Button>
+            </div>
+            {msg && (
+              <p className={cn("text-dense", msg.ok ? "text-success" : "text-muted")}>{msg.text}</p>
+            )}
+            <InviteSection orgId={orgId} />
           </div>
-          {msg && (
-            <p className={cn("text-dense", msg.ok ? "text-success" : "text-muted")}>{msg.text}</p>
-          )}
-          <InviteSection orgId={orgId} />
-        </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-3">
           {members === null ? (
@@ -114,10 +134,24 @@ export function MembersModal({ orgId, onClose }: { orgId: string; onClose: () =>
                   <p className="truncate text-ui font-medium text-foreground">{m.name}</p>
                   <p className="truncate text-dense text-subtle">{m.email}</p>
                 </div>
-                <Badge variant={m.role === "owner" ? "brand" : "neutral"} size="sm">
-                  {m.role}
-                </Badge>
-                {m.role !== "owner" && (
+                {isAdmin && m.role !== "owner" ? (
+                  <select
+                    value={m.role}
+                    onChange={(e) =>
+                      changeRole(m.userId, e.target.value as "admin" | "member" | "guest")
+                    }
+                    className="h-8 rounded-md border border-border bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="admin">admin</option>
+                    <option value="member">member</option>
+                    <option value="guest">guest</option>
+                  </select>
+                ) : (
+                  <Badge variant={m.role === "owner" ? "brand" : "neutral"} size="sm">
+                    {m.role}
+                  </Badge>
+                )}
+                {isAdmin && m.role !== "owner" && (
                   <button
                     type="button"
                     onClick={() => remove(m.userId)}

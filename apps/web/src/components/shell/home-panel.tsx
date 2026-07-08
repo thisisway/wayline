@@ -78,6 +78,7 @@ export function HomePanel({
   onOpenInbox,
   onOpenAssigned,
   onOpenReplies,
+  isAdmin,
 }: {
   nav: NavSpace[];
   activeListId: string;
@@ -90,6 +91,7 @@ export function HomePanel({
   onOpenInbox: () => void;
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
+  isAdmin: boolean;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -161,14 +163,16 @@ export function HomePanel({
 
         <div className="flex items-center justify-between px-2.5 pb-1 pt-4">
           <span className="text-label uppercase text-subtle">Spaces</span>
-          <button
-            type="button"
-            onClick={() => setAddingSpace(true)}
-            aria-label="Novo space"
-            className="flex size-5 items-center justify-center rounded text-subtle hover:bg-elevated hover:text-foreground"
-          >
-            <Plus className="size-3.5" />
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setAddingSpace(true)}
+              aria-label="Novo space"
+              className="flex size-5 items-center justify-center rounded text-subtle hover:bg-elevated hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          )}
         </div>
 
         {nav.length === 0 && !addingSpace && (
@@ -199,17 +203,19 @@ export function HomePanel({
                   </span>
                   <span className="truncate text-left">{space.name}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCollapsed((s) => ({ ...s, [space.id]: false }));
-                    setAddingListIn(space.id);
-                  }}
-                  aria-label={`Nova lista em ${space.name}`}
-                  className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                >
-                  <Plus className="size-3.5" />
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCollapsed((s) => ({ ...s, [space.id]: false }));
+                      setAddingListIn(space.id);
+                    }}
+                    aria-label={`Nova lista em ${space.name}`}
+                    className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                )}
               </div>
 
               {isOpen && (
@@ -233,15 +239,17 @@ export function HomePanel({
                         >
                           {list.name}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => duplicateList(list.id)}
-                          aria-label={`Duplicar ${list.name}`}
-                          title="Duplicar lista (estrutura, sem tarefas)"
-                          className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                        >
-                          <Copy className="size-3.5" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => duplicateList(list.id)}
+                            aria-label={`Duplicar ${list.name}`}
+                            title="Duplicar lista (estrutura, sem tarefas)"
+                            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                          >
+                            <Copy className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}

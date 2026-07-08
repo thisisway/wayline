@@ -74,6 +74,7 @@ export default async function AppPage({
       replies={replies}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
+      isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
       focusTaskId={focusTaskId}
     />
   );
