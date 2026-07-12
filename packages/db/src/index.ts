@@ -174,6 +174,13 @@ export {
   type DashboardMemberLoad,
   type DashboardClientProgress,
 } from "./queries/dashboard";
+export {
+  getUserProfile,
+  updateUserProfile,
+  getUserPasswordHash,
+  setUserPasswordHash,
+  type UserProfile,
+} from "./queries/profile";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

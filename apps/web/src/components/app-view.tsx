@@ -59,6 +59,7 @@ export function AppView({
   replies,
   listName,
   userName,
+  userAvatar,
   isAdmin,
   isGuest,
   focusTaskId,
@@ -74,6 +75,7 @@ export function AppView({
   replies: ReplyDTO[];
   listName: string;
   userName: string;
+  userAvatar?: string;
   isAdmin: boolean;
   isGuest: boolean;
   focusTaskId?: string;
@@ -250,6 +252,7 @@ export function AppView({
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar
           userName={userName}
+          userAvatar={userAvatar}
           orgs={orgs}
           activeOrgId={activeOrgId}
           inboxUnread={inbox.unread}

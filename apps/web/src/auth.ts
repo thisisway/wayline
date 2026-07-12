@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, resolveUserOrg } from "@wayline/db";
+import { getUserByEmail, getUserProfile, resolveUserOrg } from "@wayline/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // JWT: obrigatório com Credentials; sem tabela de sessão.
@@ -25,16 +25,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
 
-        return { id: user.id, name: user.name, email: user.email };
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.avatarUrl ?? undefined,
+        };
       },
     }),
   ],
   callbacks: {
     // Resolve a org do usuário só no login (user presente); depois é cacheada no token.
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user?.id) {
         token.uid = user.id;
         token.orgId = (await resolveUserOrg(user.id)) ?? null;
+      }
+      // Perfil editado: recarrega nome/avatar do banco (via useSession().update()).
+      if (trigger === "update" && token.uid) {
+        const fresh = await getUserProfile(token.uid as string);
+        if (fresh) {
+          token.name = fresh.name;
+          token.picture = fresh.avatarUrl;
+        }
       }
       return token;
     },

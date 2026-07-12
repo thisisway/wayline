@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { THEME_COOKIE } from "@/lib/constants";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,7 +36,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang="pt-BR"
       className={`${light ? "" : "dark"} ${inter.variable} ${jakarta.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

@@ -6,6 +6,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  avatarUrl: string | null;
   passwordHash: string | null;
 }
 
@@ -14,7 +15,13 @@ export async function getUserByEmail(email: string): Promise<AuthUser | null> {
   const db = getDb();
   const u = await db.query.users.findFirst({ where: eq(users.email, email.toLowerCase()) });
   return u
-    ? { id: u.id, name: u.name, email: u.email, passwordHash: u.passwordHash }
+    ? {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        passwordHash: u.passwordHash,
+      }
     : null;
 }
 

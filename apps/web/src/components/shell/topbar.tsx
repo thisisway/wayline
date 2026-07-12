@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
   userName,
+  userAvatar,
   orgs,
   activeOrgId,
   inboxUnread = 0,
@@ -32,6 +33,7 @@ export function Topbar({
   isAdmin = false,
 }: {
   userName: string;
+  userAvatar?: string;
   orgs: UserOrg[];
   activeOrgId: string;
   inboxUnread?: number;
@@ -111,7 +113,7 @@ export function Topbar({
           )}
         </button>
         <ThemeToggle />
-        <Avatar name={userName} size="md" title={userName} />
+        <Avatar name={userName} src={userAvatar} size="md" title={userName} />
         <button
           type="button"
           onClick={() => signOut({ redirectTo: "/login" })}
