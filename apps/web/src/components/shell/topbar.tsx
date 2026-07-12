@@ -19,7 +19,6 @@ import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
-import { CommandPalette } from "@/components/shell/command-palette";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
@@ -28,6 +27,8 @@ export function Topbar({
   activeOrgId,
   inboxUnread = 0,
   onOpenInbox,
+  onOpenSearch,
+  onOpenBrain,
   isAdmin = false,
 }: {
   userName: string;
@@ -35,22 +36,12 @@ export function Topbar({
   activeOrgId: string;
   inboxUnread?: number;
   onOpenInbox?: () => void;
+  onOpenSearch?: () => void;
+  onOpenBrain?: () => void;
   isAdmin?: boolean;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
-  const [search, setSearch] = React.useState(false);
-
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSearch(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -65,12 +56,11 @@ export function Topbar({
       {showClients && (
         <ClientsModal orgId={activeOrgId} onClose={() => setShowClients(false)} />
       )}
-      {search && <CommandPalette orgId={activeOrgId} onClose={() => setSearch(false)} />}
 
       {/* Busca global (⌘K) */}
       <button
         type="button"
-        onClick={() => setSearch(true)}
+        onClick={onOpenSearch}
         className="mx-auto flex w-full max-w-md items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-muted transition-colors hover:border-brand-40"
       >
         <Search className="size-4" />
@@ -82,7 +72,7 @@ export function Topbar({
 
       {/* Ações */}
       <div className="flex items-center gap-2">
-        <Button variant="primary" size="sm">
+        <Button variant="primary" size="sm" onClick={onOpenBrain}>
           <Sparkles className="size-4" />
           Wayline Brain
         </Button>

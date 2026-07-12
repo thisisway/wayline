@@ -31,8 +31,11 @@ import { DashboardView } from "@/components/board/dashboard-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
+import { SettingsModal } from "@/components/shell/settings-modal";
+import { CommandPalette } from "@/components/shell/command-palette";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
+import { BrainModal } from "@/components/panels/brain-modal";
 import { useBoardLive } from "@/lib/use-board-live";
 import { useNotificationsLive } from "@/lib/use-notifications-live";
 import {
@@ -85,6 +88,12 @@ export function AppView({
   const [fieldsOpen, setFieldsOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
   const [automationsOpen, setAutomationsOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [brainOpen, setBrainOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+
+  const orgName = orgs.find((o) => o.id === activeOrgId)?.name ?? "Workspace";
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -108,6 +117,11 @@ export function AppView({
       "6": "reports",
     };
     function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
@@ -140,21 +154,34 @@ export function AppView({
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
-      <IconRail />
-      <HomePanel
-        nav={nav}
-        activeListId={activeListId}
-        activeOrgId={activeOrgId}
-        myTasksCount={myTasks.length}
+      <IconRail
+        activeView={view}
         inboxUnread={inbox.unread}
-        assignedCount={assignedComments.length}
-        repliesCount={replies.length}
+        onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}
+        onHome={() => setView("board")}
+        onToggleSidebar={() => setSidebarOpen((s) => !s)}
         onOpenMyTasks={() => setMyTasksOpen(true)}
+        onOpenBrain={() => setBrainOpen(true)}
+        onOpenSearch={() => setSearchOpen(true)}
         onOpenInbox={() => setInboxOpen(true)}
-        onOpenAssigned={() => setAssignedOpen(true)}
-        onOpenReplies={() => setRepliesOpen(true)}
-        isAdmin={isAdmin}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
+      {sidebarOpen && (
+        <HomePanel
+          nav={nav}
+          activeListId={activeListId}
+          activeOrgId={activeOrgId}
+          myTasksCount={myTasks.length}
+          inboxUnread={inbox.unread}
+          assignedCount={assignedComments.length}
+          repliesCount={replies.length}
+          onOpenMyTasks={() => setMyTasksOpen(true)}
+          onOpenInbox={() => setInboxOpen(true)}
+          onOpenAssigned={() => setAssignedOpen(true)}
+          onOpenReplies={() => setRepliesOpen(true)}
+          isAdmin={isAdmin}
+        />
+      )}
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
       )}
@@ -178,6 +205,20 @@ export function AppView({
         />
       )}
       {focusEditor.modal}
+      {searchOpen && (
+        <CommandPalette orgId={activeOrgId} onClose={() => setSearchOpen(false)} />
+      )}
+      {brainOpen && (
+        <BrainModal data={data} listName={listName} onClose={() => setBrainOpen(false)} />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          userName={userName}
+          orgName={orgName}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
       {fieldsOpen && data && (
         <CustomFieldsManager
@@ -213,6 +254,8 @@ export function AppView({
           activeOrgId={activeOrgId}
           inboxUnread={inbox.unread}
           onOpenInbox={() => setInboxOpen(true)}
+          onOpenSearch={() => setSearchOpen(true)}
+          onOpenBrain={() => setBrainOpen(true)}
           isAdmin={isAdmin}
         />
         <ViewTabs
