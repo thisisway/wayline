@@ -8,6 +8,7 @@ import {
   Download,
   Filter,
   GanttChartSquare,
+  LayoutDashboard,
   LayoutGrid,
   List,
   MessageSquare,
@@ -34,6 +35,8 @@ const views = [
   { id: "gantt", label: "Gantt", icon: <GanttChartSquare /> },
   { id: "calendar", label: "Calendar", icon: <Calendar /> },
   { id: "reports", label: "Relatórios", icon: <BarChart3 /> },
+  // Somente admin+ (visão executiva da org inteira).
+  { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard />, adminOnly: true },
 ];
 
 const PRIORITIES = [
@@ -92,11 +95,13 @@ export function ViewTabs({
 
       <Tabs value={value} defaultValue="board" onValueChange={onValueChange}>
         <TabsList>
-          {views.map((v) => (
-            <TabsTrigger key={v.id} value={v.id} icon={v.icon}>
-              {v.label}
-            </TabsTrigger>
-          ))}
+          {views
+            .filter((v) => !v.adminOnly || isAdmin)
+            .map((v) => (
+              <TabsTrigger key={v.id} value={v.id} icon={v.icon}>
+                {v.label}
+              </TabsTrigger>
+            ))}
         </TabsList>
       </Tabs>
 

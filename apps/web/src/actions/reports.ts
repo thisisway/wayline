@@ -1,7 +1,7 @@
 "use server";
 
-import { getOrgReport, type OrgReport } from "@wayline/db";
-import { assertMember } from "@/lib/authz";
+import { getOrgDashboard, getOrgReport, type OrgDashboard, type OrgReport } from "@wayline/db";
+import { assertMember, assertRole } from "@/lib/authz";
 
 export async function orgReportAction(
   orgId: string,
@@ -10,4 +10,10 @@ export async function orgReportAction(
   if (!(await assertMember(orgId))) return null;
   const since = sinceIso ? new Date(sinceIso) : null;
   return getOrgReport(orgId, since);
+}
+
+/** Dashboard executivo (org inteira) — restrito a admin+. */
+export async function orgDashboardAction(orgId: string): Promise<OrgDashboard | null> {
+  if (!(await assertRole(orgId, "admin"))) return null;
+  return getOrgDashboard(orgId);
 }

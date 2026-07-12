@@ -27,6 +27,7 @@ import { CalendarView } from "@/components/board/calendar-view";
 import { GanttView } from "@/components/board/gantt-view";
 import { ChatView } from "@/components/board/chat-view";
 import { ReportsView } from "@/components/board/reports-view";
+import { DashboardView } from "@/components/board/dashboard-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
@@ -282,6 +283,8 @@ export function AppView({
           )
         ) : view === "reports" ? (
           <ReportsView orgId={activeOrgId} />
+        ) : view === "dashboard" ? (
+          <DashboardView orgId={activeOrgId} />
         ) : (
           <PlaceholderView view={view} />
         )}

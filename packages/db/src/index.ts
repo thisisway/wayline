@@ -168,6 +168,12 @@ export {
   type RunningTimer,
 } from "./queries/time-tracking";
 export { getOrgReport, type OrgReport, type ReportRow } from "./queries/reports";
+export {
+  getOrgDashboard,
+  type OrgDashboard,
+  type DashboardMemberLoad,
+  type DashboardClientProgress,
+} from "./queries/dashboard";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,
