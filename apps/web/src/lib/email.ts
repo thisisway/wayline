@@ -108,6 +108,29 @@ export async function sendInviteEmail(
   return sendEmail(to, `${inviterName} convidou você para ${orgName}`, html);
 }
 
+/** Email avisando que a pessoa (que já tem conta) foi adicionada a um workspace. */
+export async function sendMemberAddedEmail(
+  to: string,
+  orgName: string,
+  inviterName: string,
+): Promise<boolean> {
+  const link = appUrl ? `${appUrl}/app` : undefined;
+  const button = link
+    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o workspace</a></p>`
+    : "";
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
+      <strong>${escapeHtml(inviterName)}</strong> adicionou você ao workspace
+      <strong>${escapeHtml(orgName)}</strong> no Wayline.
+    </p>
+    ${button}
+    <p style="font-size:12px;color:#64748B;margin-top:16px">Já está tudo pronto — é só entrar com a sua conta.</p>
+  </div>`;
+  return sendEmail(to, `Você foi adicionado a ${orgName} no Wayline`, html);
+}
+
 /** Email com o código de verificação de cadastro. */
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
   const html = `

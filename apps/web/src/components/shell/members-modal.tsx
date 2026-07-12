@@ -18,9 +18,14 @@ import {
 } from "@/actions/invitations";
 
 const STATUS_MSG: Record<string, { text: string; ok: boolean }> = {
-  added: { text: "Membro adicionado.", ok: true },
+  added: { text: "Membro adicionado — avisamos por email.", ok: true },
+  invited: { text: "Convite enviado por email.", ok: true },
   already: { text: "Esse usuário já é membro.", ok: false },
-  not_found: { text: "Nenhum usuário com esse email. Peça para criar uma conta primeiro.", ok: false },
+  not_found: {
+    text: "Nenhum usuário com esse email e o envio de email está desativado. Peça para criar uma conta primeiro.",
+    ok: false,
+  },
+  error: { text: "Não foi possível enviar o email. Tente novamente.", ok: false },
 };
 
 export function MembersModal({
@@ -61,9 +66,9 @@ export function MembersModal({
     try {
       const status = await addMemberAction(orgId, value);
       setMsg(STATUS_MSG[status] ?? null);
-      if (status === "added") {
+      if (status === "added" || status === "invited") {
         setEmail("");
-        reload();
+        if (status === "added") reload();
       }
     } finally {
       setBusy(false);

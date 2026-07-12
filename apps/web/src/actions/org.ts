@@ -4,20 +4,22 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   addMemberByEmail,
+  createInvitation,
   createList,
   createOrg,
   createSpace,
   duplicateListStructure,
+  getUserOrgs,
   getWorkspaceMembers,
   markNotificationsRead,
   removeMember,
   setMemberRole,
-  type AddMemberStatus,
   type WorkspaceMember,
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
-import { assertMember, assertRole } from "@/lib/authz";
+import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
+import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
 
 const cookieOpts = {
   httpOnly: true,
@@ -85,11 +87,42 @@ export async function listMembersAction(orgId: string): Promise<WorkspaceMember[
   return getWorkspaceMembers(orgId);
 }
 
-export async function addMemberAction(orgId: string, email: string): Promise<AddMemberStatus> {
-  if (!email.trim() || !(await assertRole(orgId, "admin"))) return "not_found";
-  const status = await addMemberByEmail(orgId, email);
+/**
+ * Resultado unificado do campo "Adicionar":
+ *  - added   → já tinha conta, entrou na hora (e recebeu um email de aviso)
+ *  - already → já era membro
+ *  - invited → não tinha conta: enviamos um convite por email
+ *  - not_found → não tinha conta e o email está desativado (peça p/ criar conta)
+ *  - error   → email habilitado mas o envio falhou
+ */
+export type AddMemberResult = "added" | "already" | "invited" | "not_found" | "error";
+
+export async function addMemberAction(orgId: string, email: string): Promise<AddMemberResult> {
+  const value = email.trim();
+  if (!value || !(await assertRole(orgId, "admin"))) return "not_found";
+
+  const inviter = await getSessionUser();
+  const orgName =
+    (inviter ? await getUserOrgs(inviter.id) : []).find((o) => o.id === orgId)?.name ?? "workspace";
+  const inviterName = inviter?.name ?? "Alguém";
+
+  const status = await addMemberByEmail(orgId, value);
+
+  // Já tem conta e entrou: avisa por email (best-effort, nunca quebra a ação).
+  if (status === "added") {
+    if (emailEnabled()) await sendMemberAddedEmail(value, orgName, inviterName).catch(() => {});
+    revalidatePath("/app");
+    return "added";
+  }
+
+  if (status === "already") return "already";
+
+  // status === "not_found": não tem conta ainda → manda um convite por email.
+  if (!emailEnabled()) return "not_found";
+  const invite = await createInvitation(orgId, inviter?.id ?? null);
+  const ok = await sendInviteEmail(value, orgName, invite.token, inviterName);
   revalidatePath("/app");
-  return status;
+  return ok ? "invited" : "error";
 }
 
 export async function removeMemberAction(orgId: string, userId: string): Promise<void> {
