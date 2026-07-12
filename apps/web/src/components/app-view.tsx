@@ -56,6 +56,7 @@ export function AppView({
   listName,
   userName,
   isAdmin,
+  isGuest,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -70,6 +71,7 @@ export function AppView({
   listName: string;
   userName: string;
   isAdmin: boolean;
+  isGuest: boolean;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -236,7 +238,7 @@ export function AppView({
           ) : (
             <div className="relative min-h-0 flex-1">
               {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
-              <DndBoard key={data.listId} data={filtered!} isAdmin={isAdmin} />
+              <DndBoard key={data.listId} data={filtered!} isAdmin={isAdmin} isGuest={isGuest} />
 
               {data.columns.some((c) => c.tasks.length > 0) && (
                 <>

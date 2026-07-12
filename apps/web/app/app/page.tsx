@@ -47,12 +47,14 @@ export default async function AppPage({
   let inbox: { items: NotificationDTO[]; unread: number } = { items: [], unread: 0 };
   let assignedComments: AssignedComment[] = [];
   let replies: ReplyDTO[] = [];
+  // Guest: enxerga só listas/tarefas em que participa (visibilidade restrita).
+  const guestId = activeOrg.role === "guest" ? session.user.id : null;
   try {
-    nav = await getWorkspaceNav(activeOrg.id);
+    nav = await getWorkspaceNav(activeOrg.id, guestId);
     const orgListIds = new Set(nav.flatMap((s) => s.lists.map((l) => l.id)));
     const cookieList = store.get(ACTIVE_LIST_COOKIE)?.value;
     const activeListId = cookieList && orgListIds.has(cookieList) ? cookieList : undefined;
-    data = await getBoardForOrg(activeOrg.id, session.user.id, activeListId);
+    data = await getBoardForOrg(activeOrg.id, session.user.id, activeListId, guestId);
     myTasks = await getMyTasks(activeOrg.id, session.user.id);
     inbox = await getNotifications(activeOrg.id, session.user.id);
     assignedComments = await getAssignedComments(activeOrg.id, session.user.id);
@@ -75,6 +77,7 @@ export default async function AppPage({
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
+      isGuest={activeOrg.role === "guest"}
       focusTaskId={focusTaskId}
     />
   );

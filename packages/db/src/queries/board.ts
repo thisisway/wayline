@@ -10,6 +10,7 @@ import {
   organizations,
   spaces,
   statuses,
+  taskAssignees,
   taskDependencies,
   tasks,
   timeEntries,
@@ -141,14 +142,44 @@ function toDTO(t: TaskRow): BoardTaskDTO {
   };
 }
 
+/**
+ * Listas em que o `userId` participa (tem ao menos uma tarefa atribuída).
+ * Base da visibilidade do papel `guest`: ele só enxerga essas listas.
+ */
+async function guestVisibleListIds(tx: Tx, userId: string): Promise<Set<string>> {
+  const rows = await tx
+    .selectDistinct({ listId: tasks.listId })
+    .from(taskAssignees)
+    .innerJoin(tasks, eq(tasks.id, taskAssignees.taskId))
+    .where(and(eq(taskAssignees.userId, userId), isNull(tasks.deletedAt)));
+  return new Set(rows.map((r) => r.listId));
+}
+
 /** Monta o board da org corrente (assume app.current_org já setado no tx). */
-/** Lista alvo: a preferida (se existir na org, via RLS) ou o padrão. */
-async function resolveList(tx: Tx, preferredListId?: string | null) {
-  if (preferredListId) {
+/**
+ * Lista alvo: a preferida (se existir na org, via RLS) ou o padrão.
+ * Com `allowed` (guest), restringe às listas visíveis para ele.
+ */
+async function resolveList(
+  tx: Tx,
+  preferredListId?: string | null,
+  allowed?: Set<string> | null,
+) {
+  const isAllowed = (id: string) => !allowed || allowed.has(id);
+  if (preferredListId && isAllowed(preferredListId)) {
     const l = await tx.query.lists.findFirst({
       where: and(eq(lists.id, preferredListId), isNull(lists.deletedAt)),
     });
     if (l) return l;
+  }
+  if (allowed) {
+    if (allowed.size === 0) return null;
+    return (
+      (await tx.query.lists.findFirst({
+        where: and(inArray(lists.id, [...allowed]), isNull(lists.deletedAt)),
+        orderBy: [asc(lists.createdAt)],
+      })) ?? null
+    );
   }
   return (
     (await tx.query.lists.findFirst({
@@ -165,18 +196,23 @@ async function buildBoard(
   tx: Tx,
   orgId: string,
   list: { id: string; name: string },
+  guestUserId: string | null = null,
 ): Promise<Omit<BoardData, "currentUserId">> {
   // Sequencial: uma única conexão na transação.
   const cols = await tx.query.statuses.findMany({
     where: eq(statuses.listId, list.id),
     orderBy: [asc(statuses.position)],
   });
-  const rows = await tx.query.tasks.findMany({
+  const allRows = await tx.query.tasks.findMany({
     // Subtarefas (parent_id) não aparecem como cards de topo.
     where: and(eq(tasks.listId, list.id), isNull(tasks.parentId), isNull(tasks.deletedAt)),
     orderBy: [asc(tasks.position)],
     with: { client: true, assignees: { with: { user: true } } },
   });
+  // Guest só vê as tarefas em que é responsável.
+  const rows = guestUserId
+    ? allRows.filter((r) => r.assignees.some((a) => a.user.id === guestUserId))
+    : allRows;
   const clientRows = await tx.query.clients.findMany({
     where: isNull(clients.deletedAt),
     orderBy: [asc(clients.name)],
@@ -330,16 +366,21 @@ async function buildBoard(
   };
 }
 
-/** Board de uma org (a da sessão) numa lista específica (ou a padrão). */
+/**
+ * Board de uma org (a da sessão) numa lista específica (ou a padrão).
+ * `guestUserId` (papel guest): restringe listas e tarefas ao que ele participa.
+ */
 export async function getBoardForOrg(
   orgId: string,
   currentUserId: string | null,
   listId?: string | null,
+  guestUserId?: string | null,
 ): Promise<BoardData | null> {
   return withOrg(orgId, async (tx) => {
-    const list = await resolveList(tx, listId);
+    const allowed = guestUserId ? await guestVisibleListIds(tx, guestUserId) : null;
+    const list = await resolveList(tx, listId, allowed);
     if (!list) return null;
-    const b = await buildBoard(tx, orgId, list);
+    const b = await buildBoard(tx, orgId, list, guestUserId ?? null);
     return { ...b, currentUserId };
   });
 }
@@ -437,9 +478,17 @@ export interface NavSpace {
   lists: NavList[];
 }
 
-/** Spaces + Lists da org (para a navegação lateral). */
-export async function getWorkspaceNav(orgId: string): Promise<NavSpace[]> {
+/**
+ * Spaces + Lists da org (para a navegação lateral).
+ * `guestUserId` (papel guest): mostra só as listas em que ele participa e
+ * omite spaces que ficariam vazios.
+ */
+export async function getWorkspaceNav(
+  orgId: string,
+  guestUserId?: string | null,
+): Promise<NavSpace[]> {
   return withOrg(orgId, async (tx) => {
+    const allowed = guestUserId ? await guestVisibleListIds(tx, guestUserId) : null;
     const sp = await tx.query.spaces.findMany({
       where: isNull(spaces.deletedAt),
       orderBy: [asc(spaces.createdAt)],
@@ -448,12 +497,15 @@ export async function getWorkspaceNav(orgId: string): Promise<NavSpace[]> {
       where: isNull(lists.deletedAt),
       orderBy: [asc(lists.createdAt)],
     });
-    return sp.map((s) => ({
+    const nav = sp.map((s) => ({
       id: s.id,
       name: s.name,
       color: s.color,
       icon: s.icon,
-      lists: ls.filter((l) => l.spaceId === s.id).map((l) => ({ id: l.id, name: l.name })),
+      lists: ls
+        .filter((l) => l.spaceId === s.id && (!allowed || allowed.has(l.id)))
+        .map((l) => ({ id: l.id, name: l.name })),
     }));
+    return allowed ? nav.filter((s) => s.lists.length > 0) : nav;
   });
 }

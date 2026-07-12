@@ -66,7 +66,15 @@ type ModalState =
   | null;
 
 /** Board Kanban com drag-and-drop, persistência e CRUD de tarefas. */
-export function DndBoard({ data, isAdmin }: { data: BoardData; isAdmin: boolean }) {
+export function DndBoard({
+  data,
+  isAdmin,
+  isGuest,
+}: {
+  data: BoardData;
+  isAdmin: boolean;
+  isGuest: boolean;
+}) {
   const orgId = data.orgId;
   const [columns, setColumns] = React.useState<UIColumn[]>(() =>
     data.columns.map((c) => ({ id: c.id, name: c.name, color: c.color, kind: c.kind, cards: c.tasks })),
@@ -395,6 +403,7 @@ export function DndBoard({ data, isAdmin }: { data: BoardData; isAdmin: boolean 
               key={column.id}
               column={column}
               canManage={isAdmin}
+              canAddTask={!isGuest}
               canDelete={columns.length > 1}
               canMoveLeft={i > 0}
               canMoveRight={i < columns.length - 1}
@@ -534,6 +543,7 @@ const COLUMN_COLORS = [
 function Column({
   column,
   canManage,
+  canAddTask,
   canDelete,
   canMoveLeft,
   canMoveRight,
@@ -547,6 +557,7 @@ function Column({
 }: {
   column: UIColumn;
   canManage: boolean;
+  canAddTask: boolean;
   canDelete: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
@@ -620,14 +631,16 @@ function Column({
           </span>
         )}
         <div className="relative ml-auto flex items-center gap-0.5" ref={menuRef}>
-          <button
-            type="button"
-            onClick={onCreate}
-            aria-label="Adicionar tarefa"
-            className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <Plus className="size-4" />
-          </button>
+          {canAddTask && (
+            <button
+              type="button"
+              onClick={onCreate}
+              aria-label="Adicionar tarefa"
+              className="flex size-6 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+            >
+              <Plus className="size-4" />
+            </button>
+          )}
           {canManage && (
             <button
               type="button"
