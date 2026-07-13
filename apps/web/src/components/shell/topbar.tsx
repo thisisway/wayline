@@ -17,6 +17,7 @@ import { signOut } from "next-auth/react";
 import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
+import { resolvePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -30,6 +31,7 @@ export function Topbar({
   onOpenInbox,
   onOpenSearch,
   onOpenBrain,
+  onOpenPlans,
   isAdmin = false,
 }: {
   userName: string;
@@ -40,6 +42,7 @@ export function Topbar({
   onOpenInbox?: () => void;
   onOpenSearch?: () => void;
   onOpenBrain?: () => void;
+  onOpenPlans?: () => void;
   isAdmin?: boolean;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
@@ -47,7 +50,7 @@ export function Topbar({
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-      <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} />
+      <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} onOpenPlans={onOpenPlans} />
       {showMembers && (
         <MembersModal
           orgId={activeOrgId}
@@ -128,7 +131,15 @@ export function Topbar({
   );
 }
 
-function WorkspaceSwitcher({ orgs, activeOrgId }: { orgs: UserOrg[]; activeOrgId: string }) {
+function WorkspaceSwitcher({
+  orgs,
+  activeOrgId,
+  onOpenPlans,
+}: {
+  orgs: UserOrg[];
+  activeOrgId: string;
+  onOpenPlans?: () => void;
+}) {
   const [open, setOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -167,7 +178,7 @@ function WorkspaceSwitcher({ orgs, activeOrgId }: { orgs: UserOrg[]; activeOrgId
         </span>
         <span className="text-ui font-semibold">{active.name}</span>
         <Badge variant="brand" size="sm">
-          {active.plan}
+          {resolvePlan(active.plan).name}
         </Badge>
         <ChevronsUpDown className="size-3.5 text-subtle" />
       </button>
@@ -198,6 +209,19 @@ function WorkspaceSwitcher({ orgs, activeOrgId }: { orgs: UserOrg[]; activeOrgId
           })}
 
           <div className="my-1 h-px bg-border" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onOpenPlans?.();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+          >
+            <span className="flex size-6 items-center justify-center rounded-md border border-dashed border-border">
+              <Sparkles className="size-3.5" />
+            </span>
+            Planos &amp; Upgrade
+          </button>
           <button
             type="button"
             onClick={() => {

@@ -26,6 +26,10 @@ const STATUS_MSG: Record<string, { text: string; ok: boolean }> = {
     ok: false,
   },
   error: { text: "Não foi possível enviar o email. Tente novamente.", ok: false },
+  limit: {
+    text: "Limite de membros do plano atingido. Faça upgrade para adicionar mais.",
+    ok: false,
+  },
 };
 
 export function MembersModal({
@@ -199,6 +203,7 @@ function InviteSection({ orgId }: { orgId: string }) {
         disabled: { text: "Email não configurado neste ambiente.", ok: false },
         forbidden: { text: "Sem permissão.", ok: false },
         error: { text: "Não foi possível enviar. Tente o link.", ok: false },
+        limit: { text: "Limite de membros do plano atingido — faça upgrade.", ok: false },
       };
       setEmailMsg(map[status] ?? null);
       if (status === "sent") {

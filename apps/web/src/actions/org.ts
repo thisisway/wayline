@@ -9,6 +9,7 @@ import {
   createOrg,
   createSpace,
   duplicateListStructure,
+  getOrgPlan,
   getUserOrgs,
   getWorkspaceMembers,
   markNotificationsRead,
@@ -20,6 +21,15 @@ import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
 import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
+import { resolvePlan } from "@/lib/plans";
+
+/** Já atingiu o limite de membros do plano? */
+async function atMemberLimit(orgId: string): Promise<boolean> {
+  const plan = resolvePlan(await getOrgPlan(orgId));
+  if (plan.limits.members === Infinity) return false;
+  const members = await getWorkspaceMembers(orgId);
+  return members.length >= plan.limits.members;
+}
 
 const cookieOpts = {
   httpOnly: true,
@@ -95,11 +105,12 @@ export async function listMembersAction(orgId: string): Promise<WorkspaceMember[
  *  - not_found → não tinha conta e o email está desativado (peça p/ criar conta)
  *  - error   → email habilitado mas o envio falhou
  */
-export type AddMemberResult = "added" | "already" | "invited" | "not_found" | "error";
+export type AddMemberResult = "added" | "already" | "invited" | "not_found" | "error" | "limit";
 
 export async function addMemberAction(orgId: string, email: string): Promise<AddMemberResult> {
   const value = email.trim();
   if (!value || !(await assertRole(orgId, "admin"))) return "not_found";
+  if (await atMemberLimit(orgId)) return "limit";
 
   const inviter = await getSessionUser();
   const orgName =

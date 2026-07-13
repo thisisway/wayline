@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import {
   acceptInvitation,
   createInvitation,
+  getOrgPlan,
   getUserOrgs,
+  getWorkspaceMembers,
   listInvitations,
   revokeInvitation,
   type AcceptResult,
@@ -14,6 +16,15 @@ import {
 import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { emailEnabled, sendInviteEmail } from "@/lib/email";
+import { resolvePlan } from "@/lib/plans";
+
+/** Já atingiu o limite de membros do plano? (bloqueia novos convites) */
+async function atMemberLimit(orgId: string): Promise<boolean> {
+  const plan = resolvePlan(await getOrgPlan(orgId));
+  if (plan.limits.members === Infinity) return false;
+  const members = await getWorkspaceMembers(orgId);
+  return members.length >= plan.limits.members;
+}
 
 export async function listInvitesAction(orgId: string): Promise<InvitationDTO[]> {
   if (!(await assertMember(orgId))) return [];
@@ -22,6 +33,7 @@ export async function listInvitesAction(orgId: string): Promise<InvitationDTO[]>
 
 export async function createInviteAction(orgId: string): Promise<InvitationDTO | null> {
   if (!(await assertRole(orgId, "admin"))) return null;
+  if (await atMemberLimit(orgId)) return null;
   const userId = await getSessionUserId();
   const invite = await createInvitation(orgId, userId);
   revalidatePath("/app");
@@ -34,7 +46,7 @@ export async function revokeInviteAction(orgId: string, id: string): Promise<voi
   revalidatePath("/app");
 }
 
-export type SendInviteStatus = "sent" | "forbidden" | "disabled" | "error";
+export type SendInviteStatus = "sent" | "forbidden" | "disabled" | "error" | "limit";
 
 /** Cria um convite e envia o link por email para o endereço informado. */
 export async function sendInviteByEmailAction(
@@ -42,6 +54,7 @@ export async function sendInviteByEmailAction(
   email: string,
 ): Promise<SendInviteStatus> {
   if (!(await assertRole(orgId, "admin"))) return "forbidden";
+  if (await atMemberLimit(orgId)) return "limit";
   if (!email.trim()) return "error";
   if (!emailEnabled()) return "disabled";
   const user = await getSessionUser();

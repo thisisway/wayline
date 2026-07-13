@@ -197,6 +197,7 @@ export {
   type PageNode,
   type PageDoc,
 } from "./queries/pages";
+export { getOrgPlan, setOrgPlan } from "./queries/plan";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

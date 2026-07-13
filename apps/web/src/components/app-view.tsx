@@ -34,6 +34,7 @@ import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
+import { PlansModal } from "@/components/shell/plans-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { DocPanel } from "@/components/panels/doc-panel";
 import { ExecutiveSummaryPanel } from "@/components/panels/executive-summary";
@@ -96,8 +97,11 @@ export function AppView({
   const [brainOpen, setBrainOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [plansOpen, setPlansOpen] = React.useState(false);
 
-  const orgName = orgs.find((o) => o.id === activeOrgId)?.name ?? "Workspace";
+  const activeOrg = orgs.find((o) => o.id === activeOrgId);
+  const orgName = activeOrg?.name ?? "Workspace";
+  const orgPlan = activeOrg?.plan ?? "free";
 
   // Abre a tarefa vinda da busca/inbox (?task=<id>) e limpa o parâmetro.
   const focusEditor = useTaskEditor(data);
@@ -220,8 +224,12 @@ export function AppView({
           userName={userName}
           orgName={orgName}
           onOpenShortcuts={() => setShortcutsOpen(true)}
+          onOpenPlans={() => setPlansOpen(true)}
           onClose={() => setSettingsOpen(false)}
         />
+      )}
+      {plansOpen && (
+        <PlansModal currentPlan={orgPlan} onClose={() => setPlansOpen(false)} />
       )}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
       {fieldsOpen && data && (
@@ -261,6 +269,7 @@ export function AppView({
           onOpenInbox={() => setInboxOpen(true)}
           onOpenSearch={() => setSearchOpen(true)}
           onOpenBrain={() => setBrainOpen(true)}
+          onOpenPlans={() => setPlansOpen(true)}
           isAdmin={isAdmin}
         />
         <ViewTabs

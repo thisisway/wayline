@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Keyboard, LogOut, Moon, Sun, Upload, X } from "lucide-react";
+import { Check, Keyboard, LogOut, Moon, Sparkles, Sun, Upload, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
@@ -64,11 +64,13 @@ export function SettingsModal({
   userName,
   orgName,
   onOpenShortcuts,
+  onOpenPlans,
   onClose,
 }: {
   userName: string;
   orgName: string;
   onOpenShortcuts: () => void;
+  onOpenPlans: () => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -338,6 +340,20 @@ export function SettingsModal({
                 <Moon className="size-4" /> Escuro
               </button>
             </div>
+          </Section>
+
+          {/* Plano */}
+          <Section title="Plano & cobrança">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenPlans();
+              }}
+              className="flex w-full items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+            >
+              <Sparkles className="size-4" /> Ver planos & fazer upgrade
+            </button>
           </Section>
 
           {/* Atalhos */}
