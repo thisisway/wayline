@@ -180,7 +180,11 @@ export function TaskCard({ card }: { card: TaskCardType }) {
           })()}
         </div>
 
-        <AvatarGroup people={card.assignees} size="xs" max={3} />
+        <AvatarGroup
+          people={card.assignees.map((a) => ({ name: a.name, src: a.avatarUrl }))}
+          size="xs"
+          max={3}
+        />
       </div>
     </Card>
   );

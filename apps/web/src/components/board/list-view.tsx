@@ -480,7 +480,12 @@ function Row({
         </span>
       )}
 
-        <AvatarGroup people={card.assignees} size="xs" max={3} className="shrink-0" />
+        <AvatarGroup
+          people={card.assignees.map((a) => ({ name: a.name, src: a.avatarUrl }))}
+          size="xs"
+          max={3}
+          className="shrink-0"
+        />
       </button>
     </div>
   );
