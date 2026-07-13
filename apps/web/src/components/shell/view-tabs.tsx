@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   List,
   MessageSquare,
+  Network,
   SlidersHorizontal,
   UserPlus,
   X,
@@ -34,6 +35,7 @@ const views = [
   { id: "list", label: "List", icon: <List /> },
   { id: "gantt", label: "Gantt", icon: <GanttChartSquare /> },
   { id: "calendar", label: "Calendar", icon: <Calendar /> },
+  { id: "mindmap", label: "Mind Map", icon: <Network /> },
   { id: "reports", label: "Relatórios", icon: <BarChart3 /> },
   // Somente admin+ (visão executiva da org inteira).
   { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard />, adminOnly: true },

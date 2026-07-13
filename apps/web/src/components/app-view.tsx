@@ -28,6 +28,7 @@ import { GanttView } from "@/components/board/gantt-view";
 import { ChatView } from "@/components/board/chat-view";
 import { ReportsView } from "@/components/board/reports-view";
 import { DashboardView } from "@/components/board/dashboard-view";
+import { MindMapView } from "@/components/board/mindmap-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
@@ -325,6 +326,20 @@ export function AppView({
               orgId={data.orgId}
               listId={data.listId}
               currentUserId={data.currentUserId}
+            />
+          )
+        ) : view === "mindmap" ? (
+          !data ? (
+            <EmptyBoard />
+          ) : (
+            <MindMapView
+              orgId={data.orgId}
+              listId={data.listId}
+              listName={listName}
+              onOpenTask={(taskId) => {
+                const task = data.columns.flatMap((c) => c.tasks).find((t) => t.id === taskId);
+                if (task) focusEditor.openEdit(task);
+              }}
             />
           )
         ) : view === "reports" ? (
