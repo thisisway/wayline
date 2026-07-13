@@ -173,6 +173,8 @@ export function DocsView({
             convertStatusId={convertStatusId}
             onRenamed={reload}
             onConverted={() => undefined}
+            onOpenPage={setSelectedId}
+            onTreeChange={reload}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -345,8 +347,11 @@ type ExecFn = (cmd: string, value?: string) => void;
 interface SlashBlock {
   id: string;
   label: string;
+  hint?: string;
   icon: LucideIcon;
-  run: (exec: ExecFn) => void;
+  run?: (exec: ExecFn) => void;
+  /** Bloco especial tratado à parte (assíncrono). */
+  custom?: "page";
 }
 
 /** Blocos do menu "/" (estilo Notion). */
@@ -355,6 +360,13 @@ const SLASH_BLOCKS: SlashBlock[] = [
   { id: "h1", label: "Título 1", icon: Heading1, run: (e) => e("formatBlock", "<h1>") },
   { id: "h2", label: "Título 2", icon: Heading2, run: (e) => e("formatBlock", "<h2>") },
   { id: "h3", label: "Título 3", icon: Heading3, run: (e) => e("formatBlock", "<h3>") },
+  {
+    id: "page",
+    label: "Página",
+    hint: "Incorpora uma subpágina dentro desta",
+    icon: FileText,
+    custom: "page",
+  },
   { id: "bullet", label: "Lista com marcadores", icon: ListIcon, run: (e) => e("insertUnorderedList") },
   { id: "numbered", label: "Lista numerada", icon: ListOrdered, run: (e) => e("insertOrderedList") },
   { id: "quote", label: "Citação", icon: Quote, run: (e) => e("formatBlock", "<blockquote>") },
@@ -362,18 +374,26 @@ const SLASH_BLOCKS: SlashBlock[] = [
   { id: "divider", label: "Divisor", icon: Minus, run: (e) => e("insertHorizontalRule") },
 ];
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function Editor({
   orgId,
   pageId,
   convertStatusId,
   onRenamed,
   onConverted,
+  onOpenPage,
+  onTreeChange,
 }: {
   orgId: string;
   pageId: string;
   convertStatusId?: string;
   onRenamed: () => void;
   onConverted: () => void;
+  onOpenPage: (id: string) => void;
+  onTreeChange: () => void;
 }) {
   const [doc, setDoc] = React.useState<PageDoc | null>(null);
   const [title, setTitle] = React.useState("");
@@ -433,8 +453,26 @@ function Editor({
         sel.addRange(c);
       }
     }
-    block.run(exec);
     setSlashOpen(false);
+    if (block.custom === "page") {
+      void insertSubpage();
+    } else {
+      block.run?.(exec);
+    }
+  }
+
+  /** Cria uma subpágina (mesmo escopo) e insere um link clicável no conteúdo. */
+  async function insertSubpage() {
+    if (!doc) return;
+    const page = await createPageAction(orgId, { parentId: pageId, personal: doc.personal });
+    if (!page) return;
+    const html = `<a href="#" data-page-id="${page.id}" contenteditable="false" class="doc-pagelink">📄 ${escapeHtml(
+      page.title,
+    )}</a>&nbsp;`;
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    scheduleSave();
+    onTreeChange();
   }
 
   function onEditorKeyDown(e: React.KeyboardEvent) {
@@ -629,6 +667,14 @@ function Editor({
         onKeyDown={onEditorKeyDown}
         onKeyUp={onEditorKeyUp}
         onBlur={() => setSlashOpen(false)}
+        onClick={(e) => {
+          const el = (e.target as HTMLElement).closest("[data-page-id]");
+          const id = el?.getAttribute("data-page-id");
+          if (id) {
+            e.preventDefault();
+            onOpenPage(id);
+          }
+        }}
         data-placeholder="Escreva ou digite / para comandos…"
         className="prose-doc min-h-0 flex-1 pb-16 text-ui leading-relaxed text-foreground outline-none"
       />
@@ -654,7 +700,10 @@ function Editor({
                 )}
               >
                 <Icon className="size-4 shrink-0" />
-                {b.label}
+                <span className="min-w-0 flex-1 truncate">
+                  {b.label}
+                  {b.hint && <span className="ml-1 text-[11px] text-subtle">· {b.hint}</span>}
+                </span>
               </button>
             );
           })}

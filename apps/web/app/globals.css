@@ -101,4 +101,14 @@
   .prose-doc a {
     @apply text-brand underline;
   }
+  /* Link para subpágina (estilo Notion): pílula clicável, não sublinhada. */
+  .prose-doc a.doc-pagelink {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium no-underline;
+    background: rgb(var(--wc-elevated));
+    color: rgb(var(--wc-foreground));
+    cursor: pointer;
+  }
+  .prose-doc a.doc-pagelink:hover {
+    background: rgb(var(--wc-border));
+  }
 }
