@@ -83,20 +83,25 @@ export function ViewTabs({
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <span
           className="flex size-5 items-center justify-center rounded text-[10px] font-bold text-white"
           style={{ backgroundColor: mockClients.acme.color }}
         >
           {listName[0]?.toUpperCase() ?? "L"}
         </span>
-        <span className="text-ui font-semibold">{listName}</span>
+        <span className="max-w-[10rem] truncate text-ui font-semibold">{listName}</span>
       </div>
 
-      <div className="h-5 w-px bg-border" />
+      <div className="h-5 w-px shrink-0 bg-border" />
 
-      <Tabs value={value} defaultValue="board" onValueChange={onValueChange}>
-        <TabsList>
+      <Tabs
+        value={value}
+        defaultValue="board"
+        onValueChange={onValueChange}
+        className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <TabsList className="w-max">
           {views
             .filter((v) => !v.adminOnly || isAdmin)
             .map((v) => (
@@ -107,7 +112,7 @@ export function ViewTabs({
         </TabsList>
       </Tabs>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {viewers.length > 0 && (
           <span
             className="flex items-center gap-2"
