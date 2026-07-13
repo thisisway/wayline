@@ -25,17 +25,25 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   };
 }
 
-/** Atualiza nome e/ou avatar. Ignora campos ausentes; nome vazio é ignorado. */
+/**
+ * Atualiza nome e/ou avatar. Ignora campos ausentes; nome vazio é ignorado.
+ * Retorna true se ao menos uma linha foi atualizada (detecta no-op silencioso).
+ */
 export async function updateUserProfile(
   userId: string,
   patch: { name?: string; avatarUrl?: string | null },
-): Promise<void> {
+): Promise<boolean> {
   const db = getDb();
   const set: { name?: string; avatarUrl?: string | null } = {};
   if (patch.name != null && patch.name.trim()) set.name = patch.name.trim();
   if ("avatarUrl" in patch) set.avatarUrl = patch.avatarUrl?.trim() || null;
-  if (Object.keys(set).length === 0) return;
-  await db.update(users).set(set).where(eq(users.id, userId));
+  if (Object.keys(set).length === 0) return false;
+  const rows = await db
+    .update(users)
+    .set(set)
+    .where(eq(users.id, userId))
+    .returning({ id: users.id });
+  return rows.length > 0;
 }
 
 /** Hash de senha atual (para conferir na troca de senha). */

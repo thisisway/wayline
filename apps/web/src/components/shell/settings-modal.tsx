@@ -139,16 +139,26 @@ export function SettingsModal({
     if (!trimmed || savingProfile) return;
     setSavingProfile(true);
     setProfileMsg(null);
-    const ok = await updateProfileAction({ name: trimmed, avatarUrl: avatarUrl || null });
-    if (ok) {
-      await update(); // atualiza o nome na sessão (topbar)
-      router.refresh(); // recarrega o avatar do banco no servidor
+    try {
+      const ok = await updateProfileAction({ name: trimmed, avatarUrl: avatarUrl || null });
+      if (!ok) {
+        setProfileMsg("Não foi possível salvar.");
+        return;
+      }
+      // Salvou no banco: confirma já. Refrescar a sessão não pode mascarar isso.
       setInitial({ name: trimmed, avatar: avatarUrl });
       setProfileMsg("Perfil salvo.");
-    } else {
-      setProfileMsg("Não foi possível salvar.");
+      try {
+        await update(); // atualiza o nome na sessão (topbar)
+      } catch {
+        /* refresh de sessão é best-effort */
+      }
+      router.refresh(); // recarrega o avatar do banco no servidor
+    } catch {
+      setProfileMsg("Erro ao salvar — tente uma imagem menor.");
+    } finally {
+      setSavingProfile(false);
     }
-    setSavingProfile(false);
   }
 
   async function changePassword() {

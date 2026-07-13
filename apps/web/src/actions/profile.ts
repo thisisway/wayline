@@ -24,9 +24,9 @@ export async function updateProfileAction(patch: {
   const uid = await getSessionUserId();
   if (!uid) return false;
   if (patch.name != null && !patch.name.trim()) return false; // nome não pode ficar vazio
-  await updateUserProfile(uid, patch);
-  revalidatePath("/app");
-  return true;
+  const ok = await updateUserProfile(uid, patch);
+  if (ok) revalidatePath("/app");
+  return ok;
 }
 
 export type ChangePasswordResult =
