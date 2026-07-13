@@ -43,3 +43,32 @@
     background-color: rgb(var(--wc-subtle));
   }
 }
+
+/* Editor de Docs (contentEditable rico) */
+@layer components {
+  .prose-doc:empty::before {
+    content: attr(data-placeholder);
+    color: rgb(var(--wc-subtle));
+    pointer-events: none;
+  }
+  .prose-doc h2 {
+    @apply font-display text-h3 font-bold;
+    margin: 1rem 0 0.5rem;
+  }
+  .prose-doc p {
+    margin: 0.35rem 0;
+  }
+  .prose-doc ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+  }
+  .prose-doc ol {
+    list-style: decimal;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+  }
+  .prose-doc a {
+    @apply text-brand underline;
+  }
+}

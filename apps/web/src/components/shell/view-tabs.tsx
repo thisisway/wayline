@@ -6,6 +6,7 @@ import {
   Calendar,
   Check,
   Download,
+  FileText,
   Filter,
   GanttChartSquare,
   LayoutDashboard,
@@ -36,6 +37,7 @@ const views = [
   { id: "gantt", label: "Gantt", icon: <GanttChartSquare /> },
   { id: "calendar", label: "Calendar", icon: <Calendar /> },
   { id: "mindmap", label: "Mind Map", icon: <Network /> },
+  { id: "docs", label: "Docs", icon: <FileText /> },
   { id: "reports", label: "Relatórios", icon: <BarChart3 /> },
   // Somente admin+ (visão executiva da org inteira).
   { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard />, adminOnly: true },

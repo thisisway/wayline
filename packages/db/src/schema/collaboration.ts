@@ -291,6 +291,39 @@ export const documents = pgTable(
 );
 
 /**
+ * PÁGINAS (Docs / Wiki / Notepad). Documentos com hierarquia (parent_id) e
+ * escopo: `owner_id` nulo = documento do WORKSPACE (compartilhado com a org);
+ * `owner_id` preenchido = nota PESSOAL (Notepad), visível só ao dono.
+ * RLS por org isola tenants; a visibilidade pessoal é aplicada nas queries.
+ */
+export const pages = pgTable(
+  "pages",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id"),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default("Sem título"),
+    content: text("content").notNull().default(""),
+    icon: text("icon"),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [
+    index("pages_org_idx").on(t.orgId),
+    index("pages_parent_idx").on(t.parentId),
+    index("pages_owner_idx").on(t.ownerId),
+  ],
+);
+
+export const pagesRelations = relations(pages, ({ one }) => ({
+  owner: one(users, { fields: [pages.ownerId], references: [users.id] }),
+}));
+
+/**
  * AUTOMAÇÕES por lista. Gatilho: tarefa entra numa coluna (trigger_status_id).
  * Ação: `action_type` ('assign' | 'priority') com `action_value` (userId ou prioridade).
  */

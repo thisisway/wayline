@@ -186,6 +186,17 @@ export {
   type ListMindMap,
   type MindMapNode,
 } from "./queries/mindmap";
+export {
+  listPages,
+  getPage,
+  createPage,
+  renamePage,
+  savePageContent,
+  movePage,
+  deletePage,
+  type PageNode,
+  type PageDoc,
+} from "./queries/pages";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

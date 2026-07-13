@@ -29,6 +29,7 @@ import { ChatView } from "@/components/board/chat-view";
 import { ReportsView } from "@/components/board/reports-view";
 import { DashboardView } from "@/components/board/dashboard-view";
 import { MindMapView } from "@/components/board/mindmap-view";
+import { DocsView } from "@/components/board/docs-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
@@ -342,6 +343,8 @@ export function AppView({
               }}
             />
           )
+        ) : view === "docs" ? (
+          <DocsView orgId={activeOrgId} convertStatusId={data?.columns[0]?.id} />
         ) : view === "reports" ? (
           <ReportsView orgId={activeOrgId} />
         ) : view === "dashboard" ? (
