@@ -7,6 +7,7 @@ import {
   getMyTasks,
   getNotifications,
   getUserOrgs,
+  getUserProfile,
   getWorkspaceNav,
   type AssignedComment,
   type BoardData,
@@ -33,6 +34,9 @@ export default async function AppPage({
 
   const orgs = await getUserOrgs(session.user.id);
   if (orgs.length === 0) redirect("/login");
+
+  // Avatar vem do banco (não do JWT): reflete edições sem exigir novo login.
+  const profile = await getUserProfile(session.user.id);
 
   const store = await cookies();
 
@@ -76,7 +80,7 @@ export default async function AppPage({
       replies={replies}
       listName={data?.listName ?? "Tarefas"}
       userName={session.user.name ?? "Usuário"}
-      userAvatar={session.user.image ?? undefined}
+      userAvatar={profile?.avatarUrl ?? undefined}
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
       isGuest={activeOrg.role === "guest"}
       focusTaskId={focusTaskId}

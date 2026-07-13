@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Keyboard, LogOut, Moon, Sun, X } from "lucide-react";
+import { Check, Keyboard, LogOut, Moon, Sun, Upload, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
@@ -12,6 +12,36 @@ import {
   updateProfileAction,
   type ChangePasswordResult,
 } from "@/actions/profile";
+
+/**
+ * Lê um arquivo de imagem, corta no centro e redimensiona para `size`×`size`,
+ * devolvendo um data URL JPEG pequeno (~5KB) — guardado direto no banco, sem
+ * precisar de bucket/storage.
+ */
+function fileToAvatarDataUrl(file: File, size = 128): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode"));
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("ctx"));
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const PWD_MSG: Record<ChangePasswordResult, { text: string; ok: boolean }> = {
   ok: { text: "Senha alterada.", ok: true },
@@ -50,8 +80,10 @@ export function SettingsModal({
 
   const [name, setName] = React.useState(userName);
   const [avatarUrl, setAvatarUrl] = React.useState("");
+  const [initial, setInitial] = React.useState({ name: userName, avatar: "" });
   const [savingProfile, setSavingProfile] = React.useState(false);
   const [profileMsg, setProfileMsg] = React.useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   const [current, setCurrent] = React.useState("");
   const [next, setNext] = React.useState("");
@@ -69,6 +101,7 @@ export function SettingsModal({
       setEmail(p.email);
       setAvatarUrl(p.avatarUrl ?? "");
       setHasPassword(p.hasPassword);
+      setInitial({ name: p.name, avatar: p.avatarUrl ?? "" });
     });
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -81,15 +114,36 @@ export function SettingsModal({
     }; samesite=lax`;
   }
 
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite re-selecionar o mesmo arquivo
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setProfileMsg("Selecione um arquivo de imagem.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setProfileMsg("Imagem muito grande (máx. 10MB).");
+      return;
+    }
+    try {
+      setProfileMsg(null);
+      setAvatarUrl(await fileToAvatarDataUrl(file));
+    } catch {
+      setProfileMsg("Não foi possível processar a imagem.");
+    }
+  }
+
   async function saveProfile() {
     const trimmed = name.trim();
     if (!trimmed || savingProfile) return;
     setSavingProfile(true);
     setProfileMsg(null);
-    const ok = await updateProfileAction({ name: trimmed, avatarUrl: avatarUrl.trim() || null });
+    const ok = await updateProfileAction({ name: trimmed, avatarUrl: avatarUrl || null });
     if (ok) {
-      await update(); // atualiza nome/avatar na sessão (topbar/rail)
-      router.refresh();
+      await update(); // atualiza o nome na sessão (topbar)
+      router.refresh(); // recarrega o avatar do banco no servidor
+      setInitial({ name: trimmed, avatar: avatarUrl });
       setProfileMsg("Perfil salvo.");
     } else {
       setProfileMsg("Não foi possível salvar.");
@@ -115,7 +169,7 @@ export function SettingsModal({
     setSavingPwd(false);
   }
 
-  const profileDirty = name.trim() !== userName || avatarUrl.trim() !== "";
+  const profileDirty = name.trim() !== initial.name || avatarUrl !== initial.avatar;
 
   return (
     <div
@@ -144,12 +198,37 @@ export function SettingsModal({
           {/* Conta */}
           <Section title="Conta">
             <div className="mb-3 flex items-center gap-3">
-              <Avatar name={name || userName} src={avatarUrl.trim() || undefined} size="lg" />
-              <div className="min-w-0">
+              <Avatar name={name || userName} src={avatarUrl || undefined} size="lg" />
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-ui font-semibold text-foreground">
                   {name || userName}
                 </p>
                 <p className="truncate text-dense text-subtle">{email}</p>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickFile}
+              />
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-8 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+                >
+                  <Upload className="size-3.5" /> Enviar foto
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl("")}
+                    className="text-[11px] font-medium text-subtle transition-colors hover:text-danger"
+                  >
+                    Remover foto
+                  </button>
+                )}
               </div>
             </div>
             <div className="space-y-2.5">
@@ -162,17 +241,6 @@ export function SettingsModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Seu nome"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-dense font-medium text-muted" htmlFor="p-avatar">
-                  Avatar (URL da imagem)
-                </label>
-                <Input
-                  id="p-avatar"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://… (vazio = usar iniciais)"
                 />
               </div>
               <div className="flex items-center gap-3">

@@ -25,12 +25,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.avatarUrl ?? undefined,
-        };
+        // Avatar NÃO vai no JWT (data URL estouraria o cookie): vem do banco.
+        return { id: user.id, name: user.name, email: user.email };
       },
     }),
   ],
@@ -41,13 +37,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.uid = user.id;
         token.orgId = (await resolveUserOrg(user.id)) ?? null;
       }
-      // Perfil editado: recarrega nome/avatar do banco (via useSession().update()).
+      // Nome editado: recarrega do banco (via useSession().update()). Avatar não
+      // entra no token — é carregado do banco no servidor (data URL é grande).
       if (trigger === "update" && token.uid) {
         const fresh = await getUserProfile(token.uid as string);
-        if (fresh) {
-          token.name = fresh.name;
-          token.picture = fresh.avatarUrl;
-        }
+        if (fresh) token.name = fresh.name;
       }
       return token;
     },
