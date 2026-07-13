@@ -51,12 +51,42 @@
     color: rgb(var(--wc-subtle));
     pointer-events: none;
   }
+  .prose-doc h1 {
+    @apply font-display text-h2 font-bold;
+    margin: 1.25rem 0 0.5rem;
+  }
   .prose-doc h2 {
     @apply font-display text-h3 font-bold;
     margin: 1rem 0 0.5rem;
   }
+  .prose-doc h3 {
+    @apply font-display font-bold;
+    font-size: 1.05rem;
+    margin: 0.85rem 0 0.4rem;
+  }
   .prose-doc p {
     margin: 0.35rem 0;
+  }
+  .prose-doc blockquote {
+    border-left: 3px solid rgb(var(--wc-border));
+    padding-left: 0.85rem;
+    margin: 0.5rem 0;
+    color: rgb(var(--wc-muted));
+    font-style: italic;
+  }
+  .prose-doc pre {
+    background: rgb(var(--wc-elevated));
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    margin: 0.5rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+  }
+  .prose-doc hr {
+    border: none;
+    border-top: 1px solid rgb(var(--wc-border));
+    margin: 1rem 0;
   }
   .prose-doc ul {
     list-style: disc;

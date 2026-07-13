@@ -5,13 +5,24 @@ import {
   Bold,
   CheckSquare,
   ChevronRight,
+  Code,
   FileText,
-  Italic,
+  Heading1,
   Heading2,
+  Heading3,
+  Italic,
+  Link2,
   List as ListIcon,
+  ListOrdered,
+  Minus,
   Plus,
+  Quote,
   StickyNote,
+  Strikethrough,
   Trash2,
+  Type,
+  Underline,
+  type LucideIcon,
 } from "lucide-react";
 import type { PageDoc, PageNode } from "@wayline/db";
 import { cn } from "@wayline/ui";
@@ -330,6 +341,27 @@ function ToolbarButton({
   );
 }
 
+type ExecFn = (cmd: string, value?: string) => void;
+interface SlashBlock {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  run: (exec: ExecFn) => void;
+}
+
+/** Blocos do menu "/" (estilo Notion). */
+const SLASH_BLOCKS: SlashBlock[] = [
+  { id: "text", label: "Texto", icon: Type, run: (e) => e("formatBlock", "<p>") },
+  { id: "h1", label: "Título 1", icon: Heading1, run: (e) => e("formatBlock", "<h1>") },
+  { id: "h2", label: "Título 2", icon: Heading2, run: (e) => e("formatBlock", "<h2>") },
+  { id: "h3", label: "Título 3", icon: Heading3, run: (e) => e("formatBlock", "<h3>") },
+  { id: "bullet", label: "Lista com marcadores", icon: ListIcon, run: (e) => e("insertUnorderedList") },
+  { id: "numbered", label: "Lista numerada", icon: ListOrdered, run: (e) => e("insertOrderedList") },
+  { id: "quote", label: "Citação", icon: Quote, run: (e) => e("formatBlock", "<blockquote>") },
+  { id: "code", label: "Código", icon: Code, run: (e) => e("formatBlock", "<pre>") },
+  { id: "divider", label: "Divisor", icon: Minus, run: (e) => e("insertHorizontalRule") },
+];
+
 function Editor({
   orgId,
   pageId,
@@ -350,10 +382,93 @@ function Editor({
   const editorRef = React.useRef<HTMLDivElement>(null);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Menu "/" (comandos de bloco)
+  const [slashOpen, setSlashOpen] = React.useState(false);
+  const [slashQuery, setSlashQuery] = React.useState("");
+  const [slashPos, setSlashPos] = React.useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [slashIndex, setSlashIndex] = React.useState(0);
+  const filtered = SLASH_BLOCKS.filter((b) =>
+    b.label.toLowerCase().includes(slashQuery.toLowerCase()),
+  );
+
+  function detectSlash() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !editorRef.current) return setSlashOpen(false);
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (!editorRef.current.contains(node) || node.nodeType !== Node.TEXT_NODE) {
+      return setSlashOpen(false);
+    }
+    const text = node.textContent ?? "";
+    const caret = range.startOffset;
+    const slash = text.lastIndexOf("/", caret - 1);
+    if (slash === -1) return setSlashOpen(false);
+    const before = slash === 0 ? "" : text[slash - 1] ?? "";
+    if (before && !/\s/.test(before)) return setSlashOpen(false); // "/" no meio de palavra
+    const q = text.slice(slash + 1, caret);
+    if (/\s/.test(q)) return setSlashOpen(false);
+    const rect = range.getBoundingClientRect();
+    setSlashPos({ top: rect.bottom + 4, left: rect.left });
+    setSlashQuery(q);
+    setSlashIndex(0);
+    setSlashOpen(true);
+  }
+
+  function applyBlock(block: SlashBlock) {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      const node = range.startContainer;
+      const caret = range.startOffset;
+      const remove = slashQuery.length + 1; // "/" + query
+      if (node.nodeType === Node.TEXT_NODE && caret >= remove) {
+        const r = document.createRange();
+        r.setStart(node, caret - remove);
+        r.setEnd(node, caret);
+        r.deleteContents();
+        const c = document.createRange();
+        c.setStart(node, caret - remove);
+        c.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(c);
+      }
+    }
+    block.run(exec);
+    setSlashOpen(false);
+  }
+
+  function onEditorKeyDown(e: React.KeyboardEvent) {
+    if (!slashOpen || filtered.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSlashIndex((i) => (i + 1) % filtered.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSlashIndex((i) => (i - 1 + filtered.length) % filtered.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      applyBlock(filtered[slashIndex] ?? filtered[0]!);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setSlashOpen(false);
+    }
+  }
+
+  function onEditorKeyUp(e: React.KeyboardEvent) {
+    if (slashOpen && ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e.key)) return;
+    detectSlash();
+  }
+
+  function addLink() {
+    const url = window.prompt("URL do link:");
+    if (url) exec("createLink", url);
+  }
+
   React.useEffect(() => {
     let alive = true;
     setDoc(null);
     setConverted(false);
+    setSlashOpen(false);
     getPageAction(orgId, pageId).then((d) => {
       if (!alive || !d) return;
       setDoc(d);
@@ -455,19 +570,54 @@ function Editor({
       />
 
       {/* Toolbar */}
-      <div className="mb-2 flex items-center gap-0.5 border-b border-border pb-2">
+      <div className="mb-2 flex flex-wrap items-center gap-0.5 border-b border-border pb-2">
+        <ToolbarButton title="Texto" onClick={() => exec("formatBlock", "<p>")}>
+          <Type />
+        </ToolbarButton>
+        <ToolbarButton title="Título 1" onClick={() => exec("formatBlock", "<h1>")}>
+          <Heading1 />
+        </ToolbarButton>
+        <ToolbarButton title="Título 2" onClick={() => exec("formatBlock", "<h2>")}>
+          <Heading2 />
+        </ToolbarButton>
+        <ToolbarButton title="Título 3" onClick={() => exec("formatBlock", "<h3>")}>
+          <Heading3 />
+        </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton title="Negrito" onClick={() => exec("bold")}>
           <Bold />
         </ToolbarButton>
         <ToolbarButton title="Itálico" onClick={() => exec("italic")}>
           <Italic />
         </ToolbarButton>
-        <ToolbarButton title="Título" onClick={() => exec("formatBlock", "<h2>")}>
-          <Heading2 />
+        <ToolbarButton title="Sublinhado" onClick={() => exec("underline")}>
+          <Underline />
         </ToolbarButton>
-        <ToolbarButton title="Lista" onClick={() => exec("insertUnorderedList")}>
+        <ToolbarButton title="Tachado" onClick={() => exec("strikeThrough")}>
+          <Strikethrough />
+        </ToolbarButton>
+        <ToolbarButton title="Link" onClick={addLink}>
+          <Link2 />
+        </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-border" />
+        <ToolbarButton title="Lista com marcadores" onClick={() => exec("insertUnorderedList")}>
           <ListIcon />
         </ToolbarButton>
+        <ToolbarButton title="Lista numerada" onClick={() => exec("insertOrderedList")}>
+          <ListOrdered />
+        </ToolbarButton>
+        <ToolbarButton title="Citação" onClick={() => exec("formatBlock", "<blockquote>")}>
+          <Quote />
+        </ToolbarButton>
+        <ToolbarButton title="Código" onClick={() => exec("formatBlock", "<pre>")}>
+          <Code />
+        </ToolbarButton>
+        <ToolbarButton title="Divisor" onClick={() => exec("insertHorizontalRule")}>
+          <Minus />
+        </ToolbarButton>
+        <span className="ml-auto hidden items-center gap-1 text-[11px] text-subtle sm:flex">
+          Digite <kbd className="rounded border border-border px-1">/</kbd> para blocos
+        </span>
       </div>
 
       {/* Conteúdo editável */}
@@ -476,9 +626,40 @@ function Editor({
         contentEditable
         suppressContentEditableWarning
         onInput={scheduleSave}
-        data-placeholder="Comece a escrever…"
+        onKeyDown={onEditorKeyDown}
+        onKeyUp={onEditorKeyUp}
+        onBlur={() => setSlashOpen(false)}
+        data-placeholder="Escreva ou digite / para comandos…"
         className="prose-doc min-h-0 flex-1 pb-16 text-ui leading-relaxed text-foreground outline-none"
       />
+
+      {/* Menu "/" */}
+      {slashOpen && filtered.length > 0 && (
+        <div
+          className="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-xl"
+          style={{ top: slashPos.top, left: slashPos.left }}
+        >
+          {filtered.map((b, i) => {
+            const Icon = b.icon;
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => applyBlock(b)}
+                onMouseEnter={() => setSlashIndex(i)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-dense",
+                  i === slashIndex ? "bg-brand/10 text-brand" : "text-muted hover:bg-elevated",
+                )}
+              >
+                <Icon className="size-4 shrink-0" />
+                {b.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
