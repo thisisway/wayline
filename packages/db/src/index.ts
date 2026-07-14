@@ -198,6 +198,11 @@ export {
   type PageDoc,
 } from "./queries/pages";
 export { getOrgPlan, setOrgPlan } from "./queries/plan";
+export {
+  getPlatformOverview,
+  type PlatformOverview,
+  type AdminOrgRow,
+} from "./queries/admin";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

@@ -18,6 +18,7 @@ import {
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
+import { isPlatformAdmin } from "@/lib/authz";
 import { AppView } from "@/components/app-view";
 
 // Lê o banco a cada request (nunca prerenderiza no build, que não tem DB).
@@ -37,6 +38,7 @@ export default async function AppPage({
 
   // Avatar vem do banco (não do JWT): reflete edições sem exigir novo login.
   const profile = await getUserProfile(session.user.id);
+  const platformAdmin = await isPlatformAdmin();
 
   const store = await cookies();
 
@@ -83,6 +85,7 @@ export default async function AppPage({
       userAvatar={profile?.avatarUrl ?? undefined}
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
       isGuest={activeOrg.role === "guest"}
+      isPlatformAdmin={platformAdmin}
       focusTaskId={focusTaskId}
     />
   );

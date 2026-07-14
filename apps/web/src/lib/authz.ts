@@ -38,6 +38,22 @@ export async function assertRole(
   return (ROLE_RANK[role] ?? 0) >= (ROLE_RANK[min] ?? 99);
 }
 
+/**
+ * Superadmin da PLATAFORMA (dono do SaaS): enxerga/gerencia todas as orgs.
+ * Definido por env `PLATFORM_ADMIN_EMAILS` (lista separada por vírgula) — fora
+ * do banco de propósito: só quem controla o deploy concede esse acesso.
+ */
+export async function isPlatformAdmin(): Promise<boolean> {
+  const session = await auth();
+  const email = session?.user?.email?.toLowerCase();
+  if (!email) return false;
+  const allow = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return allow.includes(email);
+}
+
 /** Id do usuário logado (ou null). */
 export async function getSessionUserId(): Promise<string | null> {
   const session = await auth();

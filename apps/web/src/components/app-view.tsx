@@ -65,6 +65,7 @@ export function AppView({
   userAvatar,
   isAdmin,
   isGuest,
+  isPlatformAdmin = false,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -81,6 +82,7 @@ export function AppView({
   userAvatar?: string;
   isAdmin: boolean;
   isGuest: boolean;
+  isPlatformAdmin?: boolean;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -271,6 +273,7 @@ export function AppView({
           onOpenBrain={() => setBrainOpen(true)}
           onOpenPlans={() => setPlansOpen(true)}
           isAdmin={isAdmin}
+          isPlatformAdmin={isPlatformAdmin}
         />
         <ViewTabs
           value={view}

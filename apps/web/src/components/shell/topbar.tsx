@@ -14,6 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
+import { Shield } from "lucide-react";
 import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
@@ -33,6 +35,7 @@ export function Topbar({
   onOpenBrain,
   onOpenPlans,
   isAdmin = false,
+  isPlatformAdmin = false,
 }: {
   userName: string;
   userAvatar?: string;
@@ -44,13 +47,19 @@ export function Topbar({
   onOpenBrain?: () => void;
   onOpenPlans?: () => void;
   isAdmin?: boolean;
+  isPlatformAdmin?: boolean;
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-      <WorkspaceSwitcher orgs={orgs} activeOrgId={activeOrgId} onOpenPlans={onOpenPlans} />
+      <WorkspaceSwitcher
+        orgs={orgs}
+        activeOrgId={activeOrgId}
+        onOpenPlans={onOpenPlans}
+        isPlatformAdmin={isPlatformAdmin}
+      />
       {showMembers && (
         <MembersModal
           orgId={activeOrgId}
@@ -135,10 +144,12 @@ function WorkspaceSwitcher({
   orgs,
   activeOrgId,
   onOpenPlans,
+  isPlatformAdmin = false,
 }: {
   orgs: UserOrg[];
   activeOrgId: string;
   onOpenPlans?: () => void;
+  isPlatformAdmin?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
@@ -235,6 +246,18 @@ function WorkspaceSwitcher({
             </span>
             Criar workspace
           </button>
+          {isPlatformAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+            >
+              <span className="flex size-6 items-center justify-center rounded-md border border-dashed border-border">
+                <Shield className="size-3.5" />
+              </span>
+              Admin da plataforma
+            </Link>
+          )}
         </div>
       )}
 
