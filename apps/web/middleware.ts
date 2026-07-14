@@ -54,6 +54,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Roda em tudo, menos assets estáticos do Next.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Roda em tudo, menos assets estáticos do Next e webhooks de billing
+  // (webhooks nunca podem ser redirecionados — quebraria a verificação).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/billing).*)"],
 };

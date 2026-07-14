@@ -246,7 +246,11 @@ export function AppView({
         />
       )}
       {plansOpen && (
-        <PlansModal currentPlan={orgPlan} onClose={() => setPlansOpen(false)} />
+        <PlansModal
+          orgId={activeOrgId}
+          currentPlan={orgPlan}
+          onClose={() => setPlansOpen(false)}
+        />
       )}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
       {fieldsOpen && data && (

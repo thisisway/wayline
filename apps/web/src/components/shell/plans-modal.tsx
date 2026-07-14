@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Sparkles, X } from "lucide-react";
+import { Check, CreditCard, QrCode, Sparkles, X } from "lucide-react";
 import { Badge, cn } from "@wayline/ui";
 import {
   PLANS,
@@ -10,38 +10,83 @@ import {
   resolvePlan,
   type PlanId,
 } from "@/lib/plans";
+import {
+  billingProvidersAction,
+  startCheckoutAction,
+  type CheckoutResult,
+} from "@/actions/billing";
+import type { BillingProvider, PaidPlan } from "@/lib/billing/types";
 
 /** Email de vendas para o CTA do Enterprise. */
 const SALES_EMAIL = "suporte@waycloud.com.br";
 
+const PROVIDER_META: Record<BillingProvider, { label: string; icon: React.ReactNode }> = {
+  stripe: { label: "Cartão (Stripe)", icon: <CreditCard className="size-4" /> },
+  iugu: { label: "Pix / Boleto / Cartão (Iugu)", icon: <QrCode className="size-4" /> },
+};
+
 export function PlansModal({
+  orgId,
   currentPlan,
   onClose,
 }: {
+  orgId: string;
   /** Valor bruto de organizations.plan (pode ser legado). */
   currentPlan: string;
   onClose: () => void;
 }) {
   const active = resolvePlan(currentPlan);
+  const [providers, setProviders] = React.useState<BillingProvider[]>([]);
+  const [choosing, setChoosing] = React.useState<PaidPlan | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
+    billingProvidersAction().then(setProviders);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function cta(id: PlanId) {
-    if (id === active.id) return; // plano atual
-    if (id === "enterprise") {
-      window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
-        "Wayline Enterprise — quero falar com vendas",
-      )}`;
+  function mailTo(subject: string) {
+    window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(subject)}`;
+  }
+
+  async function checkout(plan: PaidPlan, provider: BillingProvider) {
+    setBusy(true);
+    setErr(null);
+    const res: CheckoutResult = await startCheckoutAction(orgId, plan, provider).catch(() => ({
+      status: "error" as const,
+    }));
+    if (res.status === "ok") {
+      window.location.href = res.url;
       return;
     }
-    // Sem gateway ainda: sinaliza que a cobrança entra em breve.
-    window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
-      `Quero assinar o plano ${PLANS[id].name}`,
-    )}`;
+    setBusy(false);
+    setErr(
+      res.status === "forbidden"
+        ? "Sem permissão para assinar (peça a um admin)."
+        : res.status === "disabled"
+          ? "Pagamento indisponível — falando com o time."
+          : "Não foi possível iniciar o checkout. Tente novamente.",
+    );
+    if (res.status === "disabled") mailTo(`Quero assinar o plano ${PLANS[plan].name}`);
+  }
+
+  function cta(id: PlanId) {
+    if (id === active.id) return;
+    if (id === "enterprise") {
+      mailTo("Wayline Enterprise — quero falar com vendas");
+      return;
+    }
+    const plan = id as PaidPlan;
+    if (providers.length === 0) {
+      mailTo(`Quero assinar o plano ${PLANS[id].name}`);
+    } else if (providers.length === 1) {
+      void checkout(plan, providers[0]!);
+    } else {
+      setChoosing(plan);
+    }
   }
 
   return (
@@ -153,9 +198,51 @@ export function PlansModal({
         </div>
 
         <p className="border-t border-border px-6 py-3 text-center text-[11px] text-subtle">
-          Cobrança em breve. Por enquanto, os CTAs abrem contato com o time — as
-          assinaturas recorrentes serão ativadas na próxima fase.
+          {providers.length > 0
+            ? "Cobrança mensal por usuário. Você escolhe o meio de pagamento no checkout."
+            : "Cobrança em breve — os CTAs abrem contato até os provedores serem configurados."}
         </p>
+
+        {/* Escolha de provedor (quando há mais de um) */}
+        {choosing && (
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center bg-dark/50 p-4"
+            onClick={() => !busy && setChoosing(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="mb-1 font-display text-h3 font-bold">
+                Assinar {PLANS[choosing].name}
+              </h3>
+              <p className="mb-4 text-dense text-muted">Escolha o meio de pagamento:</p>
+              <div className="space-y-2">
+                {providers.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => checkout(choosing, p)}
+                    className="flex w-full items-center gap-2 rounded-md border border-border bg-canvas px-3 h-11 text-ui font-medium text-foreground transition-colors hover:bg-elevated disabled:opacity-60"
+                  >
+                    {PROVIDER_META[p].icon}
+                    {PROVIDER_META[p].label}
+                  </button>
+                ))}
+              </div>
+              {err && <p className="mt-3 text-dense text-danger">{err}</p>}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setChoosing(null)}
+                className="mt-3 w-full text-center text-dense text-subtle hover:text-foreground"
+              >
+                {busy ? "Redirecionando…" : "Cancelar"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
