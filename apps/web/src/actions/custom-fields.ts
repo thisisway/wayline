@@ -13,6 +13,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember, assertRole } from "@/lib/authz";
+import { planAllows } from "@/lib/plan-guard";
 
 export async function listFieldsAction(
   orgId: string,
@@ -28,6 +29,7 @@ export async function createFieldAction(
   input: CreateFieldInput,
 ): Promise<CustomFieldDef | null> {
   if (!input.name.trim() || !(await assertRole(orgId, "admin"))) return null;
+  if (!(await planAllows(orgId, "customFields"))) return null;
   const field = await createField(orgId, listId, input);
   revalidatePath("/app");
   return field;

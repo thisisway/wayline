@@ -49,6 +49,8 @@ import {
   type BoardFilters,
 } from "@/lib/board-filter";
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
+import type { PlanFlags } from "@/lib/plans";
+import { Lock } from "lucide-react";
 
 export function AppView({
   data,
@@ -66,6 +68,7 @@ export function AppView({
   isAdmin,
   isGuest,
   isPlatformAdmin = false,
+  planFlags,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -83,6 +86,7 @@ export function AppView({
   isAdmin: boolean;
   isGuest: boolean;
   isPlatformAdmin?: boolean;
+  planFlags: PlanFlags;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -155,6 +159,17 @@ export function AppView({
     () => (data ? collectCustomFieldOptions(data) : []),
     [data],
   );
+
+  // Views bloqueadas por plano (a aba mostra cadeado e abre a tela de Planos).
+  const VIEW_FLAG: Partial<Record<string, keyof PlanFlags>> = {
+    gantt: "gantt",
+    mindmap: "mindmap",
+    dashboard: "dashboard",
+  };
+  const viewLocked = (v: string): boolean => {
+    const f = VIEW_FLAG[v];
+    return f ? !planFlags[f] : false;
+  };
 
   function handleExport() {
     if (!filtered) return;
@@ -291,6 +306,8 @@ export function AppView({
           onShare={() => setShareOpen(true)}
           onOpenAutomations={() => setAutomationsOpen(true)}
           isAdmin={isAdmin}
+          planFlags={planFlags}
+          onLocked={() => setPlansOpen(true)}
         />
 
         {view === "board" ? (
@@ -326,7 +343,9 @@ export function AppView({
             <CalendarView data={filtered!} />
           )
         ) : view === "gantt" ? (
-          !data || data.columns.length === 0 ? (
+          viewLocked("gantt") ? (
+            <UpgradeLock feature="Gráfico de Gantt" plan="Pro" onUpgrade={() => setPlansOpen(true)} />
+          ) : !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
             <GanttView data={filtered!} />
@@ -342,7 +361,9 @@ export function AppView({
             />
           )
         ) : view === "mindmap" ? (
-          !data ? (
+          viewLocked("mindmap") ? (
+            <UpgradeLock feature="Mind Map" plan="Business" onUpgrade={() => setPlansOpen(true)} />
+          ) : !data ? (
             <EmptyBoard />
           ) : (
             <MindMapView
@@ -360,11 +381,51 @@ export function AppView({
         ) : view === "reports" ? (
           <ReportsView orgId={activeOrgId} />
         ) : view === "dashboard" ? (
-          <DashboardView orgId={activeOrgId} />
+          viewLocked("dashboard") ? (
+            <UpgradeLock
+              feature="Dashboard executivo"
+              plan="Business"
+              onUpgrade={() => setPlansOpen(true)}
+            />
+          ) : (
+            <DashboardView orgId={activeOrgId} />
+          )
         ) : (
           <PlaceholderView view={view} />
         )}
       </main>
+    </div>
+  );
+}
+
+function UpgradeLock({
+  feature,
+  plan,
+  onUpgrade,
+}: {
+  feature: string;
+  plan: string;
+  onUpgrade: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+        <Lock className="size-7" />
+      </span>
+      <div>
+        <p className="font-display text-h2 font-bold">{feature}</p>
+        <p className="mx-auto mt-1 max-w-sm text-ui text-muted">
+          Este recurso faz parte do plano <strong className="text-foreground">{plan}</strong>.
+          Faça upgrade para desbloquear.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onUpgrade}
+        className="flex h-10 items-center gap-1.5 rounded-md bg-brand px-4 text-ui font-medium text-white transition-colors hover:bg-brand-80"
+      >
+        Ver planos & fazer upgrade
+      </button>
     </div>
   );
 }

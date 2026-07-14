@@ -19,6 +19,7 @@ import {
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { isPlatformAdmin } from "@/lib/authz";
+import { resolvePlan } from "@/lib/plans";
 import { AppView } from "@/components/app-view";
 
 // Lê o banco a cada request (nunca prerenderiza no build, que não tem DB).
@@ -86,6 +87,7 @@ export default async function AppPage({
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
       isGuest={activeOrg.role === "guest"}
       isPlatformAdmin={platformAdmin}
+      planFlags={resolvePlan(activeOrg.plan).flags}
       focusTaskId={focusTaskId}
     />
   );

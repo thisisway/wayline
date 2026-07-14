@@ -2,6 +2,7 @@
 
 import { getOrgDashboard, getOrgReport, type OrgDashboard, type OrgReport } from "@wayline/db";
 import { assertMember, assertRole } from "@/lib/authz";
+import { planAllows } from "@/lib/plan-guard";
 
 export async function orgReportAction(
   orgId: string,
@@ -15,5 +16,6 @@ export async function orgReportAction(
 /** Dashboard executivo (org inteira) — restrito a admin+. */
 export async function orgDashboardAction(orgId: string): Promise<OrgDashboard | null> {
   if (!(await assertRole(orgId, "admin"))) return null;
+  if (!(await planAllows(orgId, "dashboard"))) return null;
   return getOrgDashboard(orgId);
 }

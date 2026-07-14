@@ -10,6 +10,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertMember, assertRole } from "@/lib/authz";
+import { planAllows } from "@/lib/plan-guard";
 
 export async function listAutomationsAction(
   orgId: string,
@@ -29,6 +30,7 @@ export async function createAutomationAction(
 ): Promise<boolean> {
   if (!actionValue || (triggerType === "status" && !triggerStatusId)) return false;
   if (!(await assertRole(orgId, "admin"))) return false;
+  if (!(await planAllows(orgId, "automations"))) return false;
   await createAutomation(orgId, listId, triggerType, triggerStatusId, actionType, actionValue);
   revalidatePath("/app");
   return true;

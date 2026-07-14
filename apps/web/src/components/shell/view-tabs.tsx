@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   List,
+  Lock,
   MessageSquare,
   Network,
   SlidersHorizontal,
@@ -21,6 +22,14 @@ import {
 } from "lucide-react";
 import type { BoardClientDTO, BoardMemberDTO } from "@wayline/db";
 import { Avatar, AvatarGroup, Button, Tabs, TabsList, TabsTrigger, cn } from "@wayline/ui";
+import type { PlanFlags } from "@/lib/plans";
+
+/** View → flag do plano (bloqueada quando o plano não tem a flag). */
+const VIEW_FLAG: Partial<Record<string, keyof PlanFlags>> = {
+  gantt: "gantt",
+  mindmap: "mindmap",
+  dashboard: "dashboard",
+};
 import type { Viewer } from "@/lib/presence";
 import {
   activeFilterCount,
@@ -66,6 +75,8 @@ export function ViewTabs({
   onShare,
   onOpenAutomations,
   isAdmin,
+  planFlags,
+  onLocked,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -82,6 +93,8 @@ export function ViewTabs({
   onShare?: () => void;
   onOpenAutomations?: () => void;
   isAdmin: boolean;
+  planFlags: PlanFlags;
+  onLocked: () => void;
 }) {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -106,11 +119,30 @@ export function ViewTabs({
         <TabsList className="w-max">
           {views
             .filter((v) => !v.adminOnly || isAdmin)
-            .map((v) => (
-              <TabsTrigger key={v.id} value={v.id} icon={v.icon}>
-                {v.label}
-              </TabsTrigger>
-            ))}
+            .map((v) => {
+              const flag = VIEW_FLAG[v.id];
+              const locked = flag ? !planFlags[flag] : false;
+              if (locked) {
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={onLocked}
+                    title={`${v.label} — recurso de plano pago`}
+                    className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 h-8 text-dense font-medium text-subtle transition-colors hover:bg-elevated hover:text-foreground [&_svg]:size-4"
+                  >
+                    {v.icon}
+                    {v.label}
+                    <Lock className="!size-3 opacity-70" />
+                  </button>
+                );
+              }
+              return (
+                <TabsTrigger key={v.id} value={v.id} icon={v.icon}>
+                  {v.label}
+                </TabsTrigger>
+              );
+            })}
         </TabsList>
       </Tabs>
 
@@ -138,10 +170,10 @@ export function ViewTabs({
             variant="ghost"
             size="icon"
             aria-label="Automações"
-            title="Automações"
-            onClick={onOpenAutomations}
+            title={planFlags.automations ? "Automações" : "Automações — plano Business"}
+            onClick={planFlags.automations ? onOpenAutomations : onLocked}
           >
-            <Zap />
+            {planFlags.automations ? <Zap /> : <Lock />}
           </Button>
         )}
         <Button
@@ -158,10 +190,10 @@ export function ViewTabs({
             variant="ghost"
             size="icon"
             aria-label="Campos customizados"
-            title="Campos customizados"
-            onClick={onOpenFields}
+            title={planFlags.customFields ? "Campos customizados" : "Campos — plano Pro"}
+            onClick={planFlags.customFields ? onOpenFields : onLocked}
           >
-            <SlidersHorizontal />
+            {planFlags.customFields ? <SlidersHorizontal /> : <Lock />}
           </Button>
         )}
         {isAdmin && (
