@@ -1,4 +1,4 @@
-import { getUserOrgs } from "@wayline/db";
+import { getUserOrgs, getUserProfile } from "@wayline/db";
 import { auth } from "@/auth";
 
 /**
@@ -44,14 +44,22 @@ export async function assertRole(
  * do banco de propósito: só quem controla o deploy concede esse acesso.
  */
 export async function isPlatformAdmin(): Promise<boolean> {
-  const session = await auth();
-  const email = session?.user?.email?.toLowerCase();
-  if (!email) return false;
   const allow = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  return allow.includes(email);
+  if (allow.length === 0) return false;
+
+  const session = await auth();
+  if (!session?.user?.id) return false;
+
+  // Email do token; se faltar, busca no banco pelo id (robusto).
+  let email = session.user.email?.toLowerCase();
+  if (!email) {
+    const profile = await getUserProfile(session.user.id);
+    email = profile?.email?.toLowerCase();
+  }
+  return email ? allow.includes(email) : false;
 }
 
 /** Id do usuário logado (ou null). */
