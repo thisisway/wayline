@@ -8,6 +8,7 @@ import {
   PLAN_ORDER,
   formatPrice,
   resolvePlan,
+  type BillingCycle,
   type PlanId,
 } from "@/lib/plans";
 import {
@@ -40,6 +41,7 @@ export function PlansModal({
   const [choosing, setChoosing] = React.useState<PaidPlan | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [cycle, setCycle] = React.useState<BillingCycle>("yearly");
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -55,9 +57,9 @@ export function PlansModal({
   async function checkout(plan: PaidPlan, provider: BillingProvider) {
     setBusy(true);
     setErr(null);
-    const res: CheckoutResult = await startCheckoutAction(orgId, plan, provider).catch(() => ({
-      status: "error" as const,
-    }));
+    const res: CheckoutResult = await startCheckoutAction(orgId, plan, provider, cycle).catch(
+      () => ({ status: "error" as const }),
+    );
     if (res.status === "ok") {
       window.location.href = res.url;
       return;
@@ -108,14 +110,47 @@ export function PlansModal({
               <strong className="text-foreground">{active.name}</strong>.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="flex size-8 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
-          >
-            <X className="size-4.5" />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Toggle Mensal / Anual */}
+            <div className="flex items-center rounded-lg border border-border bg-canvas p-0.5">
+              <button
+                type="button"
+                onClick={() => setCycle("monthly")}
+                className={cn(
+                  "rounded-md px-3 h-8 text-dense font-medium transition-colors",
+                  cycle === "monthly" ? "bg-brand text-white" : "text-muted hover:text-foreground",
+                )}
+              >
+                Mensal
+              </button>
+              <button
+                type="button"
+                onClick={() => setCycle("yearly")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 h-8 text-dense font-medium transition-colors",
+                  cycle === "yearly" ? "bg-brand text-white" : "text-muted hover:text-foreground",
+                )}
+              >
+                Anual
+                <span
+                  className={cn(
+                    "rounded-pill px-1.5 text-[10px] font-bold",
+                    cycle === "yearly" ? "bg-white/20 text-white" : "bg-success/15 text-success",
+                  )}
+                >
+                  -20%
+                </span>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar"
+              className="flex size-8 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
+            >
+              <X className="size-4.5" />
+            </button>
+          </div>
         </div>
 
         <div className="grid flex-1 gap-4 overflow-y-auto p-6 md:grid-cols-2 xl:grid-cols-4">
@@ -141,15 +176,24 @@ export function PlansModal({
                   )}
                 </div>
 
-                <div className="mb-1 flex items-baseline gap-1">
-                  <span className="font-display text-h1 font-extrabold tabular-nums">
-                    {formatPrice(plan.priceBRL)}
-                  </span>
-                  {plan.priceBRL != null && plan.priceBRL > 0 && (
-                    <span className="text-dense text-subtle">/usuário/mês</span>
-                  )}
-                </div>
-                <p className="mb-4 min-h-8 text-dense text-muted">{plan.tagline}</p>
+                {(() => {
+                  const price = cycle === "yearly" ? plan.priceBRLYearly : plan.priceBRL;
+                  const paid = price != null && price > 0;
+                  return (
+                    <>
+                      <div className="mb-1 flex items-baseline gap-1">
+                        <span className="font-display text-h1 font-extrabold tabular-nums">
+                          {formatPrice(price)}
+                        </span>
+                        {paid && <span className="text-dense text-subtle">/usuário/mês</span>}
+                      </div>
+                      <p className="mb-4 min-h-8 text-dense text-muted">
+                        {paid && cycle === "yearly" ? "cobrado anualmente · " : ""}
+                        {plan.tagline}
+                      </p>
+                    </>
+                  );
+                })()}
 
                 <button
                   type="button"

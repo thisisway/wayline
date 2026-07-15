@@ -28,11 +28,15 @@ export interface PlanFlags {
   sso: boolean;
 }
 
+export type BillingCycle = "monthly" | "yearly";
+
 export interface Plan {
   id: PlanId;
   name: string;
-  /** Preço em BRL por usuário/mês; null = sob consulta (Enterprise). */
+  /** Preço em BRL por usuário/mês (mensal); null = sob consulta (Enterprise). */
   priceBRL: number | null;
+  /** Preço por usuário/mês quando cobrado anualmente (com desconto). */
+  priceBRLYearly: number | null;
   tagline: string;
   cta: string;
   highlight?: boolean;
@@ -49,6 +53,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "free",
     name: "Free",
     priceBRL: 0,
+    priceBRLYearly: 0,
     tagline: "Para começar e organizar o time",
     cta: "Começar grátis",
     limits: { members: 5, spaces: 3, storageMB: 100 },
@@ -75,6 +80,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "pro",
     name: "Pro",
     priceBRL: 29,
+    priceBRLYearly: 23,
     tagline: "Para times em crescimento",
     cta: "Assinar Pro",
     limits: { ...UNLIMITED },
@@ -103,6 +109,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "business",
     name: "Business",
     priceBRL: 49,
+    priceBRLYearly: 39,
     tagline: "Para operações que escalam",
     cta: "Assinar Business",
     highlight: true,
@@ -131,6 +138,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "enterprise",
     name: "Enterprise",
     priceBRL: null,
+    priceBRLYearly: null,
     tagline: "Para grandes organizações",
     cta: "Falar com vendas",
     limits: { ...UNLIMITED },

@@ -10,6 +10,7 @@ import {
   type BillingProvider,
   type PaidPlan,
 } from "@/lib/billing";
+import type { BillingCycle } from "@/lib/plans";
 
 export async function billingProvidersAction(): Promise<BillingProvider[]> {
   return enabledProviders();
@@ -26,6 +27,7 @@ export async function startCheckoutAction(
   orgId: string,
   plan: PaidPlan,
   provider: BillingProvider,
+  cycle: BillingCycle = "monthly",
 ): Promise<CheckoutResult> {
   if (!(await assertRole(orgId, "admin"))) return { status: "forbidden" };
   if (!enabledProviders().includes(provider)) return { status: "disabled" };
@@ -44,6 +46,7 @@ export async function startCheckoutAction(
     const url = await createCheckout(provider, {
       orgId,
       plan,
+      cycle,
       seats,
       customerEmail: email,
       customerName: user.name,

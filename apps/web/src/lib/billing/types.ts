@@ -1,4 +1,4 @@
-import type { PlanId } from "@/lib/plans";
+import type { BillingCycle, PlanId } from "@/lib/plans";
 
 export type BillingProvider = "stripe" | "iugu";
 
@@ -8,6 +8,7 @@ export type PaidPlan = Extract<PlanId, "pro" | "business">;
 export interface CheckoutInput {
   orgId: string;
   plan: PaidPlan;
+  cycle: BillingCycle;
   /** Assentos = nº de membros (cobrança por usuário). */
   seats: number;
   customerEmail: string;

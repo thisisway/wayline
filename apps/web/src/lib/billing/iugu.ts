@@ -7,8 +7,8 @@ import type { CheckoutInput, WebhookResult } from "./types";
  *
  * Envs:
  *   IUGU_API_TOKEN      — token da API (live/test)
- *   IUGU_PLAN_PRO       — identifier do plano Pro criado no painel Iugu
- *   IUGU_PLAN_BUSINESS  — identifier do plano Business
+ *   IUGU_PLAN_PRO / _PRO_YEARLY            — identifiers do Pro (mensal/anual)
+ *   IUGU_PLAN_BUSINESS / _BUSINESS_YEARLY  — identifiers do Business
  *   IUGU_WEBHOOK_TOKEN  — segredo exigido na URL do webhook (?token=...)
  *
  * Obs.: os planos precisam existir no painel da Iugu com o mesmo preço/ciclo.
@@ -17,9 +17,15 @@ import type { CheckoutInput, WebhookResult } from "./types";
 const BASE = "https://api.iugu.com/v1";
 const token = process.env.IUGU_API_TOKEN;
 
-const PLAN: Record<string, string | undefined> = {
-  pro: process.env.IUGU_PLAN_PRO,
-  business: process.env.IUGU_PLAN_BUSINESS,
+const PLAN: Record<"monthly" | "yearly", Record<string, string | undefined>> = {
+  monthly: {
+    pro: process.env.IUGU_PLAN_PRO,
+    business: process.env.IUGU_PLAN_BUSINESS,
+  },
+  yearly: {
+    pro: process.env.IUGU_PLAN_PRO_YEARLY,
+    business: process.env.IUGU_PLAN_BUSINESS_YEARLY,
+  },
 };
 
 export function iuguEnabled(): boolean {
@@ -37,7 +43,7 @@ function authHeaders(): Record<string, string> {
 
 export async function iuguCheckout(input: CheckoutInput): Promise<string | null> {
   if (!iuguEnabled()) return null;
-  const planIdentifier = PLAN[input.plan];
+  const planIdentifier = PLAN[input.cycle][input.plan];
   if (!planIdentifier) return null;
   try {
     // 1) Cliente

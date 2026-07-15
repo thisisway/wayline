@@ -9,15 +9,21 @@ import type { CheckoutInput, WebhookResult } from "./types";
  * Envs:
  *   STRIPE_SECRET_KEY       — chave secreta (sk_...)
  *   STRIPE_WEBHOOK_SECRET   — segredo do endpoint de webhook (whsec_...)
- *   STRIPE_PRICE_PRO        — price id recorrente do plano Pro
- *   STRIPE_PRICE_BUSINESS   — price id recorrente do plano Business
+ *   STRIPE_PRICE_PRO / _PRO_YEARLY            — price ids do Pro (mensal/anual)
+ *   STRIPE_PRICE_BUSINESS / _BUSINESS_YEARLY  — price ids do Business
  */
 const secret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-const PRICE: Record<string, string | undefined> = {
-  pro: process.env.STRIPE_PRICE_PRO,
-  business: process.env.STRIPE_PRICE_BUSINESS,
+const PRICE: Record<"monthly" | "yearly", Record<string, string | undefined>> = {
+  monthly: {
+    pro: process.env.STRIPE_PRICE_PRO,
+    business: process.env.STRIPE_PRICE_BUSINESS,
+  },
+  yearly: {
+    pro: process.env.STRIPE_PRICE_PRO_YEARLY,
+    business: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+  },
 };
 
 export function stripeEnabled(): boolean {
@@ -32,7 +38,7 @@ function stripe(): Stripe {
 
 export async function stripeCheckout(input: CheckoutInput): Promise<string | null> {
   if (!stripeEnabled()) return null;
-  const price = PRICE[input.plan];
+  const price = PRICE[input.cycle][input.plan];
   if (!price) return null;
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
