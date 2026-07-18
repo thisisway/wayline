@@ -202,6 +202,7 @@ export {
   getOrgBilling,
   setOrgPlan,
   setOrgTrial,
+  setOrgBranding,
   type OrgBilling,
 } from "./queries/plan";
 export {

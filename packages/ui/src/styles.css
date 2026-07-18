@@ -9,6 +9,8 @@
  */
 
 :root {
+  /* Marca (Way Blue por padrão; sobrescrita por org via --wc-brand). */
+  --wc-brand: 29 102 255; /* #1D66FF */
   /* Light */
   --wc-canvas: 247 249 252; /* #F7F9FC */
   --wc-surface: 255 255 255; /* #FFFFFF */

@@ -25,6 +25,7 @@ export interface PlanFlags {
   automations: boolean;
   mindmap: boolean;
   dashboard: boolean;
+  branding: boolean;
   sso: boolean;
 }
 
@@ -73,6 +74,7 @@ export const PLANS: Record<PlanId, Plan> = {
       automations: false,
       mindmap: false,
       dashboard: false,
+      branding: false,
       sso: false,
     },
   },
@@ -102,6 +104,7 @@ export const PLANS: Record<PlanId, Plan> = {
       automations: false,
       mindmap: false,
       dashboard: false,
+      branding: false,
       sso: false,
     },
   },
@@ -131,6 +134,7 @@ export const PLANS: Record<PlanId, Plan> = {
       automations: true,
       mindmap: true,
       dashboard: true,
+      branding: true,
       sso: false,
     },
   },
@@ -158,6 +162,7 @@ export const PLANS: Record<PlanId, Plan> = {
       automations: true,
       mindmap: true,
       dashboard: true,
+      branding: true,
       sso: true,
     },
   },

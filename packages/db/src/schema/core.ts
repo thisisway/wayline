@@ -19,6 +19,9 @@ export const organizations = pgTable("organizations", {
   region: text("region").notNull().default("sa-east-1"),
   /** Fim do trial (Business grátis). Null = sem trial. Expiração é lazy. */
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  /** Marca personalizada (Business+): logo (data URL) e cor de destaque (hex). */
+  logoUrl: text("logo_url"),
+  brandColor: text("brand_color"),
   ...timestamps,
   ...softDelete,
 });

@@ -32,3 +32,16 @@ export async function setOrgTrial(orgId: string, trialEndsAt: Date | null): Prom
   const db = getDb();
   await db.update(organizations).set({ trialEndsAt }).where(eq(organizations.id, orgId));
 }
+
+/** Marca personalizada da org (logo em data URL e cor hex). */
+export async function setOrgBranding(
+  orgId: string,
+  patch: { logoUrl?: string | null; brandColor?: string | null },
+): Promise<void> {
+  const db = getDb();
+  const set: { logoUrl?: string | null; brandColor?: string | null } = {};
+  if ("logoUrl" in patch) set.logoUrl = patch.logoUrl || null;
+  if ("brandColor" in patch) set.brandColor = patch.brandColor || null;
+  if (Object.keys(set).length === 0) return;
+  await db.update(organizations).set(set).where(eq(organizations.id, orgId));
+}

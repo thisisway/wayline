@@ -13,9 +13,9 @@ const preset: Omit<Config, "content"> = {
   theme: {
     extend: {
       colors: {
-        // Way Blue (marca)
+        // Way Blue (marca) — DEFAULT via CSS var p/ permitir marca custom por org.
         brand: {
-          DEFAULT: "#1D66FF",
+          DEFAULT: "rgb(var(--wc-brand) / <alpha-value>)",
           10: "#E8F0FF",
           20: "#C2D5FF",
           40: "#7FABFF",

@@ -72,6 +72,8 @@ export interface UserOrg {
   plan: string;
   role: string;
   trialEndsAt: Date | null;
+  logoUrl: string | null;
+  brandColor: string | null;
 }
 
 /** O usuário tem acesso à lista? (a lista está numa org da qual ele é membro) */
@@ -103,6 +105,8 @@ export async function getUserOrgs(userId: string): Promise<UserOrg[]> {
         plan: m.organization.plan,
         role: m.role,
         trialEndsAt: m.organization.trialEndsAt ?? null,
+        logoUrl: m.organization.logoUrl ?? null,
+        brandColor: m.organization.brandColor ?? null,
       }));
   });
 }

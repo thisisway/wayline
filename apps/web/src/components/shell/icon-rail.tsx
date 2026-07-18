@@ -58,6 +58,7 @@ function RailButton({
 export function IconRail({
   activeView,
   inboxUnread = 0,
+  logoUrl,
   onCreate,
   onHome,
   onToggleSidebar,
@@ -69,6 +70,7 @@ export function IconRail({
 }: {
   activeView: string;
   inboxUnread?: number;
+  logoUrl?: string | null;
   onCreate: () => void;
   onHome: () => void;
   onToggleSidebar: () => void;
@@ -80,9 +82,13 @@ export function IconRail({
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
-      {/* Marca */}
-      <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
-        W
+      {/* Marca (logo custom do workspace, ou "W") */}
+      <div className="mb-1 flex size-9 items-center justify-center overflow-hidden rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="size-full object-contain" />
+        ) : (
+          "W"
+        )}
       </div>
 
       <RailButton icon={Plus} label="Criar tarefa" accent onClick={onCreate} />
