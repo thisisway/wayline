@@ -9,7 +9,7 @@ import {
   createOrg,
   createSpace,
   duplicateListStructure,
-  getOrgPlan,
+  getOrgBilling,
   getUserOrgs,
   getWorkspaceMembers,
   markNotificationsRead,
@@ -21,14 +21,15 @@ import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
 import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
-import { resolvePlan } from "@/lib/plans";
+import { effectivePlan } from "@/lib/plans";
 
-/** Já atingiu o limite de membros do plano? */
+/** Já atingiu o limite de membros do plano efetivo (considera trial)? */
 async function atMemberLimit(orgId: string): Promise<boolean> {
-  const plan = resolvePlan(await getOrgPlan(orgId));
-  if (plan.limits.members === Infinity) return false;
+  const { plan, trialEndsAt } = await getOrgBilling(orgId);
+  const eff = effectivePlan(plan, trialEndsAt);
+  if (eff.limits.members === Infinity) return false;
   const members = await getWorkspaceMembers(orgId);
-  return members.length >= plan.limits.members;
+  return members.length >= eff.limits.members;
 }
 
 const cookieOpts = {

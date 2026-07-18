@@ -69,6 +69,7 @@ export function AppView({
   isGuest,
   isPlatformAdmin = false,
   planFlags,
+  trialDaysLeft = 0,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -87,6 +88,7 @@ export function AppView({
   isGuest: boolean;
   isPlatformAdmin?: boolean;
   planFlags: PlanFlags;
+  trialDaysLeft?: number;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -104,6 +106,7 @@ export function AppView({
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [plansOpen, setPlansOpen] = React.useState(false);
+  const [trialHidden, setTrialHidden] = React.useState(false);
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const orgName = activeOrg?.name ?? "Workspace";
@@ -282,6 +285,29 @@ export function AppView({
       )}
 
       <main className="flex min-w-0 flex-1 flex-col">
+        {trialDaysLeft > 0 && !trialHidden && (
+          <div className="flex h-9 shrink-0 items-center justify-center gap-3 bg-brand px-4 text-dense font-medium text-white">
+            <span>
+              🎉 Teste grátis do <strong>Business</strong> —{" "}
+              {trialDaysLeft} {trialDaysLeft === 1 ? "dia restante" : "dias restantes"}.
+            </span>
+            <button
+              type="button"
+              onClick={() => setPlansOpen(true)}
+              className="rounded-md bg-white/20 px-2.5 py-0.5 font-semibold transition-colors hover:bg-white/30"
+            >
+              Ver planos
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrialHidden(true)}
+              aria-label="Ocultar"
+              className="ml-1 text-white/70 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <Topbar
           userName={userName}
           userAvatar={userAvatar}

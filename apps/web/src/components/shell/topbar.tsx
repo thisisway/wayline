@@ -19,7 +19,7 @@ import { Shield } from "lucide-react";
 import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
-import { resolvePlan } from "@/lib/plans";
+import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -189,7 +189,7 @@ function WorkspaceSwitcher({
         </span>
         <span className="text-ui font-semibold">{active.name}</span>
         <Badge variant="brand" size="sm">
-          {resolvePlan(active.plan).name}
+          {effectivePlan(active.plan, active.trialEndsAt).name}
         </Badge>
         <ChevronsUpDown className="size-3.5 text-subtle" />
       </button>

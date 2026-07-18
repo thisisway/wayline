@@ -1,6 +1,6 @@
 "use server";
 
-import { getOrgPlan, getWorkspaceMembers } from "@wayline/db";
+import { getOrgBilling, getWorkspaceMembers } from "@wayline/db";
 import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { appUrl } from "@/lib/email";
 import { getUserProfile } from "@wayline/db";
@@ -19,18 +19,23 @@ export async function billingProvidersAction(): Promise<BillingProvider[]> {
 export interface SubscriptionSummary {
   plan: string;
   members: number;
+  trialEndsAt: string | null;
 }
 
-/** Resumo de assinatura da org (plano bruto + nº de assentos). */
+/** Resumo de assinatura da org (plano bruto + assentos + fim do trial). */
 export async function subscriptionSummaryAction(
   orgId: string,
 ): Promise<SubscriptionSummary | null> {
   if (!(await assertMember(orgId))) return null;
-  const [plan, members] = await Promise.all([
-    getOrgPlan(orgId),
+  const [{ plan, trialEndsAt }, members] = await Promise.all([
+    getOrgBilling(orgId),
     getWorkspaceMembers(orgId),
   ]);
-  return { plan, members: members.length };
+  return {
+    plan,
+    members: members.length,
+    trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
+  };
 }
 
 export type CheckoutResult =

@@ -179,6 +179,41 @@ export function isKnownPlan(planValue: string | null | undefined): planValue is 
   return Boolean(planValue && planValue in PLANS);
 }
 
+/** O trial (Business grátis) ainda está ativo? */
+export function trialActive(
+  trialEndsAt: Date | string | null | undefined,
+  nowMs: number = Date.now(),
+): boolean {
+  if (!trialEndsAt) return false;
+  const t = new Date(trialEndsAt).getTime();
+  return Number.isFinite(t) && t > nowMs;
+}
+
+/** Dias restantes de trial (0 se expirado/sem trial). */
+export function trialDaysLeft(
+  trialEndsAt: Date | string | null | undefined,
+  nowMs: number = Date.now(),
+): number {
+  if (!trialActive(trialEndsAt, nowMs)) return 0;
+  const t = new Date(trialEndsAt as Date | string).getTime();
+  return Math.ceil((t - nowMs) / (24 * 60 * 60 * 1000));
+}
+
+/**
+ * Plano EFETIVO: durante o trial ativo, um workspace Free enxerga o Business.
+ * Se já assinou (pro/business) ou é legado, mantém o plano resolvido.
+ */
+export function effectivePlan(
+  rawPlan: string | null | undefined,
+  trialEndsAt: Date | string | null | undefined,
+  nowMs: number = Date.now(),
+): Plan {
+  if (trialActive(trialEndsAt, nowMs) && (rawPlan === "free" || rawPlan == null)) {
+    return PLANS.business;
+  }
+  return resolvePlan(rawPlan);
+}
+
 /** Formata o preço para exibição (R$). */
 export function formatPrice(priceBRL: number | null): string {
   if (priceBRL == null) return "Sob consulta";

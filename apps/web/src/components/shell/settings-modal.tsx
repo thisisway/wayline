@@ -13,7 +13,7 @@ import {
   type ChangePasswordResult,
 } from "@/actions/profile";
 import { subscriptionSummaryAction } from "@/actions/billing";
-import { formatPrice, resolvePlan } from "@/lib/plans";
+import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
 
 /**
  * Lê um arquivo de imagem, corta no centro e redimensiona para `size`×`size`,
@@ -97,7 +97,11 @@ export function SettingsModal({
   const [savingPwd, setSavingPwd] = React.useState(false);
   const [pwdMsg, setPwdMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
 
-  const [sub, setSub] = React.useState<{ plan: string; members: number } | null>(null);
+  const [sub, setSub] = React.useState<{
+    plan: string;
+    members: number;
+    trialEndsAt: string | null;
+  } | null>(null);
   React.useEffect(() => {
     subscriptionSummaryAction(orgId).then((s) => s && setSub(s));
   }, [orgId]);
@@ -355,25 +359,34 @@ export function SettingsModal({
           <Section title="Plano & cobrança">
             {sub &&
               (() => {
-                const plan = resolvePlan(sub.plan);
+                const onTrial = trialActive(sub.trialEndsAt);
+                const plan = effectivePlan(sub.plan, sub.trialEndsAt);
                 const price = plan.priceBRL;
                 const paid = price != null && price > 0;
                 const estimate = paid ? price * sub.members : 0;
+                const afterTrial = resolvePlan(sub.plan);
                 return (
                   <div className="mb-3 rounded-lg border border-border bg-canvas p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-ui font-semibold text-foreground">
+                      <span className="flex items-center gap-2 text-ui font-semibold text-foreground">
                         Plano {plan.name}
+                        {onTrial && (
+                          <span className="rounded-pill bg-brand/15 px-2 py-0.5 text-[10px] font-bold text-brand">
+                            TRIAL · {trialDaysLeft(sub.trialEndsAt)}d
+                          </span>
+                        )}
                       </span>
                       <span className="text-dense font-medium text-muted">
-                        {formatPrice(price)}
-                        {paid && <span className="text-subtle"> /usuário/mês</span>}
+                        {onTrial ? "Grátis" : formatPrice(price)}
+                        {!onTrial && paid && <span className="text-subtle"> /usuário/mês</span>}
                       </span>
                     </div>
                     <p className="mt-1 text-dense text-subtle">
-                      {paid
-                        ? `${sub.members} assento(s) · estimativa ~${formatPrice(estimate)}/mês`
-                        : "Faça upgrade para desbloquear Gantt, automações, Mind Map e mais."}
+                      {onTrial
+                        ? `Teste do Business grátis · depois vira ${afterTrial.name}. Assine para manter os recursos.`
+                        : paid
+                          ? `${sub.members} assento(s) · estimativa ~${formatPrice(estimate)}/mês`
+                          : "Faça upgrade para desbloquear Gantt, automações, Mind Map e mais."}
                     </p>
                   </div>
                 );

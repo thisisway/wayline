@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   acceptInvitation,
   createInvitation,
-  getOrgPlan,
+  getOrgBilling,
   getUserOrgs,
   getWorkspaceMembers,
   listInvitations,
@@ -16,14 +16,15 @@ import {
 import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { emailEnabled, sendInviteEmail } from "@/lib/email";
-import { resolvePlan } from "@/lib/plans";
+import { effectivePlan } from "@/lib/plans";
 
-/** Já atingiu o limite de membros do plano? (bloqueia novos convites) */
+/** Já atingiu o limite de membros do plano efetivo? (bloqueia novos convites) */
 async function atMemberLimit(orgId: string): Promise<boolean> {
-  const plan = resolvePlan(await getOrgPlan(orgId));
-  if (plan.limits.members === Infinity) return false;
+  const { plan, trialEndsAt } = await getOrgBilling(orgId);
+  const eff = effectivePlan(plan, trialEndsAt);
+  if (eff.limits.members === Infinity) return false;
   const members = await getWorkspaceMembers(orgId);
-  return members.length >= plan.limits.members;
+  return members.length >= eff.limits.members;
 }
 
 export async function listInvitesAction(orgId: string): Promise<InvitationDTO[]> {

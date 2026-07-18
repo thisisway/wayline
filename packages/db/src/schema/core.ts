@@ -17,6 +17,8 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").notNull().unique(),
   plan: text("plan").notNull().default("free"),
   region: text("region").notNull().default("sa-east-1"),
+  /** Fim do trial (Business grátis). Null = sem trial. Expiração é lazy. */
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   ...timestamps,
   ...softDelete,
 });

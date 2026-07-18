@@ -49,9 +49,11 @@ export async function createOrg(userId: string, name: string): Promise<string> {
     slug = `${base}-${i}`;
   }
 
+  // Trial de 14 dias com recursos Business (expiração lazy).
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
   const [org] = await db
     .insert(organizations)
-    .values({ name: name.trim(), slug, plan: "free" })
+    .values({ name: name.trim(), slug, plan: "free", trialEndsAt })
     .returning();
   if (!org) throw new Error("falha ao criar workspace");
 

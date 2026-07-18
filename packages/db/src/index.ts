@@ -197,7 +197,7 @@ export {
   type PageNode,
   type PageDoc,
 } from "./queries/pages";
-export { getOrgPlan, setOrgPlan } from "./queries/plan";
+export { getOrgPlan, getOrgBilling, setOrgPlan, type OrgBilling } from "./queries/plan";
 export {
   getPlatformOverview,
   getPlatformUsers,

@@ -1,10 +1,11 @@
 import "server-only";
-import { getOrgPlan } from "@wayline/db";
-import { resolvePlan, type PlanFlags } from "@/lib/plans";
+import { getOrgBilling } from "@wayline/db";
+import { effectivePlan, type PlanFlags } from "@/lib/plans";
 
-/** Flags de features do plano da org (resolve legado como Business). */
+/** Flags de features do plano EFETIVO da org (considera trial ativo). */
 export async function getOrgFlags(orgId: string): Promise<PlanFlags> {
-  return resolvePlan(await getOrgPlan(orgId)).flags;
+  const { plan, trialEndsAt } = await getOrgBilling(orgId);
+  return effectivePlan(plan, trialEndsAt).flags;
 }
 
 /** O plano da org libera esta feature? (defesa no servidor) */
