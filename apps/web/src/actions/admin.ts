@@ -1,6 +1,6 @@
 "use server";
 
-import { getPlatformOverview, setOrgPlan, type PlatformOverview } from "@wayline/db";
+import { getPlatformOverview, setOrgPlan, setOrgTrial, type PlatformOverview } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/authz";
 import { isKnownPlan } from "@/lib/plans";
@@ -17,4 +17,16 @@ export async function setOrgPlanAction(orgId: string, plan: string): Promise<boo
   await setOrgPlan(orgId, plan);
   revalidatePath("/admin");
   return true;
+}
+
+/** Superadmin define o trial: `days` a partir de agora, ou null para encerrar. */
+export async function setOrgTrialAction(
+  orgId: string,
+  days: number | null,
+): Promise<string | null> {
+  if (!(await isPlatformAdmin())) return null;
+  const ends = days && days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+  await setOrgTrial(orgId, ends);
+  revalidatePath("/admin");
+  return ends ? ends.toISOString() : null;
 }

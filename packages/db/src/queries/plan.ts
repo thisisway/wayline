@@ -26,3 +26,9 @@ export async function setOrgPlan(orgId: string, plan: string): Promise<void> {
   const db = getDb();
   await db.update(organizations).set({ plan }).where(eq(organizations.id, orgId));
 }
+
+/** Define/estende/encerra o trial da org (null = encerra). */
+export async function setOrgTrial(orgId: string, trialEndsAt: Date | null): Promise<void> {
+  const db = getDb();
+  await db.update(organizations).set({ trialEndsAt }).where(eq(organizations.id, orgId));
+}

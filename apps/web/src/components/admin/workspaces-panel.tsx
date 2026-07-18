@@ -3,8 +3,8 @@
 import * as React from "react";
 import type { AdminOrgRow } from "@wayline/db";
 import { cn } from "@wayline/ui";
-import { PLAN_ORDER, PLANS, resolvePlan, type PlanId } from "@/lib/plans";
-import { setOrgPlanAction } from "@/actions/admin";
+import { PLAN_ORDER, PLANS, resolvePlan, trialActive, trialDaysLeft, type PlanId } from "@/lib/plans";
+import { setOrgPlanAction, setOrgTrialAction } from "@/actions/admin";
 
 export function WorkspacesPanel({ orgs: initial }: { orgs: AdminOrgRow[] }) {
   const [orgs, setOrgs] = React.useState(initial);
@@ -14,6 +14,14 @@ export function WorkspacesPanel({ orgs: initial }: { orgs: AdminOrgRow[] }) {
     setSavingId(orgId);
     setOrgs((rows) => rows.map((o) => (o.id === orgId ? { ...o, plan } : o)));
     await setOrgPlanAction(orgId, plan).catch(() => undefined);
+    setSavingId(null);
+  }
+
+  async function changeTrial(orgId: string, days: number | null) {
+    setSavingId(orgId);
+    const iso = await setOrgTrialAction(orgId, days).catch(() => undefined);
+    const ends = iso ? new Date(iso) : null;
+    setOrgs((rows) => rows.map((o) => (o.id === orgId ? { ...o, trialEndsAt: ends } : o)));
     setSavingId(null);
   }
 
@@ -30,6 +38,7 @@ export function WorkspacesPanel({ orgs: initial }: { orgs: AdminOrgRow[] }) {
             <tr>
               <th className="px-4 py-3 font-medium">Workspace</th>
               <th className="px-4 py-3 font-medium">Plano</th>
+              <th className="px-4 py-3 font-medium">Trial</th>
               <th className="px-4 py-3 font-medium text-right">Membros</th>
               <th className="px-4 py-3 font-medium text-right">Tarefas</th>
               <th className="px-4 py-3 font-medium">Criado</th>
@@ -60,6 +69,32 @@ export function WorkspacesPanel({ orgs: initial }: { orgs: AdminOrgRow[] }) {
                   </select>
                   {!PLAN_ORDER.includes(o.plan as PlanId) && (
                     <span className="ml-2 text-[11px] text-subtle">(era “{o.plan}”)</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {trialActive(o.trialEndsAt) ? (
+                    <span className="flex items-center gap-2">
+                      <span className="rounded-pill bg-brand/15 px-2 py-0.5 text-[11px] font-semibold text-brand">
+                        {trialDaysLeft(o.trialEndsAt)}d
+                      </span>
+                      <button
+                        type="button"
+                        disabled={savingId === o.id}
+                        onClick={() => changeTrial(o.id, null)}
+                        className="text-[11px] font-medium text-subtle hover:text-danger disabled:opacity-50"
+                      >
+                        encerrar
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={savingId === o.id}
+                      onClick={() => changeTrial(o.id, 14)}
+                      className="rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground disabled:opacity-50"
+                    >
+                      + 14 dias
+                    </button>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-muted">{o.members}</td>

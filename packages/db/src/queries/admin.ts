@@ -7,6 +7,7 @@ export interface AdminOrgRow {
   name: string;
   slug: string;
   plan: string;
+  trialEndsAt: Date | null;
   createdAt: Date;
   members: number;
   tasks: number;
@@ -81,6 +82,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       name: o.name,
       slug: o.slug,
       plan: o.plan,
+      trialEndsAt: o.trialEndsAt ?? null,
       createdAt: o.createdAt,
       members: counts.members,
       tasks: counts.tasks,
