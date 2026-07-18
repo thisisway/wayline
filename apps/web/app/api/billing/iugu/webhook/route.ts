@@ -19,19 +19,22 @@ export async function POST(req: NextRequest) {
 
   let event = "";
   let subscriptionId: string | undefined;
+  let invoiceStatus: string | undefined;
   try {
     const form = await req.formData();
     event = String(form.get("event") ?? "");
-    // Iugu manda os dados como data[...]; a assinatura vem em data[id].
-    subscriptionId =
-      (form.get("data[subscription_id]") as string | null) ??
-      (form.get("data[id]") as string | null) ??
-      undefined;
+    const dataId = (form.get("data[id]") as string | null) ?? undefined;
+    const dataSub = (form.get("data[subscription_id]") as string | null) ?? undefined;
+    // subscription.*: data[id] é a assinatura. invoice.*: a assinatura vem em data[subscription_id].
+    subscriptionId = event.startsWith("subscription")
+      ? dataId ?? dataSub
+      : dataSub ?? dataId;
+    invoiceStatus = (form.get("data[status]") as string | null) ?? undefined;
   } catch {
     return NextResponse.json({ error: "bad payload" }, { status: 400 });
   }
 
-  const result = await iuguWebhook(event, subscriptionId);
+  const result = await iuguWebhook(event, subscriptionId, invoiceStatus);
   if (result.orgId && result.plan && isKnownPlan(result.plan)) {
     await setOrgPlan(result.orgId, result.plan).catch(() => undefined);
   }

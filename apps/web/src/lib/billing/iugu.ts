@@ -83,12 +83,36 @@ export async function iuguCheckout(input: CheckoutInput): Promise<string | null>
   }
 }
 
-/** Lê a assinatura para descobrir orgId/plan e o estado (ativa vs suspensa). */
+const ACTIVATE_EVENTS = ["subscription.activated", "subscription.renewed"];
+const DEACTIVATE_EVENTS = [
+  "subscription.suspended",
+  "subscription.expired",
+  "subscription.canceled",
+];
+
+/**
+ * Processa um evento de webhook da Iugu.
+ *
+ * Ativa o plano apenas quando há confirmação real de pagamento:
+ *  - `subscription.activated` / `subscription.renewed`, ou
+ *  - `invoice.status_changed` com status `paid`.
+ * Rebaixa para Free em suspensão/expiração/cancelamento.
+ * Outros eventos (ex.: `subscription.created`, fatura pendente) são ignorados —
+ * assim o plano não sobe antes do pagamento (importante p/ Pix/boleto).
+ */
 export async function iuguWebhook(
   event: string,
   subscriptionId: string | undefined,
+  invoiceStatus?: string,
 ): Promise<WebhookResult> {
   if (!iuguEnabled() || !subscriptionId) return { handled: false };
+
+  const deactivate = DEACTIVATE_EVENTS.includes(event);
+  const activate =
+    ACTIVATE_EVENTS.includes(event) ||
+    (event === "invoice.status_changed" && invoiceStatus === "paid");
+  if (!deactivate && !activate) return { handled: true }; // evento irrelevante
+
   try {
     const res = await fetch(`${BASE}/subscriptions/${subscriptionId}`, {
       headers: authHeaders(),
@@ -104,11 +128,9 @@ export async function iuguWebhook(
     const plan = vars.find((v) => v.name === "plan")?.value;
     if (!orgId) return { handled: true };
 
-    const inactive =
-      sub.suspended === true ||
-      Boolean(sub.expired_at) ||
-      ["subscription.suspended", "subscription.expired", "subscription.canceled"].includes(event);
-
+    // Segurança: mesmo num evento de ativação, se a assinatura está suspensa/
+    // expirada no momento da consulta, mantém em Free.
+    const inactive = deactivate || sub.suspended === true || Boolean(sub.expired_at);
     return { handled: true, orgId, plan: inactive ? "free" : plan ?? undefined };
   } catch {
     return { handled: false };
