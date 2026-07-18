@@ -7,11 +7,19 @@ export interface PlatformBranding {
   brandColor: string | null;
 }
 
-/** Marca da plataforma (logo + cor global). Retorna vazio se não configurada. */
+/**
+ * Marca da plataforma (logo + cor global). Retorna vazio se não configurada.
+ * Resiliente: se a tabela ainda não existir (migração 0028 pendente) ou o banco
+ * falhar, degrada para o padrão em vez de derrubar o app (é lida no layout raiz).
+ */
 export async function getPlatformSettings(): Promise<PlatformBranding> {
-  const db = getDb();
-  const row = await db.query.platformSettings.findFirst();
-  return { logoUrl: row?.logoUrl ?? null, brandColor: row?.brandColor ?? null };
+  try {
+    const db = getDb();
+    const row = await db.query.platformSettings.findFirst();
+    return { logoUrl: row?.logoUrl ?? null, brandColor: row?.brandColor ?? null };
+  } catch {
+    return { logoUrl: null, brandColor: null };
+  }
 }
 
 /** Grava a marca da plataforma (upsert do singleton). */
