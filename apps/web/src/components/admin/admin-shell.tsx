@@ -3,11 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Building2, LayoutDashboard, Settings, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  LayoutDashboard,
+  Settings,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { cn } from "@wayline/ui";
 
 const NAV = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
+  { href: "/admin/receita", label: "Receita", icon: TrendingUp },
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
   { href: "/admin/config", label: "Configurações", icon: Settings },
