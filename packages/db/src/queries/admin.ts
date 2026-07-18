@@ -21,6 +21,27 @@ export interface PlatformOverview {
   orgs: AdminOrgRow[];
 }
 
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: Date;
+}
+
+/** Todos os usuários da plataforma (users é global, sem RLS). */
+export async function getPlatformUsers(): Promise<AdminUserRow[]> {
+  const db = getDb();
+  const rows = await db.query.users.findMany({ orderBy: [asc(users.createdAt)] });
+  return rows.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    avatarUrl: u.avatarUrl,
+    createdAt: u.createdAt,
+  }));
+}
+
 /**
  * Visão da plataforma (todas as orgs) para o superadmin.
  * `organizations`/`users` são globais (sem RLS); contagens por org rodam via

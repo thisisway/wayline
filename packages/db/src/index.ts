@@ -200,8 +200,10 @@ export {
 export { getOrgPlan, setOrgPlan } from "./queries/plan";
 export {
   getPlatformOverview,
+  getPlatformUsers,
   type PlatformOverview,
   type AdminOrgRow,
+  type AdminUserRow,
 } from "./queries/admin";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
