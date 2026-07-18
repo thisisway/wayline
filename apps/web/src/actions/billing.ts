@@ -1,7 +1,7 @@
 "use server";
 
-import { getWorkspaceMembers } from "@wayline/db";
-import { assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
+import { getOrgPlan, getWorkspaceMembers } from "@wayline/db";
+import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { appUrl } from "@/lib/email";
 import { getUserProfile } from "@wayline/db";
 import {
@@ -14,6 +14,23 @@ import type { BillingCycle } from "@/lib/plans";
 
 export async function billingProvidersAction(): Promise<BillingProvider[]> {
   return enabledProviders();
+}
+
+export interface SubscriptionSummary {
+  plan: string;
+  members: number;
+}
+
+/** Resumo de assinatura da org (plano bruto + nº de assentos). */
+export async function subscriptionSummaryAction(
+  orgId: string,
+): Promise<SubscriptionSummary | null> {
+  if (!(await assertMember(orgId))) return null;
+  const [plan, members] = await Promise.all([
+    getOrgPlan(orgId),
+    getWorkspaceMembers(orgId),
+  ]);
+  return { plan, members: members.length };
 }
 
 export type CheckoutResult =

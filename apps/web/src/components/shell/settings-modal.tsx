@@ -12,6 +12,8 @@ import {
   updateProfileAction,
   type ChangePasswordResult,
 } from "@/actions/profile";
+import { subscriptionSummaryAction } from "@/actions/billing";
+import { formatPrice, resolvePlan } from "@/lib/plans";
 
 /**
  * Lê um arquivo de imagem, corta no centro e redimensiona para `size`×`size`,
@@ -63,12 +65,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function SettingsModal({
   userName,
   orgName,
+  orgId,
   onOpenShortcuts,
   onOpenPlans,
   onClose,
 }: {
   userName: string;
   orgName: string;
+  orgId: string;
   onOpenShortcuts: () => void;
   onOpenPlans: () => void;
   onClose: () => void;
@@ -92,6 +96,11 @@ export function SettingsModal({
   const [confirm, setConfirm] = React.useState("");
   const [savingPwd, setSavingPwd] = React.useState(false);
   const [pwdMsg, setPwdMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+
+  const [sub, setSub] = React.useState<{ plan: string; members: number } | null>(null);
+  React.useEffect(() => {
+    subscriptionSummaryAction(orgId).then((s) => s && setSub(s));
+  }, [orgId]);
 
   React.useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -344,6 +353,31 @@ export function SettingsModal({
 
           {/* Plano */}
           <Section title="Plano & cobrança">
+            {sub &&
+              (() => {
+                const plan = resolvePlan(sub.plan);
+                const price = plan.priceBRL;
+                const paid = price != null && price > 0;
+                const estimate = paid ? price * sub.members : 0;
+                return (
+                  <div className="mb-3 rounded-lg border border-border bg-canvas p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-ui font-semibold text-foreground">
+                        Plano {plan.name}
+                      </span>
+                      <span className="text-dense font-medium text-muted">
+                        {formatPrice(price)}
+                        {paid && <span className="text-subtle"> /usuário/mês</span>}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-dense text-subtle">
+                      {paid
+                        ? `${sub.members} assento(s) · estimativa ~${formatPrice(estimate)}/mês`
+                        : "Faça upgrade para desbloquear Gantt, automações, Mind Map e mais."}
+                    </p>
+                  </div>
+                );
+              })()}
             <button
               type="button"
               onClick={() => {

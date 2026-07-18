@@ -240,6 +240,7 @@ export function AppView({
         <SettingsModal
           userName={userName}
           orgName={orgName}
+          orgId={activeOrgId}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenPlans={() => setPlansOpen(true)}
           onClose={() => setSettingsOpen(false)}
