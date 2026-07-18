@@ -184,12 +184,8 @@ function WorkspaceSwitcher({
         disabled={pending}
         className="flex items-center gap-2 rounded-md px-2 h-9 transition-colors hover:bg-elevated"
       >
-        <span className="flex size-6 items-center justify-center overflow-hidden rounded-md bg-brand font-display text-dense font-bold text-white">
-          {active.logoUrl ? (
-            <img src={active.logoUrl} alt="" className="size-full object-contain" />
-          ) : (
-            active.name[0]
-          )}
+        <span className="flex size-6 items-center justify-center rounded-md bg-brand font-display text-dense font-bold text-white">
+          {active.name[0]}
         </span>
         <span className="text-ui font-semibold">{active.name}</span>
         <Badge variant="brand" size="sm">

@@ -11,6 +11,17 @@ import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "
  * garantindo isolamento no próprio banco (defesa em profundidade).
  */
 
+/**
+ * MARCA DA PLATAFORMA (global, singleton). Logo e cor de destaque do SISTEMA
+ * inteiro — controlado só pelo superadmin em /admin. Sem RLS (config global).
+ */
+export const platformSettings = pgTable("platform_settings", {
+  id: text("id").primaryKey().default("singleton"),
+  logoUrl: text("logo_url"),
+  brandColor: text("brand_color"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 export const organizations = pgTable("organizations", {
   id: idColumn(),
   name: text("name").notNull(),

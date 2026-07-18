@@ -13,36 +13,7 @@ import {
   type ChangePasswordResult,
 } from "@/actions/profile";
 import { subscriptionSummaryAction } from "@/actions/billing";
-import { updateBrandingAction } from "@/actions/branding";
 import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
-
-const BRAND_SWATCHES = ["#1D66FF", "#7C5CFF", "#17C86A", "#FF3B30", "#FFB800", "#0EA5E9", "#EC4899"];
-
-/** Redimensiona uma imagem preservando o aspecto (PNG, p/ manter transparência). */
-function fileToImageDataUrl(file: File, max = 256): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("read"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("decode"));
-      img.onload = () => {
-        const scale = Math.min(1, max / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("ctx"));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/png"));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 /**
  * Lê um arquivo de imagem, corta no centro e redimensiona para `size`×`size`,
@@ -95,10 +66,6 @@ export function SettingsModal({
   userName,
   orgName,
   orgId,
-  isAdmin,
-  brandingAllowed,
-  brandColor,
-  logoUrl,
   onOpenShortcuts,
   onOpenPlans,
   onClose,
@@ -106,10 +73,6 @@ export function SettingsModal({
   userName: string;
   orgName: string;
   orgId: string;
-  isAdmin: boolean;
-  brandingAllowed: boolean;
-  brandColor: string | null;
-  logoUrl: string | null;
   onOpenShortcuts: () => void;
   onOpenPlans: () => void;
   onClose: () => void;
@@ -142,50 +105,6 @@ export function SettingsModal({
   React.useEffect(() => {
     subscriptionSummaryAction(orgId).then((s) => s && setSub(s));
   }, [orgId]);
-
-  // Marca (Business+)
-  const [logo, setLogo] = React.useState(logoUrl ?? "");
-  const [color, setColor] = React.useState(brandColor ?? "");
-  const [savingBrand, setSavingBrand] = React.useState(false);
-  const [brandMsg, setBrandMsg] = React.useState<string | null>(null);
-  const logoRef = React.useRef<HTMLInputElement>(null);
-
-  async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
-      setBrandMsg("Selecione uma imagem (máx. 10MB).");
-      return;
-    }
-    try {
-      setBrandMsg(null);
-      setLogo(await fileToImageDataUrl(file));
-    } catch {
-      setBrandMsg("Não foi possível processar a imagem.");
-    }
-  }
-
-  async function saveBranding() {
-    if (savingBrand) return;
-    setSavingBrand(true);
-    setBrandMsg(null);
-    const res = await updateBrandingAction(orgId, {
-      logoUrl: logo || null,
-      brandColor: color || null,
-    }).catch(() => "error" as const);
-    setSavingBrand(false);
-    if (res === "ok") {
-      setBrandMsg("Marca salva.");
-      router.refresh();
-    } else if (res === "invalid") {
-      setBrandMsg("Cor inválida — use um hex como #1D66FF.");
-    } else if (res === "locked") {
-      setBrandMsg("Marca personalizada é um recurso do plano Business.");
-    } else {
-      setBrandMsg("Não foi possível salvar.");
-    }
-  }
 
   React.useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -483,114 +402,6 @@ export function SettingsModal({
               <Sparkles className="size-4" /> Ver planos & fazer upgrade
             </button>
           </Section>
-
-          {/* Marca (Business+) — só admin+ */}
-          {isAdmin && (
-            <Section title="Marca do workspace">
-              {!brandingAllowed ? (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-canvas px-3 py-3">
-                  <p className="text-dense text-muted">
-                    Logo e cor personalizados fazem parte do plano{" "}
-                    <strong className="text-foreground">Business</strong>.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenPlans();
-                    }}
-                    className="shrink-0 rounded-md bg-brand px-3 h-8 text-dense font-medium text-white hover:bg-brand-80"
-                  >
-                    Ver planos
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Logo */}
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand font-display font-extrabold text-white">
-                      {logo ? (
-                        <img src={logo} alt="Logo" className="size-full object-contain" />
-                      ) : (
-                        (orgName[0] ?? "W").toUpperCase()
-                      )}
-                    </span>
-                    <input
-                      ref={logoRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={onPickLogo}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => logoRef.current?.click()}
-                      className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-8 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
-                    >
-                      <Upload className="size-3.5" /> Enviar logo
-                    </button>
-                    {logo && (
-                      <button
-                        type="button"
-                        onClick={() => setLogo("")}
-                        className="text-[11px] font-medium text-subtle transition-colors hover:text-danger"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Cor */}
-                  <div>
-                    <label className="text-dense font-medium text-muted">Cor da marca</label>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      {BRAND_SWATCHES.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setColor(c)}
-                          aria-label={c}
-                          className={cn(
-                            "size-6 rounded-full border-2 transition-transform hover:scale-110",
-                            color.toLowerCase() === c.toLowerCase()
-                              ? "border-foreground"
-                              : "border-transparent",
-                          )}
-                          style={{ backgroundColor: c }}
-                        />
-                      ))}
-                      <Input
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        placeholder="#1D66FF"
-                        className="h-8 w-28"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Button onClick={saveBranding} disabled={savingBrand}>
-                      {savingBrand ? "Salvando…" : "Salvar marca"}
-                    </Button>
-                    {brandMsg && (
-                      <span
-                        className={cn(
-                          "text-dense",
-                          brandMsg === "Marca salva." ? "text-success" : "text-muted",
-                        )}
-                      >
-                        {brandMsg}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-subtle">
-                    A cor personaliza botões e destaques do app. O logo aparece na barra lateral e
-                    no seletor de workspace.
-                  </p>
-                </div>
-              )}
-            </Section>
-          )}
 
           {/* Atalhos */}
           <Section title="Ajuda">

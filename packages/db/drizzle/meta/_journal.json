@@ -197,6 +197,13 @@
       "when": 1784381832037,
       "tag": "0027_uneven_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1784387716048,
+      "tag": "0028_whole_lady_vermin",
+      "breakpoints": true
     }
   ]
 }

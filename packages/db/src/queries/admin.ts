@@ -1,6 +1,35 @@
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import { getDb, withOrg } from "../client";
-import { memberships, organizations, tasks, users } from "../schema";
+import { memberships, organizations, platformSettings, tasks, users } from "../schema";
+
+export interface PlatformBranding {
+  logoUrl: string | null;
+  brandColor: string | null;
+}
+
+/** Marca da plataforma (logo + cor global). Retorna vazio se não configurada. */
+export async function getPlatformSettings(): Promise<PlatformBranding> {
+  const db = getDb();
+  const row = await db.query.platformSettings.findFirst();
+  return { logoUrl: row?.logoUrl ?? null, brandColor: row?.brandColor ?? null };
+}
+
+/** Grava a marca da plataforma (upsert do singleton). */
+export async function setPlatformSettings(patch: PlatformBranding): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(platformSettings)
+    .values({
+      id: "singleton",
+      logoUrl: patch.logoUrl,
+      brandColor: patch.brandColor,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: platformSettings.id,
+      set: { logoUrl: patch.logoUrl, brandColor: patch.brandColor, updatedAt: new Date() },
+    });
+}
 
 export interface AdminOrgRow {
   id: string;

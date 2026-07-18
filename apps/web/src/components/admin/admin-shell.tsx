@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Building2,
   LayoutDashboard,
+  Palette,
   Settings,
   TrendingUp,
   Users,
@@ -18,14 +19,17 @@ const NAV = [
   { href: "/admin/receita", label: "Receita", icon: TrendingUp },
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
+  { href: "/admin/marca", label: "Marca", icon: Palette },
   { href: "/admin/config", label: "Configurações", icon: Settings },
 ];
 
 export function AdminShell({
   adminEmail,
+  logoUrl,
   children,
 }: {
   adminEmail: string;
+  logoUrl?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -35,8 +39,8 @@ export function AdminShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-surface px-6">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white">
-          W
+        <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-brand font-display text-h3 font-extrabold text-white">
+          {logoUrl ? <img src={logoUrl} alt="Logo" className="size-full object-contain" /> : "W"}
         </span>
         <div className="flex-1">
           <h1 className="font-display text-ui font-bold leading-none">Admin da Plataforma</h1>

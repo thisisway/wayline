@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUserProfile } from "@wayline/db";
+import { getPlatformSettings, getUserProfile } from "@wayline/db";
 import { auth } from "@/auth";
 import { isPlatformAdmin } from "@/lib/authz";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -16,5 +16,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     return <NoAccess email={email} />;
   }
 
-  return <AdminShell adminEmail={session.user.email ?? ""}>{children}</AdminShell>;
+  const platform = await getPlatformSettings();
+  return (
+    <AdminShell adminEmail={session.user.email ?? ""} logoUrl={platform.logoUrl}>
+      {children}
+    </AdminShell>
+  );
 }

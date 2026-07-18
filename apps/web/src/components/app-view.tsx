@@ -50,7 +50,6 @@ import {
 } from "@/lib/board-filter";
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 import type { PlanFlags } from "@/lib/plans";
-import { hexToRgbTriple } from "@/lib/color";
 import { Lock } from "lucide-react";
 
 export function AppView({
@@ -71,8 +70,7 @@ export function AppView({
   isPlatformAdmin = false,
   planFlags,
   trialDaysLeft = 0,
-  brandColor,
-  logoUrl,
+  platformLogo,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -92,8 +90,7 @@ export function AppView({
   isPlatformAdmin?: boolean;
   planFlags: PlanFlags;
   trialDaysLeft?: number;
-  brandColor?: string | null;
-  logoUrl?: string | null;
+  platformLogo?: string | null;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -185,15 +182,10 @@ export function AppView({
     downloadCsv(`wayline-${safe}.csv`, boardToCsv(filtered));
   }
 
-  const brandTriple = hexToRgbTriple(brandColor);
-  const brandStyle = brandTriple
-    ? ({ "--wc-brand": brandTriple } as React.CSSProperties)
-    : undefined;
-
   return (
-    <div className="flex h-dvh overflow-hidden bg-canvas text-foreground" style={brandStyle}>
+    <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail
-        logoUrl={logoUrl}
+        logoUrl={platformLogo}
         activeView={view}
         inboxUnread={inbox.unread}
         onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}
@@ -255,10 +247,6 @@ export function AppView({
           userName={userName}
           orgName={orgName}
           orgId={activeOrgId}
-          isAdmin={isAdmin}
-          brandingAllowed={planFlags.branding}
-          brandColor={brandColor ?? null}
-          logoUrl={logoUrl ?? null}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenPlans={() => setPlansOpen(true)}
           onClose={() => setSettingsOpen(false)}

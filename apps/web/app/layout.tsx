@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { getPlatformSettings } from "@wayline/db";
 import { THEME_COOKIE } from "@/lib/constants";
+import { hexToRgbTriple } from "@/lib/color";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -31,12 +33,24 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // dark-first: sem cookie → dark. Lê no server p/ não piscar no primeiro paint.
   const light = (await cookies()).get(THEME_COOKIE)?.value === "light";
+
+  // Marca global da plataforma (cor de destaque). Degrada p/ Way Blue se falhar.
+  let brandTriple: string | null = null;
+  try {
+    brandTriple = hexToRgbTriple((await getPlatformSettings()).brandColor);
+  } catch {
+    brandTriple = null;
+  }
+  const brandStyle = brandTriple
+    ? ({ "--wc-brand": brandTriple } as React.CSSProperties)
+    : undefined;
+
   return (
     <html
       lang="pt-BR"
       className={`${light ? "" : "dark"} ${inter.variable} ${jakarta.variable}`}
     >
-      <body>
+      <body style={brandStyle}>
         <Providers>{children}</Providers>
       </body>
     </html>

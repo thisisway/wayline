@@ -6,6 +6,7 @@ import {
   getMyReplies,
   getMyTasks,
   getNotifications,
+  getPlatformSettings,
   getUserOrgs,
   getUserProfile,
   getWorkspaceNav,
@@ -40,6 +41,7 @@ export default async function AppPage({
   // Avatar vem do banco (não do JWT): reflete edições sem exigir novo login.
   const profile = await getUserProfile(session.user.id);
   const platformAdmin = await isPlatformAdmin();
+  const platform = await getPlatformSettings();
 
   const store = await cookies();
 
@@ -89,8 +91,7 @@ export default async function AppPage({
       isPlatformAdmin={platformAdmin}
       planFlags={effectivePlan(activeOrg.plan, activeOrg.trialEndsAt).flags}
       trialDaysLeft={trialDaysLeft(activeOrg.trialEndsAt)}
-      brandColor={activeOrg.brandColor}
-      logoUrl={activeOrg.logoUrl}
+      platformLogo={platform.logoUrl}
       focusTaskId={focusTaskId}
     />
   );

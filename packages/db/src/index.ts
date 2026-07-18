@@ -208,9 +208,12 @@ export {
 export {
   getPlatformOverview,
   getPlatformUsers,
+  getPlatformSettings,
+  setPlatformSettings,
   type PlatformOverview,
   type AdminOrgRow,
   type AdminUserRow,
+  type PlatformBranding,
 } from "./queries/admin";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
