@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@wayline/ui";
+import { BrandLogo } from "@/components/shell/brand-logo";
 
 const NAV = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
@@ -25,11 +26,13 @@ const NAV = [
 
 export function AdminShell({
   adminEmail,
-  logoUrl,
+  logoLight,
+  logoDark,
   children,
 }: {
   adminEmail: string;
-  logoUrl?: string | null;
+  logoLight?: string | null;
+  logoDark?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -40,7 +43,7 @@ export function AdminShell({
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-surface px-6">
         <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-brand font-display text-h3 font-extrabold text-white">
-          {logoUrl ? <img src={logoUrl} alt="Logo" className="size-full object-contain" /> : "W"}
+          <BrandLogo light={logoLight} dark={logoDark} fallback="W" />
         </span>
         <div className="flex-1">
           <h1 className="font-display text-ui font-bold leading-none">Admin da Plataforma</h1>

@@ -71,6 +71,7 @@ export function AppView({
   planFlags,
   trialDaysLeft = 0,
   platformLogo,
+  platformLogoDark,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -91,6 +92,7 @@ export function AppView({
   planFlags: PlanFlags;
   trialDaysLeft?: number;
   platformLogo?: string | null;
+  platformLogoDark?: string | null;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -185,7 +187,8 @@ export function AppView({
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail
-        logoUrl={platformLogo}
+        logoLight={platformLogo}
+        logoDark={platformLogoDark}
         activeView={view}
         inboxUnread={inbox.unread}
         onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}

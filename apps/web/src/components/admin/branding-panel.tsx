@@ -10,7 +10,7 @@ import { setPlatformBrandingAction } from "@/actions/admin";
 const SWATCHES = ["#1D66FF", "#7C5CFF", "#17C86A", "#FF3B30", "#FFB800", "#0EA5E9", "#EC4899", "#0B1023"];
 
 /** Redimensiona a imagem preservando o aspecto (PNG, mantém transparência). */
-function fileToImageDataUrl(file: File, max = 256): Promise<string> {
+function fileToImageDataUrl(file: File, max = 320): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("read"));
@@ -35,36 +35,94 @@ function fileToImageDataUrl(file: File, max = 256): Promise<string> {
   });
 }
 
-export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
-  const router = useRouter();
-  const [logo, setLogo] = React.useState(initial.logoUrl ?? "");
-  const [color, setColor] = React.useState(initial.brandColor ?? "");
-  const [saving, setSaving] = React.useState(false);
-  const [msg, setMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
-  const fileRef = React.useRef<HTMLInputElement>(null);
-
+/** Um slot de upload de logo, com preview no fundo do tema correspondente. */
+function LogoSlot({
+  label,
+  hint,
+  value,
+  dark,
+  onChange,
+  onError,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  dark: boolean;
+  onChange: (v: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const ref = React.useRef<HTMLInputElement>(null);
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
-      setMsg({ text: "Selecione uma imagem (máx. 10MB).", ok: false });
+      onError("Selecione uma imagem (máx. 10MB).");
       return;
     }
     try {
-      setMsg(null);
-      setLogo(await fileToImageDataUrl(file));
+      onChange(await fileToImageDataUrl(file));
     } catch {
-      setMsg({ text: "Não foi possível processar a imagem.", ok: false });
+      onError("Não foi possível processar a imagem.");
     }
   }
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-dense font-medium text-foreground">{label}</p>
+      <p className="mb-2 text-[11px] text-subtle">{hint}</p>
+      {/* Preview no fundo do tema */}
+      <div
+        className={cn(
+          "mb-2 flex h-16 items-center justify-center rounded-md border",
+          dark ? "border-white/10 bg-[#0B1023]" : "border-black/10 bg-[#F7F9FC]",
+        )}
+      >
+        {value ? (
+          <img src={value} alt="" className="max-h-10 max-w-[80%] object-contain" />
+        ) : (
+          <span className={cn("text-dense", dark ? "text-white/50" : "text-black/40")}>
+            sem logo
+          </span>
+        )}
+      </div>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={onPick} />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => ref.current?.click()}
+          className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-8 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+        >
+          <Upload className="size-3.5" /> Enviar
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[11px] font-medium text-subtle transition-colors hover:text-danger"
+          >
+            Remover
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
+  const router = useRouter();
+  const [logoLight, setLogoLight] = React.useState(initial.logoUrl ?? "");
+  const [logoDark, setLogoDark] = React.useState(initial.logoUrlDark ?? "");
+  const [color, setColor] = React.useState(initial.brandColor ?? "");
+  const [saving, setSaving] = React.useState(false);
+  const [msg, setMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
 
   async function save() {
     if (saving) return;
     setSaving(true);
     setMsg(null);
     const res = await setPlatformBrandingAction({
-      logoUrl: logo || null,
+      logoUrl: logoLight || null,
+      logoUrlDark: logoDark || null,
       brandColor: color || null,
     }).catch(() => "error" as const);
     setSaving(false);
@@ -78,47 +136,39 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
     }
   }
 
-  const previewStyle = color
-    ? ({ backgroundColor: color } as React.CSSProperties)
-    : { backgroundColor: "#1D66FF" };
-
   return (
     <div className="max-w-2xl">
       <h2 className="mb-1 font-display text-h2 font-bold">Marca da plataforma</h2>
       <p className="mb-6 text-dense text-muted">
-        Logo e cor de destaque de <strong>todo o sistema</strong> (barra lateral, botões,
-        destaques). Aplica-se a todos os workspaces.
+        Logotipo e cor de destaque de <strong>todo o sistema</strong>. O logo troca
+        automaticamente conforme o tema (claro/escuro) do usuário.
       </p>
 
       <div className="space-y-6 rounded-xl border border-border bg-surface p-5">
-        {/* Logo */}
+        {/* Logos claro/escuro */}
         <div>
           <label className="text-label uppercase text-subtle">Logotipo</label>
-          <div className="mt-2 flex items-center gap-3">
-            <span
-              className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg font-display text-h3 font-extrabold text-white"
-              style={previewStyle}
-            >
-              {logo ? (
-                <img src={logo} alt="Logo" className="size-full object-contain" />
-              ) : (
-                "W"
-              )}
-            </span>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-            <Button variant="secondary" onClick={() => fileRef.current?.click()}>
-              <Upload className="size-4" /> Enviar logo
-            </Button>
-            {logo && (
-              <button
-                type="button"
-                onClick={() => setLogo("")}
-                className="text-dense font-medium text-subtle transition-colors hover:text-danger"
-              >
-                Remover
-              </button>
-            )}
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <LogoSlot
+              label="Tema claro"
+              hint="Para fundos claros (logo escuro/colorido)"
+              value={logoLight}
+              dark={false}
+              onChange={setLogoLight}
+              onError={(t) => setMsg({ text: t, ok: false })}
+            />
+            <LogoSlot
+              label="Tema escuro"
+              hint="Para fundos escuros (logo claro/branco)"
+              value={logoDark}
+              dark
+              onChange={setLogoDark}
+              onError={(t) => setMsg({ text: t, ok: false })}
+            />
           </div>
+          <p className="mt-1.5 text-[11px] text-subtle">
+            Se preencher só um, ele é usado nos dois temas.
+          </p>
         </div>
 
         {/* Cor */}
@@ -160,7 +210,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
       </div>
 
       <p className="mt-4 text-[11px] text-subtle">
-        Deixe vazio para voltar ao padrão Wayline (Way Blue + logo “W”).
+        Deixe tudo vazio para voltar ao padrão Wayline (Way Blue + logo “W”).
       </p>
     </div>
   );

@@ -27,15 +27,20 @@ export async function setOrgPlanAction(orgId: string, plan: string): Promise<boo
 
 export type SaveBrandingResult = "ok" | "forbidden" | "invalid";
 
-/** Superadmin define a MARCA da plataforma (logo global + cor). */
+/** Superadmin define a MARCA da plataforma (logos claro/escuro + cor). */
 export async function setPlatformBrandingAction(patch: {
   logoUrl?: string | null;
+  logoUrlDark?: string | null;
   brandColor?: string | null;
 }): Promise<SaveBrandingResult> {
   if (!(await isPlatformAdmin())) return "forbidden";
   const color = patch.brandColor?.trim() || null;
   if (color && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) return "invalid";
-  await setPlatformSettings({ logoUrl: patch.logoUrl ?? null, brandColor: color });
+  await setPlatformSettings({
+    logoUrl: patch.logoUrl ?? null,
+    logoUrlDark: patch.logoUrlDark ?? null,
+    brandColor: color,
+  });
   revalidatePath("/", "layout"); // marca é global
   return "ok";
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input } from "@wayline/ui";
+import { BrandLogo } from "@/components/shell/brand-logo";
 
 /** Destino pós-login: usa ?next=/… se for um caminho interno seguro. */
 export function safeNext(): string {
@@ -13,7 +14,13 @@ export function safeNext(): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/app";
 }
 
-export function LoginForm() {
+export function LoginForm({
+  logoLight,
+  logoDark,
+}: {
+  logoLight?: string | null;
+  logoDark?: string | null;
+} = {}) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -43,8 +50,8 @@ export function LoginForm() {
     <div className="flex min-h-dvh items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-brand font-display text-h2 font-extrabold text-white shadow-xl">
-            W
+          <div className="flex size-12 items-center justify-center overflow-hidden rounded-xl bg-brand font-display text-h2 font-extrabold text-white shadow-xl">
+            <BrandLogo light={logoLight} dark={logoDark} fallback="W" />
           </div>
           <div>
             <h1 className="font-display text-h2 font-bold">Entrar no Wayline</h1>

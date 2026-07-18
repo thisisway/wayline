@@ -18,7 +18,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const platform = await getPlatformSettings();
   return (
-    <AdminShell adminEmail={session.user.email ?? ""} logoUrl={platform.logoUrl}>
+    <AdminShell
+      adminEmail={session.user.email ?? ""}
+      logoLight={platform.logoUrl}
+      logoDark={platform.logoUrlDark}
+    >
       {children}
     </AdminShell>
   );

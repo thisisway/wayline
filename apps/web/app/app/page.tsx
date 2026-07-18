@@ -92,6 +92,7 @@ export default async function AppPage({
       planFlags={effectivePlan(activeOrg.plan, activeOrg.trialEndsAt).flags}
       trialDaysLeft={trialDaysLeft(activeOrg.trialEndsAt)}
       platformLogo={platform.logoUrl}
+      platformLogoDark={platform.logoUrlDark}
       focusTaskId={focusTaskId}
     />
   );

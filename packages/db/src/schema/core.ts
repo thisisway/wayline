@@ -17,7 +17,10 @@ import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "
  */
 export const platformSettings = pgTable("platform_settings", {
   id: text("id").primaryKey().default("singleton"),
+  /** Logo para tema claro (fundo claro). */
   logoUrl: text("logo_url"),
+  /** Logo para tema escuro (fundo escuro). */
+  logoUrlDark: text("logo_url_dark"),
   brandColor: text("brand_color"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
