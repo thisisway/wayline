@@ -20,11 +20,27 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Wayline — Work OS para agências",
-  description:
-    "Sistema operacional de trabalho nativo para agências de marketing digital.",
-};
+// Favicon padrão (marca Wayline) como data URL — usado quando não há custom.
+const DEFAULT_FAVICON =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1D66FF"/><polyline points="14,18 22,47 32,31 42,47 50,18" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  );
+
+export async function generateMetadata(): Promise<Metadata> {
+  let favicon = DEFAULT_FAVICON;
+  try {
+    const p = await getPlatformSettings();
+    if (p.faviconUrl) favicon = p.faviconUrl;
+  } catch {
+    /* mantém o padrão */
+  }
+  return {
+    title: "Wayline — Work OS para agências",
+    description: "Sistema operacional de trabalho nativo para agências de marketing digital.",
+    icons: { icon: [{ url: favicon }] },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0B1023",

@@ -112,9 +112,26 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
   const router = useRouter();
   const [logoLight, setLogoLight] = React.useState(initial.logoUrl ?? "");
   const [logoDark, setLogoDark] = React.useState(initial.logoUrlDark ?? "");
+  const [favicon, setFavicon] = React.useState(initial.faviconUrl ?? "");
   const [color, setColor] = React.useState(initial.brandColor ?? "");
   const [saving, setSaving] = React.useState(false);
   const [msg, setMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+  const faviconRef = React.useRef<HTMLInputElement>(null);
+
+  async function onPickFavicon(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setMsg({ text: "Selecione uma imagem (máx. 5MB).", ok: false });
+      return;
+    }
+    try {
+      setFavicon(await fileToImageDataUrl(file, 64));
+    } catch {
+      setMsg({ text: "Não foi possível processar o favicon.", ok: false });
+    }
+  }
 
   async function save() {
     if (saving) return;
@@ -123,6 +140,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
     const res = await setPlatformBrandingAction({
       logoUrl: logoLight || null,
       logoUrlDark: logoDark || null,
+      faviconUrl: favicon || null,
       brandColor: color || null,
     }).catch(() => "error" as const);
     setSaving(false);
@@ -194,6 +212,44 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
               placeholder="#1D66FF"
               className="h-9 w-32"
             />
+          </div>
+        </div>
+
+        {/* Favicon */}
+        <div>
+          <label className="text-label uppercase text-subtle">Favicon</label>
+          <p className="mb-2 text-[11px] text-subtle">Ícone da aba do navegador (quadrado).</p>
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-canvas">
+              {favicon ? (
+                <img src={favicon} alt="Favicon" className="size-full object-contain" />
+              ) : (
+                <span className="text-[10px] text-subtle">—</span>
+              )}
+            </span>
+            <input
+              ref={faviconRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickFavicon}
+            />
+            <button
+              type="button"
+              onClick={() => faviconRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-8 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+            >
+              <Upload className="size-3.5" /> Enviar favicon
+            </button>
+            {favicon && (
+              <button
+                type="button"
+                onClick={() => setFavicon("")}
+                className="text-[11px] font-medium text-subtle transition-colors hover:text-danger"
+              >
+                Remover
+              </button>
+            )}
           </div>
         </div>
 

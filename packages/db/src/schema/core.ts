@@ -21,6 +21,8 @@ export const platformSettings = pgTable("platform_settings", {
   logoUrl: text("logo_url"),
   /** Logo para tema escuro (fundo escuro). */
   logoUrlDark: text("logo_url_dark"),
+  /** Favicon (ícone da aba do navegador). */
+  faviconUrl: text("favicon_url"),
   brandColor: text("brand_color"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });

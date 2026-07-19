@@ -211,6 +211,13 @@
       "when": 1784391286424,
       "tag": "0029_married_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1784467234085,
+      "tag": "0030_tired_silhouette",
+      "breakpoints": true
     }
   ]
 }

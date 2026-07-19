@@ -31,6 +31,7 @@ export type SaveBrandingResult = "ok" | "forbidden" | "invalid";
 export async function setPlatformBrandingAction(patch: {
   logoUrl?: string | null;
   logoUrlDark?: string | null;
+  faviconUrl?: string | null;
   brandColor?: string | null;
 }): Promise<SaveBrandingResult> {
   if (!(await isPlatformAdmin())) return "forbidden";
@@ -39,6 +40,7 @@ export async function setPlatformBrandingAction(patch: {
   await setPlatformSettings({
     logoUrl: patch.logoUrl ?? null,
     logoUrlDark: patch.logoUrlDark ?? null,
+    faviconUrl: patch.faviconUrl ?? null,
     brandColor: color,
   });
   revalidatePath("/", "layout"); // marca é global
