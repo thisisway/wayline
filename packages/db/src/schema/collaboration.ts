@@ -11,7 +11,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { organizations, users } from "./core";
+import { clients, organizations, users } from "./core";
 import { lists, statuses, tasks } from "./hierarchy";
 import { idColumn, softDelete, timestamps } from "./_shared";
 
@@ -353,6 +353,66 @@ export const automations = pgTable(
     index("automations_org_idx").on(t.orgId),
   ],
 );
+
+/**
+ * PROPOSTAS comerciais. SEM RLS (como `invitations`/`board_shares`): o `token`
+ * é o segredo do link público, e as buscas internas filtram por `org_id`
+ * explicitamente (guardadas por assertMember/assertRole nas actions).
+ */
+export const proposals = pgTable(
+  "proposals",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    title: text("title").notNull().default("Proposta"),
+    intro: text("intro").notNull().default(""),
+    /** draft | sent | accepted | rejected */
+    status: text("status").notNull().default("draft"),
+    token: text("token").notNull().unique(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    /** Nome de quem aceitou/recusou pelo link público. */
+    decidedByName: text("decided_by_name"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("proposals_org_idx").on(t.orgId), index("proposals_token_idx").on(t.token)],
+);
+
+/** Itens (linhas) da proposta. Valor em centavos. */
+export const proposalItems = pgTable(
+  "proposal_items",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    proposalId: uuid("proposal_id")
+      .notNull()
+      .references(() => proposals.id, { onDelete: "cascade" }),
+    description: text("description").notNull().default(""),
+    amountCents: integer("amount_cents").notNull().default(0),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("proposal_items_proposal_idx").on(t.proposalId)],
+);
+
+export const proposalsRelations = relations(proposals, ({ one, many }) => ({
+  client: one(clients, { fields: [proposals.clientId], references: [clients.id] }),
+  organization: one(organizations, {
+    fields: [proposals.orgId],
+    references: [organizations.id],
+  }),
+  items: many(proposalItems),
+}));
+
+export const proposalItemsRelations = relations(proposalItems, ({ one }) => ({
+  proposal: one(proposals, { fields: [proposalItems.proposalId], references: [proposals.id] }),
+}));
 
 /**
  * COMPARTILHAMENTO de board por link público (read-only). SEM RLS (como

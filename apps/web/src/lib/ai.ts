@@ -98,6 +98,40 @@ function parseStringArray(raw: string): string[] {
   }
 }
 
+/** Rascunho de proposta comercial (intro + itens de escopo com preços) via IA. */
+export async function draftProposal(
+  briefing: string,
+): Promise<{ intro: string; items: Array<{ description: string; amountCents: number }> } | null> {
+  const system =
+    "Você é um consultor comercial de uma agência de marketing no Brasil. A partir de um " +
+    "briefing, gere uma proposta comercial em português. Responda APENAS um JSON válido no " +
+    'formato {"intro": string (2 a 4 frases), "items": [{"description": string, "amount": number}]}, ' +
+    "com 3 a 6 itens de escopo e preços realistas em reais (campo amount em R$, número).";
+  const raw = await complete(system, briefing.slice(0, 2000), 800);
+  if (!raw) return null;
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const obj = JSON.parse(match[0]) as {
+      intro?: unknown;
+      items?: Array<{ description?: unknown; amount?: unknown }>;
+    };
+    const intro = typeof obj.intro === "string" ? obj.intro.trim() : "";
+    const items = Array.isArray(obj.items)
+      ? obj.items
+          .slice(0, 8)
+          .map((it) => ({
+            description: String(it.description ?? "").trim(),
+            amountCents: Math.max(0, Math.round(Number(it.amount ?? 0) * 100)),
+          }))
+          .filter((it) => it.description)
+      : [];
+    return { intro, items };
+  } catch {
+    return null;
+  }
+}
+
 /** Gera um brief de projeto (seções Objetivo/Público/Entregáveis/Riscos). */
 export async function generateBrief(
   listName: string,

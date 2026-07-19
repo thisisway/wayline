@@ -206,6 +206,21 @@ export {
   type OrgBilling,
 } from "./queries/plan";
 export {
+  listProposals,
+  getProposal,
+  createProposal,
+  updateProposal,
+  deleteProposal,
+  getProposalByToken,
+  decideProposal,
+  listClientOptions,
+  type ProposalListItem,
+  type ProposalDTO,
+  type ProposalItemDTO,
+  type PublicProposal,
+  type ProposalPatch,
+} from "./queries/proposals";
+export {
   getPlatformOverview,
   getPlatformUsers,
   getPlatformSettings,
