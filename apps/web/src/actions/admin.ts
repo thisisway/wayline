@@ -25,7 +25,7 @@ export async function setOrgPlanAction(orgId: string, plan: string): Promise<boo
   return true;
 }
 
-export type SaveBrandingResult = "ok" | "forbidden" | "invalid";
+export type SaveBrandingResult = "ok" | "forbidden" | "invalid" | "error";
 
 /** Superadmin define a MARCA da plataforma (logos claro/escuro + cor). */
 export async function setPlatformBrandingAction(patch: {
@@ -37,12 +37,16 @@ export async function setPlatformBrandingAction(patch: {
   if (!(await isPlatformAdmin())) return "forbidden";
   const color = patch.brandColor?.trim() || null;
   if (color && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) return "invalid";
-  await setPlatformSettings({
-    logoUrl: patch.logoUrl ?? null,
-    logoUrlDark: patch.logoUrlDark ?? null,
-    faviconUrl: patch.faviconUrl ?? null,
-    brandColor: color,
-  });
+  try {
+    await setPlatformSettings({
+      logoUrl: patch.logoUrl ?? null,
+      logoUrlDark: patch.logoUrlDark ?? null,
+      faviconUrl: patch.faviconUrl ?? null,
+      brandColor: color,
+    });
+  } catch {
+    return "error"; // provável: migração das colunas de marca ainda não aplicada
+  }
   revalidatePath("/", "layout"); // marca é global
   return "ok";
 }

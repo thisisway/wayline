@@ -150,7 +150,10 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
     } else if (res === "invalid") {
       setMsg({ text: "Cor inválida — use um hex como #1D66FF.", ok: false });
     } else {
-      setMsg({ text: "Não foi possível salvar.", ok: false });
+      setMsg({
+        text: "Não foi possível salvar. A migração das colunas de marca (0029/0030) já foi aplicada no banco?",
+        ok: false,
+      });
     }
   }
 
