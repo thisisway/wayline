@@ -21,12 +21,13 @@ export function BrandLogo({
   const d = dark || light || undefined;
   return (
     <>
-      <img src={l} alt="Logo" className={cn("size-full object-contain dark:hidden", className)} />
-      <img
-        src={d}
-        alt="Logo"
-        className={cn("hidden size-full object-contain dark:block", className)}
-      />
+      <img src={l} alt="Logo" className={cn("object-contain dark:hidden", className)} />
+      <img src={d} alt="Logo" className={cn("hidden object-contain dark:block", className)} />
     </>
   );
+}
+
+/** true se há pelo menos um logo custom (para decidir logo x badge "W"). */
+export function hasBrandLogo(light?: string | null, dark?: string | null): boolean {
+  return Boolean(light || dark);
 }

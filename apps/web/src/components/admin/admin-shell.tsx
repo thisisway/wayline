@@ -13,7 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@wayline/ui";
-import { BrandLogo } from "@/components/shell/brand-logo";
+import { BrandLogo, hasBrandLogo } from "@/components/shell/brand-logo";
 
 const NAV = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
@@ -42,9 +42,15 @@ export function AdminShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-surface px-6">
-        <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-brand font-display text-h3 font-extrabold text-white">
-          <BrandLogo light={logoLight} dark={logoDark} fallback="W" />
-        </span>
+        {hasBrandLogo(logoLight, logoDark) ? (
+          <span className="flex h-8 items-center justify-center overflow-hidden">
+            <BrandLogo light={logoLight} dark={logoDark} className="h-8 w-auto max-w-[150px]" />
+          </span>
+        ) : (
+          <span className="flex size-8 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white">
+            W
+          </span>
+        )}
         <div className="flex-1">
           <h1 className="font-display text-ui font-bold leading-none">Admin da Plataforma</h1>
           <p className="text-[11px] text-subtle">{adminEmail}</p>

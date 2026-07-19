@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@wayline/ui";
-import { BrandLogo } from "@/components/shell/brand-logo";
+import { BrandLogo, hasBrandLogo } from "@/components/shell/brand-logo";
 
 function RailButton({
   icon: Icon,
@@ -85,10 +85,16 @@ export function IconRail({
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
-      {/* Marca da plataforma (logo por tema, ou "W") */}
-      <div className="mb-1 flex size-9 items-center justify-center overflow-hidden rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
-        <BrandLogo light={logoLight} dark={logoDark} fallback="W" />
-      </div>
+      {/* Marca da plataforma: só o logo (sem quadrado), ou o badge "W" de fallback */}
+      {hasBrandLogo(logoLight, logoDark) ? (
+        <div className="mb-1 flex h-9 w-12 items-center justify-center overflow-hidden">
+          <BrandLogo light={logoLight} dark={logoDark} className="max-h-9 max-w-full" />
+        </div>
+      ) : (
+        <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
+          W
+        </div>
+      )}
 
       <RailButton icon={Plus} label="Criar tarefa" accent onClick={onCreate} />
 
