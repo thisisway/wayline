@@ -24,15 +24,49 @@ const STATUS: Record<string, { label: string; variant: "neutral" | "brand" | "su
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const propNo = (n: number) => `PROP-${String(n).padStart(5, "0")}`;
 
 interface ItemRow {
   description: string;
-  value: string; // reais como texto
+  details: string;
+  value: string; // preço unitário em reais (texto)
+  quantity: string;
+  unit: string;
+  term: string;
 }
 
 function toCents(v: string): number {
   const n = Number(v.replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
+}
+const emptyItem = (): ItemRow => ({
+  description: "",
+  details: "",
+  value: "",
+  quantity: "1",
+  unit: "Unidade",
+  term: "",
+});
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-dense font-medium text-muted">{label}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+function Area(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className={cn(
+        "w-full resize-y rounded-md border border-border bg-canvas p-2.5 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        props.className,
+      )}
+    />
+  );
 }
 
 export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
@@ -42,24 +76,32 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   // Editor
+  const [d, setD] = React.useState<ProposalDTO | null>(null);
   const [title, setTitle] = React.useState("");
   const [clientId, setClientId] = React.useState("");
   const [validUntil, setValidUntil] = React.useState("");
   const [status, setStatus] = React.useState("draft");
+  const [recurrence, setRecurrence] = React.useState("once");
   const [intro, setIntro] = React.useState("");
+  const [objective, setObjective] = React.useState("");
+  const [terms, setTerms] = React.useState("");
+  const [bonus, setBonus] = React.useState("");
+  const [nextSteps, setNextSteps] = React.useState("");
+  const [internalNotes, setInternalNotes] = React.useState("");
+  const [schedule, setSchedule] = React.useState<Array<{ label: string; duration: string }>>([]);
   const [items, setItems] = React.useState<ItemRow[]>([]);
+  const [discount, setDiscount] = React.useState("0");
+  const [payMethod, setPayMethod] = React.useState("");
+  const [payTerms, setPayTerms] = React.useState("");
   const [token, setToken] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  // IA
   const [briefing, setBriefing] = React.useState("");
   const [aiBusy, setAiBusy] = React.useState(false);
   const [aiPanel, setAiPanel] = React.useState(false);
 
-  const reload = React.useCallback(() => {
-    listProposalsAction(orgId).then(setList);
-  }, [orgId]);
+  const reload = React.useCallback(() => listProposalsAction(orgId).then(setList), [orgId]);
 
   React.useEffect(() => {
     reload();
@@ -71,17 +113,35 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
   }, [orgId, reload, onClose]);
 
   function loadInto(p: ProposalDTO) {
+    setD(p);
     setSelectedId(p.id);
     setTitle(p.title);
     setClientId(p.clientId ?? "");
     setValidUntil(p.validUntil ? new Date(p.validUntil).toISOString().slice(0, 10) : "");
     setStatus(p.status);
+    setRecurrence(p.recurrence);
     setIntro(p.intro);
+    setObjective(p.objective);
+    setTerms(p.terms);
+    setBonus(p.bonus);
+    setNextSteps(p.nextSteps);
+    setInternalNotes(p.internalNotes);
+    setSchedule(p.schedule);
+    setDiscount(String(p.discountPct));
+    setPayMethod(p.paymentMethod);
+    setPayTerms(p.paymentTerms);
     setToken(p.token);
     setItems(
       p.items.length
-        ? p.items.map((i) => ({ description: i.description, value: (i.amountCents / 100).toString() }))
-        : [{ description: "", value: "" }],
+        ? p.items.map((i) => ({
+            description: i.description,
+            details: i.details,
+            value: (i.amountCents / 100).toString(),
+            quantity: String(i.quantity),
+            unit: i.unit,
+            term: i.term,
+          }))
+        : [emptyItem()],
     );
     setAiPanel(false);
   }
@@ -90,7 +150,6 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     const p = await getProposalAction(orgId, id);
     if (p) loadInto(p);
   }
-
   async function createNew() {
     const id = await createProposalAction(orgId);
     if (!id) return;
@@ -105,12 +164,29 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     await updateProposalAction(orgId, selectedId, {
       title,
       intro,
+      objective,
+      terms,
+      bonus,
+      nextSteps,
+      internalNotes,
+      schedule: schedule.filter((s) => s.label.trim()),
+      discountPct: Number(discount) || 0,
+      paymentMethod: payMethod,
+      paymentTerms: payTerms,
+      recurrence,
       clientId: clientId || null,
       status,
       validUntilIso: validUntil ? new Date(validUntil).toISOString() : null,
       items: items
         .filter((i) => i.description.trim())
-        .map((i) => ({ description: i.description.trim(), amountCents: toCents(i.value) })),
+        .map((i) => ({
+          description: i.description.trim(),
+          details: i.details,
+          amountCents: toCents(i.value),
+          quantity: Math.max(1, Number(i.quantity) || 1),
+          unit: i.unit || "Unidade",
+          term: i.term,
+        })),
     }).catch(() => {});
     setSaving(false);
     reload();
@@ -120,12 +196,12 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     if (!selectedId) return;
     await deleteProposalAction(orgId, selectedId);
     setSelectedId(null);
+    setD(null);
     reload();
   }
 
   function copyLink() {
-    const url = `${window.location.origin}/proposta/${token}`;
-    navigator.clipboard?.writeText(url);
+    navigator.clipboard?.writeText(`${window.location.origin}/proposta/${token}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -138,14 +214,27 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     if (res) {
       if (res.intro) setIntro(res.intro);
       if (res.items.length) {
-        setItems(res.items.map((i) => ({ description: i.description, value: (i.amountCents / 100).toString() })));
+        setItems(
+          res.items.map((i) => ({
+            description: i.description,
+            details: "",
+            value: (i.amountCents / 100).toString(),
+            quantity: "1",
+            unit: "Unidade",
+            term: "",
+          })),
+        );
       }
       setAiPanel(false);
     }
   }
 
-  const totalCents = items.reduce((s, i) => s + toCents(i.value), 0);
+  const subtotalCents = items.reduce((s, i) => s + toCents(i.value) * (Number(i.quantity) || 1), 0);
+  const discPct = Math.min(100, Math.max(0, Number(discount) || 0));
+  const totalCents = Math.round(subtotalCents * (1 - discPct / 100));
   const decided = status === "accepted" || status === "rejected";
+  const setItem = (i: number, patch: Partial<ItemRow>) =>
+    setItems((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (
     <div
@@ -155,11 +244,11 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
       <div
         role="dialog"
         aria-modal="true"
-        className="flex h-[85vh] w-full max-w-4xl overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+        className="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Lista */}
-        <aside className="flex w-64 shrink-0 flex-col border-r border-border">
+        <aside className="flex w-60 shrink-0 flex-col border-r border-border">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="font-display text-ui font-bold">Propostas</h2>
             <button
@@ -175,7 +264,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
             {list === null ? (
               <p className="p-2 text-dense text-subtle">Carregando…</p>
             ) : list.length === 0 ? (
-              <p className="p-2 text-dense text-subtle">Nenhuma proposta. Crie a primeira.</p>
+              <p className="p-2 text-dense text-subtle">Nenhuma proposta.</p>
             ) : (
               list.map((p) => (
                 <button
@@ -194,7 +283,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
                     </Badge>
                   </span>
                   <span className="flex items-center justify-between text-[11px] text-subtle">
-                    <span className="truncate">{p.clientName ?? "Sem cliente"}</span>
+                    <span className="truncate">{propNo(p.number)} · {p.clientName ?? "Sem cliente"}</span>
                     <span className="tabular-nums">{brl(p.totalCents)}</span>
                   </span>
                 </button>
@@ -208,7 +297,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <span className="flex items-center gap-2 text-dense text-subtle">
               <FileText className="size-4" />
-              {selectedId ? "Editar proposta" : "Selecione ou crie uma proposta"}
+              {selectedId ? `Editando ${propNo(d?.number ?? 0)}` : "Selecione ou crie uma proposta"}
             </span>
             <button
               type="button"
@@ -229,42 +318,61 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
               </Button>
             </div>
           ) : (
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="text-dense font-medium text-muted">Título</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+            <div className="flex-1 space-y-5 overflow-y-auto p-5">
+              {/* Cabeçalho + meta */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-3">
+                  <Field label="Título">
+                    <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                  </Field>
                 </div>
-                <div>
-                  <label className="text-dense font-medium text-muted">Cliente</label>
+                <div className="space-y-3">
+                  <Field label="Cliente">
+                    <select
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                      className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                    >
+                      <option value="">Sem cliente</option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Recorrência">
                   <select
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={recurrence}
+                    onChange={(e) => setRecurrence(e.target.value)}
+                    className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
                   >
-                    <option value="">Sem cliente</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
+                    <option value="once">Única</option>
+                    <option value="monthly">Mensal</option>
                   </select>
-                </div>
-                <div>
-                  <label className="text-dense font-medium text-muted">Válida até</label>
-                  <Input
-                    type="date"
-                    value={validUntil}
-                    onChange={(e) => setValidUntil(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
+                </Field>
+                <Field label="Válida até">
+                  <Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+                </Field>
+                <Field label="Status">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    disabled={decided}
+                    className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground disabled:opacity-60"
+                  >
+                    <option value="draft">Rascunho</option>
+                    <option value="sent">Enviada</option>
+                    {decided && <option value={status}>{STATUS[status]?.label}</option>}
+                  </select>
+                </Field>
               </div>
 
-              {/* Intro + IA */}
+              {/* Apresentação + IA */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-dense font-medium text-muted">Introdução</label>
+                  <span className="text-dense font-medium text-muted">Apresentação</span>
                   {aiOn && (
                     <button
                       type="button"
@@ -277,93 +385,211 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
                 </div>
                 {aiPanel && (
                   <div className="mt-2 rounded-md border border-brand/30 bg-brand/5 p-2.5">
-                    <textarea
+                    <Area
                       value={briefing}
                       onChange={(e) => setBriefing(e.target.value)}
-                      placeholder="Briefing curto: cliente, objetivo, serviços desejados…"
-                      className="h-16 w-full resize-none rounded-md border border-border bg-surface p-2 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder="Briefing: cliente, objetivo, serviços…"
+                      className="h-16 border-border bg-surface"
                     />
                     <div className="mt-2 flex justify-end">
                       <Button size="sm" onClick={runAI} disabled={!briefing.trim() || aiBusy}>
-                        <Sparkles className="size-3.5" />
-                        {aiBusy ? "Gerando…" : "Gerar proposta"}
+                        <Sparkles className="size-3.5" /> {aiBusy ? "Gerando…" : "Gerar"}
                       </Button>
                     </div>
                   </div>
                 )}
-                <textarea
+                <Area
                   value={intro}
                   onChange={(e) => setIntro(e.target.value)}
-                  placeholder="Apresentação da proposta ao cliente…"
-                  className="mt-1 h-24 w-full resize-y rounded-md border border-border bg-canvas p-2.5 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-1 h-20"
+                  placeholder="Apresentação da empresa/proposta…"
                 />
               </div>
 
-              {/* Itens */}
+              <Field label="Objetivo">
+                <Area value={objective} onChange={(e) => setObjective(e.target.value)} className="h-16" />
+              </Field>
+
+              {/* Cronograma */}
               <div>
-                <label className="text-dense font-medium text-muted">Itens (escopo & valores)</label>
+                <span className="text-dense font-medium text-muted">Cronograma de entrega</span>
                 <div className="mt-1 space-y-2">
-                  {items.map((it, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                  {schedule.map((ph, i) => (
+                    <div key={i} className="flex gap-2">
                       <Input
-                        value={it.description}
+                        value={ph.label}
                         onChange={(e) =>
-                          setItems((arr) => arr.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))
+                          setSchedule((a) => a.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
                         }
-                        placeholder="Descrição do serviço"
+                        placeholder="Fase (ex.: Aprovação da proposta)"
                         className="flex-1"
                       />
-                      <div className="flex items-center gap-1">
-                        <span className="text-dense text-subtle">R$</span>
-                        <Input
-                          value={it.value}
-                          onChange={(e) =>
-                            setItems((arr) => arr.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))
-                          }
-                          placeholder="0,00"
-                          className="w-28 text-right"
-                        />
-                      </div>
+                      <Input
+                        value={ph.duration}
+                        onChange={(e) =>
+                          setSchedule((a) => a.map((x, j) => (j === i ? { ...x, duration: e.target.value } : x)))
+                        }
+                        placeholder="Duração"
+                        className="w-32"
+                      />
                       <button
                         type="button"
-                        onClick={() => setItems((arr) => arr.filter((_, j) => j !== i))}
-                        aria-label="Remover item"
-                        className="flex size-8 items-center justify-center rounded-md text-subtle hover:text-danger"
+                        onClick={() => setSchedule((a) => a.filter((_, j) => j !== i))}
+                        className="flex size-9 items-center justify-center rounded-md text-subtle hover:text-danger"
                       >
                         <Trash2 className="size-4" />
                       </button>
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setItems((arr) => [...arr, { description: "", value: "" }])}
-                    className="flex items-center gap-1 text-dense font-medium text-muted hover:text-foreground"
-                  >
-                    <Plus className="size-3.5" /> Adicionar item
-                  </button>
-                  <span className="text-ui font-bold text-foreground">
-                    Total: <span className="tabular-nums">{brl(totalCents)}</span>
-                  </span>
+                <button
+                  type="button"
+                  onClick={() => setSchedule((a) => [...a, { label: "", duration: "" }])}
+                  className="mt-2 flex items-center gap-1 text-dense font-medium text-muted hover:text-foreground"
+                >
+                  <Plus className="size-3.5" /> Adicionar fase
+                </button>
+              </div>
+
+              {/* Investimento */}
+              <div>
+                <span className="text-dense font-medium text-muted">Investimento</span>
+                <div className="mt-1 space-y-3">
+                  {items.map((it, i) => (
+                    <div key={i} className="rounded-lg border border-border p-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={it.description}
+                          onChange={(e) => setItem(i, { description: e.target.value })}
+                          placeholder="Serviço / descrição"
+                          className="flex-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setItems((arr) => arr.filter((_, j) => j !== i))}
+                          className="flex size-8 items-center justify-center rounded-md text-subtle hover:text-danger"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        <label className="text-[11px] text-subtle">
+                          Qtd
+                          <Input
+                            value={it.quantity}
+                            onChange={(e) => setItem(i, { quantity: e.target.value })}
+                            className="mt-0.5 text-right"
+                          />
+                        </label>
+                        <label className="text-[11px] text-subtle">
+                          Unidade
+                          <Input
+                            value={it.unit}
+                            onChange={(e) => setItem(i, { unit: e.target.value })}
+                            className="mt-0.5"
+                          />
+                        </label>
+                        <label className="text-[11px] text-subtle">
+                          Preço unit. (R$)
+                          <Input
+                            value={it.value}
+                            onChange={(e) => setItem(i, { value: e.target.value })}
+                            placeholder="0,00"
+                            className="mt-0.5 text-right"
+                          />
+                        </label>
+                        <label className="text-[11px] text-subtle">
+                          Prazo
+                          <Input
+                            value={it.term}
+                            onChange={(e) => setItem(i, { term: e.target.value })}
+                            className="mt-0.5"
+                          />
+                        </label>
+                      </div>
+                      <Area
+                        value={it.details}
+                        onChange={(e) => setItem(i, { details: e.target.value })}
+                        placeholder="Detalhes do serviço (o que está incluído)…"
+                        className="mt-2 h-16 text-dense"
+                      />
+                      <p className="mt-1 text-right text-dense text-subtle">
+                        Subtotal:{" "}
+                        <span className="font-semibold text-foreground tabular-nums">
+                          {brl(toCents(it.value) * (Number(it.quantity) || 1))}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setItems((arr) => [...arr, emptyItem()])}
+                  className="mt-2 flex items-center gap-1 text-dense font-medium text-muted hover:text-foreground"
+                >
+                  <Plus className="size-3.5" /> Adicionar item
+                </button>
+
+                {/* Totais */}
+                <div className="mt-3 space-y-1 rounded-lg border border-border bg-canvas p-3 text-ui">
+                  <div className="flex items-center justify-between text-muted">
+                    <span>Subtotal</span>
+                    <span className="tabular-nums">{brl(subtotalCents)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted">
+                    <span>Desconto (%)</span>
+                    <Input
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      className="h-8 w-20 text-right"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border pt-1 text-h3 font-bold">
+                    <span>Total</span>
+                    <span className="tabular-nums text-brand">{brl(totalCents)}</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Pagamento */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Forma de pagamento">
+                  <Input value={payMethod} onChange={(e) => setPayMethod(e.target.value)} placeholder="Pix, cartão…" />
+                </Field>
+                <Field label="Condições de pagamento">
+                  <Input value={payTerms} onChange={(e) => setPayTerms(e.target.value)} placeholder="Ex.: entrada + 3x" />
+                </Field>
+              </div>
+
+              <Field label="Condições gerais">
+                <Area value={terms} onChange={(e) => setTerms(e.target.value)} className="h-20" />
+              </Field>
+              <Field label="Bônus (incluídos)">
+                <Area value={bonus} onChange={(e) => setBonus(e.target.value)} className="h-14" />
+              </Field>
+              <Field label="Próximos passos (visível ao cliente)">
+                <Area value={nextSteps} onChange={(e) => setNextSteps(e.target.value)} className="h-14" />
+              </Field>
+              <Field label="Notas internas (não vão para o cliente)">
+                <Area value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} className="h-14" />
+              </Field>
+
+              {decided && d?.decidedByName && (
+                <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-dense">
+                  <span className="font-semibold text-success">
+                    {status === "accepted" ? "Aceita" : "Recusada"}
+                  </span>{" "}
+                  por <strong>{d.decidedByName}</strong>
+                  {d.decidedByDoc && ` (${d.decidedByDoc})`}
+                  {d.decidedAt && ` em ${new Date(d.decidedAt).toLocaleString("pt-BR")}`}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Rodapé do editor */}
+          {/* Rodapé */}
           {selectedId && (
             <div className="flex items-center gap-2 border-t border-border px-5 py-3">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                disabled={decided}
-                className="h-9 rounded-md border border-border bg-canvas px-2 text-dense text-foreground disabled:opacity-60"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="sent">Enviada</option>
-                {decided && <option value={status}>{STATUS[status]?.label}</option>}
-              </select>
               <button
                 type="button"
                 onClick={copyLink}
@@ -376,15 +602,16 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
                 type="button"
                 onClick={remove}
                 className="flex size-9 items-center justify-center rounded-md text-subtle hover:text-danger"
-                aria-label="Excluir proposta"
+                aria-label="Excluir"
               >
                 <Trash2 className="size-4" />
               </button>
-              <div className="ml-auto">
-                <Button onClick={save} disabled={saving}>
-                  {saving ? "Salvando…" : "Salvar"}
-                </Button>
-              </div>
+              <span className="ml-auto text-dense text-subtle">
+                Total <strong className="text-foreground tabular-nums">{brl(totalCents)}</strong>
+              </span>
+              <Button onClick={save} disabled={saving}>
+                {saving ? "Salvando…" : "Salvar"}
+              </Button>
             </div>
           )}
         </div>

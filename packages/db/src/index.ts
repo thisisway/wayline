@@ -217,6 +217,8 @@ export {
   type ProposalListItem,
   type ProposalDTO,
   type ProposalItemDTO,
+  type ProposalItemInput,
+  type SchedulePhase,
   type PublicProposal,
   type ProposalPatch,
 } from "./queries/proposals";

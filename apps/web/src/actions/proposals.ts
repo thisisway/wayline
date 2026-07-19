@@ -43,22 +43,51 @@ export async function createProposalAction(orgId: string): Promise<string | null
   return id;
 }
 
+export interface ProposalPatchInput {
+  title?: string;
+  intro?: string;
+  objective?: string;
+  terms?: string;
+  bonus?: string;
+  schedule?: Array<{ label: string; duration: string }>;
+  discountPct?: number;
+  paymentMethod?: string;
+  paymentTerms?: string;
+  recurrence?: string;
+  nextSteps?: string;
+  internalNotes?: string;
+  clientId?: string | null;
+  status?: string;
+  validUntilIso?: string | null;
+  items?: Array<{
+    description: string;
+    details: string;
+    amountCents: number;
+    quantity: number;
+    unit: string;
+    term: string;
+  }>;
+}
+
 export async function updateProposalAction(
   orgId: string,
   id: string,
-  patch: {
-    title?: string;
-    intro?: string;
-    clientId?: string | null;
-    status?: string;
-    validUntilIso?: string | null;
-    items?: Array<{ description: string; amountCents: number }>;
-  },
+  patch: ProposalPatchInput,
 ): Promise<boolean> {
   if (!(await assertRole(orgId, "admin"))) return false;
   const dbPatch: ProposalPatch = {
     title: patch.title,
     intro: patch.intro,
+    objective: patch.objective,
+    terms: patch.terms,
+    bonus: patch.bonus,
+    schedule: patch.schedule,
+    discountPct: patch.discountPct,
+    paymentMethod: patch.paymentMethod,
+    paymentTerms: patch.paymentTerms,
+    recurrence: patch.recurrence,
+    nextSteps: patch.nextSteps,
+    internalNotes: patch.internalNotes,
     clientId: patch.clientId,
     status: patch.status,
     items: patch.items,

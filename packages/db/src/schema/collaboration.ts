@@ -367,14 +367,34 @@ export const proposals = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    /** Número sequencial por org (PROP-00010). */
+    number: integer("number").notNull().default(0),
     title: text("title").notNull().default("Proposta"),
+    /** Apresentação (intro), Objetivo, Condições gerais, Bônus — seções de texto. */
     intro: text("intro").notNull().default(""),
+    objective: text("objective").notNull().default(""),
+    terms: text("terms").notNull().default(""),
+    bonus: text("bonus").notNull().default(""),
+    /** Cronograma de entrega: fases [{label, duration}]. */
+    schedule: jsonb("schedule").$type<Array<{ label: string; duration: string }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    /** Comercial. */
+    discountPct: integer("discount_pct").notNull().default(0),
+    paymentMethod: text("payment_method").notNull().default(""),
+    paymentTerms: text("payment_terms").notNull().default(""),
+    /** once | monthly */
+    recurrence: text("recurrence").notNull().default("once"),
+    nextSteps: text("next_steps").notNull().default(""),
+    /** Só interno (não vai pro cliente). */
+    internalNotes: text("internal_notes").notNull().default(""),
     /** draft | sent | accepted | rejected */
     status: text("status").notNull().default("draft"),
     token: text("token").notNull().unique(),
     validUntil: timestamp("valid_until", { withTimezone: true }),
-    /** Nome de quem aceitou/recusou pelo link público. */
+    /** Assinatura do cliente pelo link público. */
     decidedByName: text("decided_by_name"),
+    decidedByDoc: text("decided_by_doc"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
@@ -395,7 +415,14 @@ export const proposalItems = pgTable(
       .notNull()
       .references(() => proposals.id, { onDelete: "cascade" }),
     description: text("description").notNull().default(""),
+    /** Descrição longa (detalhes do serviço). */
+    details: text("details").notNull().default(""),
+    /** Preço UNITÁRIO em centavos. Subtotal = quantity × amountCents. */
     amountCents: integer("amount_cents").notNull().default(0),
+    quantity: integer("quantity").notNull().default(1),
+    unit: text("unit").notNull().default("Unidade"),
+    /** Prazo de entrega (texto livre). */
+    term: text("term").notNull().default(""),
     position: integer("position").notNull().default(0),
   },
   (t) => [index("proposal_items_proposal_idx").on(t.proposalId)],

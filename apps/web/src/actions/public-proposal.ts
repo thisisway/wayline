@@ -12,8 +12,9 @@ export async function decideProposalAction(
   token: string,
   decision: "accepted" | "rejected",
   name: string,
+  doc: string,
 ): Promise<boolean> {
   const who = name.trim();
   if (!token || !who || (decision !== "accepted" && decision !== "rejected")) return false;
-  return decideProposal(token, decision, who);
+  return decideProposal(token, decision, who, doc.trim());
 }

@@ -246,6 +246,13 @@
       "when": 1784487602535,
       "tag": "0034_tranquil_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1784489869958,
+      "tag": "0035_left_firestar",
+      "breakpoints": true
     }
   ]
 }
