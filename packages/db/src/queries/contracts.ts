@@ -41,22 +41,26 @@ const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export async function listContracts(orgId: string): Promise<ContractListItem[]> {
-  const db = getDb();
-  const rows = await db.query.contracts.findMany({
-    where: and(eq(contracts.orgId, orgId), isNull(contracts.deletedAt)),
-    orderBy: [desc(contracts.updatedAt)],
-    with: { client: true },
-  });
-  return rows.map((c) => ({
-    id: c.id,
-    number: c.number,
-    title: c.title,
-    status: c.status,
-    clientName: c.client?.name ?? null,
-    valueCents: c.valueCents,
-    token: c.token,
-    updatedAt: c.updatedAt,
-  }));
+  try {
+    const db = getDb();
+    const rows = await db.query.contracts.findMany({
+      where: and(eq(contracts.orgId, orgId), isNull(contracts.deletedAt)),
+      orderBy: [desc(contracts.updatedAt)],
+      with: { client: true },
+    });
+    return rows.map((c) => ({
+      id: c.id,
+      number: c.number,
+      title: c.title,
+      status: c.status,
+      clientName: c.client?.name ?? null,
+      valueCents: c.valueCents,
+      token: c.token,
+      updatedAt: c.updatedAt,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function toDTO(c: typeof contracts.$inferSelect): ContractDTO {
@@ -76,11 +80,15 @@ function toDTO(c: typeof contracts.$inferSelect): ContractDTO {
 }
 
 export async function getContract(orgId: string, id: string): Promise<ContractDTO | null> {
-  const db = getDb();
-  const c = await db.query.contracts.findFirst({
-    where: and(eq(contracts.id, id), eq(contracts.orgId, orgId), isNull(contracts.deletedAt)),
-  });
-  return c ? toDTO(c) : null;
+  try {
+    const db = getDb();
+    const c = await db.query.contracts.findFirst({
+      where: and(eq(contracts.id, id), eq(contracts.orgId, orgId), isNull(contracts.deletedAt)),
+    });
+    return c ? toDTO(c) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function nextNumber(orgId: string): Promise<number> {
@@ -182,17 +190,21 @@ export async function deleteContract(orgId: string, id: string): Promise<void> {
 }
 
 export async function getContractByToken(tok: string): Promise<PublicContract | null> {
-  const db = getDb();
-  const c = await db.query.contracts.findFirst({
-    where: and(eq(contracts.token, tok), isNull(contracts.deletedAt)),
-    with: { client: true, organization: true },
-  });
-  if (!c) return null;
-  return {
-    ...toDTO(c),
-    orgName: (c as typeof c & { organization?: { name?: string } }).organization?.name ?? "",
-    clientName: (c as typeof c & { client?: { name?: string } }).client?.name ?? null,
-  };
+  try {
+    const db = getDb();
+    const c = await db.query.contracts.findFirst({
+      where: and(eq(contracts.token, tok), isNull(contracts.deletedAt)),
+      with: { client: true, organization: true },
+    });
+    if (!c) return null;
+    return {
+      ...toDTO(c),
+      orgName: (c as typeof c & { organization?: { name?: string } }).organization?.name ?? "",
+      clientName: (c as typeof c & { client?: { name?: string } }).client?.name ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Cliente assina o contrato pelo link (nome + CPF/CNPJ). */

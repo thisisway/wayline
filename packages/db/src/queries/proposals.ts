@@ -74,26 +74,30 @@ function subtotal(i: { quantity: number; amountCents: number }): number {
 
 /** `proposals` não tem RLS: filtramos por org_id em toda query (app-enforced). */
 export async function listProposals(orgId: string): Promise<ProposalListItem[]> {
-  const db = getDb();
-  const rows = await db.query.proposals.findMany({
-    where: and(eq(proposals.orgId, orgId), isNull(proposals.deletedAt)),
-    orderBy: [desc(proposals.updatedAt)],
-    with: { client: true, items: true },
-  });
-  return rows.map((p) => {
-    const sub = p.items.reduce((s, i) => s + subtotal(i), 0);
-    return {
-      id: p.id,
-      number: p.number,
-      title: p.title,
-      status: p.status,
-      clientName: p.client?.name ?? null,
-      totalCents: Math.round(sub * (1 - p.discountPct / 100)),
-      token: p.token,
-      validUntil: p.validUntil,
-      updatedAt: p.updatedAt,
-    };
-  });
+  try {
+    const db = getDb();
+    const rows = await db.query.proposals.findMany({
+      where: and(eq(proposals.orgId, orgId), isNull(proposals.deletedAt)),
+      orderBy: [desc(proposals.updatedAt)],
+      with: { client: true, items: true },
+    });
+    return rows.map((p) => {
+      const sub = p.items.reduce((s, i) => s + subtotal(i), 0);
+      return {
+        id: p.id,
+        number: p.number,
+        title: p.title,
+        status: p.status,
+        clientName: p.client?.name ?? null,
+        totalCents: Math.round(sub * (1 - p.discountPct / 100)),
+        token: p.token,
+        validUntil: p.validUntil,
+        updatedAt: p.updatedAt,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 type RawItem = typeof proposalItems.$inferSelect;
@@ -142,12 +146,16 @@ function baseDTO(p: RawProposal): Omit<ProposalDTO, "internalNotes"> & { interna
 }
 
 export async function getProposal(orgId: string, id: string): Promise<ProposalDTO | null> {
-  const db = getDb();
-  const p = await db.query.proposals.findFirst({
-    where: and(eq(proposals.id, id), eq(proposals.orgId, orgId), isNull(proposals.deletedAt)),
-    with: { items: true },
-  });
-  return p ? baseDTO(p as RawProposal) : null;
+  try {
+    const db = getDb();
+    const p = await db.query.proposals.findFirst({
+      where: and(eq(proposals.id, id), eq(proposals.orgId, orgId), isNull(proposals.deletedAt)),
+      with: { items: true },
+    });
+    return p ? baseDTO(p as RawProposal) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function createProposal(orgId: string, createdBy: string | null): Promise<string> {
@@ -249,6 +257,14 @@ export async function deleteProposal(orgId: string, id: string): Promise<void> {
 
 /** Leitura pública pelo token (sem sessão, sem notas internas). */
 export async function getProposalByToken(tok: string): Promise<PublicProposal | null> {
+  try {
+    return await getProposalByTokenInner(tok);
+  } catch {
+    return null;
+  }
+}
+
+async function getProposalByTokenInner(tok: string): Promise<PublicProposal | null> {
   const db = getDb();
   const p = await db.query.proposals.findFirst({
     where: and(eq(proposals.token, tok), isNull(proposals.deletedAt)),
@@ -294,10 +310,14 @@ export async function decideProposal(
 export async function listClientOptions(
   orgId: string,
 ): Promise<Array<{ id: string; name: string }>> {
-  const db = getDb();
-  const rows = await db.query.clients.findMany({
-    where: and(eq(clients.orgId, orgId), isNull(clients.deletedAt)),
-    orderBy: [asc(clients.name)],
-  });
-  return rows.map((c) => ({ id: c.id, name: c.name }));
+  try {
+    const db = getDb();
+    const rows = await db.query.clients.findMany({
+      where: and(eq(clients.orgId, orgId), isNull(clients.deletedAt)),
+      orderBy: [asc(clients.name)],
+    });
+    return rows.map((c) => ({ id: c.id, name: c.name }));
+  } catch {
+    return [];
+  }
 }

@@ -23,13 +23,17 @@ function toDTO(s: typeof services.$inferSelect): ServiceDTO {
 }
 
 export async function listServices(orgId: string): Promise<ServiceDTO[]> {
-  return withOrg(orgId, async (tx) => {
-    const rows = await tx.query.services.findMany({
-      where: isNull(services.deletedAt),
-      orderBy: [asc(services.position), asc(services.name)],
+  try {
+    return await withOrg(orgId, async (tx) => {
+      const rows = await tx.query.services.findMany({
+        where: isNull(services.deletedAt),
+        orderBy: [asc(services.position), asc(services.name)],
+      });
+      return rows.map(toDTO);
     });
-    return rows.map(toDTO);
-  });
+  } catch {
+    return [];
+  }
 }
 
 export interface ServiceInput {

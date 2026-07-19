@@ -13,14 +13,18 @@ function toDTO(p: typeof portfolioItems.$inferSelect): PortfolioItemDTO {
   return { id: p.id, title: p.title, imageUrl: p.imageUrl, linkUrl: p.linkUrl };
 }
 
-/** portfolio_items é no-RLS: filtramos por org_id (app-enforced). */
+/** portfolio_items é no-RLS: filtramos por org_id (app-enforced). Resiliente. */
 export async function listPortfolio(orgId: string): Promise<PortfolioItemDTO[]> {
-  const db = getDb();
-  const rows = await db.query.portfolioItems.findMany({
-    where: and(eq(portfolioItems.orgId, orgId), isNull(portfolioItems.deletedAt)),
-    orderBy: [asc(portfolioItems.position), asc(portfolioItems.createdAt)],
-  });
-  return rows.map(toDTO);
+  try {
+    const db = getDb();
+    const rows = await db.query.portfolioItems.findMany({
+      where: and(eq(portfolioItems.orgId, orgId), isNull(portfolioItems.deletedAt)),
+      orderBy: [asc(portfolioItems.position), asc(portfolioItems.createdAt)],
+    });
+    return rows.map(toDTO);
+  } catch {
+    return [];
+  }
 }
 
 /** Cases específicos (por id), preservando a ordem pedida — para o link público. */
@@ -29,16 +33,20 @@ export async function getPortfolioByIds(
   ids: string[],
 ): Promise<PortfolioItemDTO[]> {
   if (!ids.length) return [];
-  const db = getDb();
-  const rows = await db.query.portfolioItems.findMany({
-    where: and(
-      eq(portfolioItems.orgId, orgId),
-      isNull(portfolioItems.deletedAt),
-      inArray(portfolioItems.id, ids),
-    ),
-  });
-  const byId = new Map(rows.map((r) => [r.id, toDTO(r)]));
-  return ids.map((id) => byId.get(id)).filter((x): x is PortfolioItemDTO => Boolean(x));
+  try {
+    const db = getDb();
+    const rows = await db.query.portfolioItems.findMany({
+      where: and(
+        eq(portfolioItems.orgId, orgId),
+        isNull(portfolioItems.deletedAt),
+        inArray(portfolioItems.id, ids),
+      ),
+    });
+    const byId = new Map(rows.map((r) => [r.id, toDTO(r)]));
+    return ids.map((id) => byId.get(id)).filter((x): x is PortfolioItemDTO => Boolean(x));
+  } catch {
+    return [];
+  }
 }
 
 export interface PortfolioInput {
