@@ -17,9 +17,11 @@ export function safeNext(): string {
 export function LoginForm({
   logoLight,
   logoDark,
+  brandName = "Wayline",
 }: {
   logoLight?: string | null;
   logoDark?: string | null;
+  brandName?: string;
 } = {}) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
@@ -62,7 +64,7 @@ export function LoginForm({
             </div>
           )}
           <div>
-            <h1 className="font-display text-h2 font-bold">Entrar no Wayline</h1>
+            <h1 className="font-display text-h2 font-bold">Entrar no {brandName}</h1>
             <p className="mt-1 text-ui text-muted">Seu work OS de agência</p>
           </div>
         </div>

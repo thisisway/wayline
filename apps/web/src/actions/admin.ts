@@ -29,6 +29,7 @@ export type SaveBrandingResult = "ok" | "forbidden" | "invalid" | "error";
 
 /** Superadmin define a MARCA da plataforma (logos claro/escuro + cor). */
 export async function setPlatformBrandingAction(patch: {
+  name?: string | null;
   logoUrl?: string | null;
   logoUrlDark?: string | null;
   iconUrl?: string | null;
@@ -40,6 +41,7 @@ export async function setPlatformBrandingAction(patch: {
   if (color && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) return "invalid";
   try {
     await setPlatformSettings({
+      name: patch.name?.trim() || null,
       logoUrl: patch.logoUrl ?? null,
       logoUrlDark: patch.logoUrlDark ?? null,
       iconUrl: patch.iconUrl ?? null,

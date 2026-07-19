@@ -210,6 +210,7 @@ export {
   getPlatformUsers,
   getPlatformSettings,
   setPlatformSettings,
+  getBrandName,
   type PlatformOverview,
   type AdminOrgRow,
   type AdminUserRow,

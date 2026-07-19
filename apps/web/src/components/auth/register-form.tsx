@@ -11,8 +11,17 @@ import {
   verifyRegistrationAction,
 } from "@/actions/auth";
 import { safeNext } from "@/components/auth/login-form";
+import { BrandLogo, hasBrandLogo } from "@/components/shell/brand-logo";
 
-export function RegisterForm() {
+export function RegisterForm({
+  logoLight,
+  logoDark,
+  brandName = "Wayline",
+}: {
+  logoLight?: string | null;
+  logoDark?: string | null;
+  brandName?: string;
+} = {}) {
   const router = useRouter();
   const [step, setStep] = React.useState<"form" | "code">("form");
   const [name, setName] = React.useState("");
@@ -86,12 +95,16 @@ export function RegisterForm() {
     <div className="flex min-h-dvh items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-brand font-display text-h2 font-extrabold text-white shadow-xl">
-            W
-          </div>
+          {hasBrandLogo(logoLight, logoDark) ? (
+            <BrandLogo light={logoLight} dark={logoDark} className="h-14 w-auto max-w-[220px]" />
+          ) : (
+            <div className="flex size-12 items-center justify-center rounded-xl bg-brand font-display text-h2 font-extrabold text-white shadow-xl">
+              W
+            </div>
+          )}
           <div>
             <h1 className="font-display text-h2 font-bold">
-              {step === "form" ? "Criar conta no Wayline" : "Confirme seu email"}
+              {step === "form" ? `Criar conta no ${brandName}` : "Confirme seu email"}
             </h1>
             <p className="mt-1 text-ui text-muted">Seu work OS de agência</p>
           </div>

@@ -110,6 +110,7 @@ function LogoSlot({
 
 export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
   const router = useRouter();
+  const [name, setName] = React.useState(initial.name ?? "");
   const [logoLight, setLogoLight] = React.useState(initial.logoUrl ?? "");
   const [logoDark, setLogoDark] = React.useState(initial.logoUrlDark ?? "");
   const [icon, setIcon] = React.useState(initial.iconUrl ?? "");
@@ -144,6 +145,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
     setSaving(true);
     setMsg(null);
     const res = await setPlatformBrandingAction({
+      name: name || null,
       logoUrl: logoLight || null,
       logoUrlDark: logoDark || null,
       iconUrl: icon || null,
@@ -173,6 +175,20 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
       </p>
 
       <div className="space-y-6 rounded-xl border border-border bg-surface p-5">
+        {/* Nome */}
+        <div>
+          <label className="text-label uppercase text-subtle">Nome da plataforma</label>
+          <p className="mb-2 text-[11px] text-subtle">
+            Aparece no título da aba, no login e nos emails. Vazio = “Wayline”.
+          </p>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Wayline"
+            className="max-w-xs"
+          />
+        </div>
+
         {/* Logos claro/escuro */}
         <div>
           <label className="text-label uppercase text-subtle">Logotipo</label>

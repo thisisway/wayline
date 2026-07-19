@@ -17,6 +17,8 @@ import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "
  */
 export const platformSettings = pgTable("platform_settings", {
   id: text("id").primaryKey().default("singleton"),
+  /** Nome da plataforma (white-label) — título da aba, login, emails. */
+  platformName: text("platform_name"),
   /** Logo para tema claro (fundo claro). */
   logoUrl: text("logo_url"),
   /** Logo para tema escuro (fundo escuro). */

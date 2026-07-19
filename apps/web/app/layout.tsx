@@ -29,15 +29,17 @@ const DEFAULT_FAVICON =
 
 export async function generateMetadata(): Promise<Metadata> {
   let favicon = DEFAULT_FAVICON;
+  let name = "Wayline";
   try {
     const p = await getPlatformSettings();
     if (p.faviconUrl) favicon = p.faviconUrl;
+    if (p.name?.trim()) name = p.name.trim();
   } catch {
     /* mantém o padrão */
   }
   return {
-    title: "Wayline — Work OS para agências",
-    description: "Sistema operacional de trabalho nativo para agências de marketing digital.",
+    title: name,
+    description: "Sistema operacional de trabalho para agências.",
     icons: { icon: [{ url: favicon }] },
   };
 }

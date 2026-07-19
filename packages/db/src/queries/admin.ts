@@ -3,6 +3,7 @@ import { getDb, withOrg } from "../client";
 import { memberships, organizations, platformSettings, tasks, users } from "../schema";
 
 export interface PlatformBranding {
+  name: string | null;
   logoUrl: string | null;
   logoUrlDark: string | null;
   iconUrl: string | null;
@@ -20,6 +21,7 @@ export async function getPlatformSettings(): Promise<PlatformBranding> {
     const db = getDb();
     const row = await db.query.platformSettings.findFirst();
     return {
+      name: row?.platformName ?? null,
       logoUrl: row?.logoUrl ?? null,
       logoUrlDark: row?.logoUrlDark ?? null,
       iconUrl: row?.iconUrl ?? null,
@@ -28,6 +30,7 @@ export async function getPlatformSettings(): Promise<PlatformBranding> {
     };
   } catch {
     return {
+      name: null,
       logoUrl: null,
       logoUrlDark: null,
       iconUrl: null,
@@ -37,6 +40,12 @@ export async function getPlatformSettings(): Promise<PlatformBranding> {
   }
 }
 
+/** Nome da plataforma (white-label) com fallback "Wayline". */
+export async function getBrandName(): Promise<string> {
+  const s = await getPlatformSettings();
+  return s.name?.trim() || "Wayline";
+}
+
 /** Grava a marca da plataforma (upsert do singleton). */
 export async function setPlatformSettings(patch: PlatformBranding): Promise<void> {
   const db = getDb();
@@ -44,6 +53,7 @@ export async function setPlatformSettings(patch: PlatformBranding): Promise<void
     .insert(platformSettings)
     .values({
       id: "singleton",
+      platformName: patch.name,
       logoUrl: patch.logoUrl,
       logoUrlDark: patch.logoUrlDark,
       iconUrl: patch.iconUrl,
@@ -54,6 +64,7 @@ export async function setPlatformSettings(patch: PlatformBranding): Promise<void
     .onConflictDoUpdate({
       target: platformSettings.id,
       set: {
+        platformName: patch.name,
         logoUrl: patch.logoUrl,
         logoUrlDark: patch.logoUrlDark,
         iconUrl: patch.iconUrl,

@@ -9,5 +9,11 @@ export default async function LoginPage() {
   const session = await auth();
   if (session?.orgId) redirect("/app");
   const platform = await getPlatformSettings();
-  return <LoginForm logoLight={platform.logoUrl} logoDark={platform.logoUrlDark} />;
+  return (
+    <LoginForm
+      logoLight={platform.logoUrl}
+      logoDark={platform.logoUrlDark}
+      brandName={platform.name ?? undefined}
+    />
+  );
 }

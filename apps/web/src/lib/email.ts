@@ -1,5 +1,5 @@
 import "server-only";
-import { getUsersByIds } from "@wayline/db";
+import { getBrandName, getUsersByIds } from "@wayline/db";
 
 /**
  * Envio de email via Resend (REST, sem SDK). 100% opcional: se faltarem as
@@ -42,20 +42,22 @@ export function notificationEmail(opts: {
   action: string;
   taskTitle: string;
   taskId?: string;
+  brandName?: string;
 }): string {
+  const brand = opts.brandName ?? "Wayline";
   const link = appUrl && opts.taskId ? `${appUrl}/app?task=${opts.taskId}` : appUrl;
   const button = link
     ? `<a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir tarefa</a>`
     : "";
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
     <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
       <strong>${escapeHtml(opts.actorName)}</strong> ${escapeHtml(opts.action)}
       <strong>${escapeHtml(opts.taskTitle)}</strong>.
     </p>
     <p style="margin:16px 0">${button}</p>
-    <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email porque é membro de um workspace no Wayline.</p>
+    <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email porque é membro de um workspace no ${escapeHtml(brand)}.</p>
   </div>`;
 }
 
@@ -77,6 +79,7 @@ export async function emailNotify(
       action: opts.action,
       taskTitle: opts.taskTitle,
       taskId: opts.taskId,
+      brandName: await getBrandName(),
     });
     await Promise.allSettled(recipients.map((r) => sendEmail(r.email, opts.subject, html)));
   } catch {
@@ -91,13 +94,14 @@ export async function sendInviteEmail(
   token: string,
   inviterName: string,
 ): Promise<boolean> {
+  const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/invite/${token}` : `/invite/${token}`;
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
     <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
       <strong>${escapeHtml(inviterName)}</strong> convidou você para o workspace
-      <strong>${escapeHtml(orgName)}</strong> no Wayline.
+      <strong>${escapeHtml(orgName)}</strong> no ${escapeHtml(brand)}.
     </p>
     <p style="margin:16px 0">
       <a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Aceitar convite</a>
@@ -114,48 +118,51 @@ export async function sendMemberAddedEmail(
   orgName: string,
   inviterName: string,
 ): Promise<boolean> {
+  const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/app` : undefined;
   const button = link
     ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o workspace</a></p>`
     : "";
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
     <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
       <strong>${escapeHtml(inviterName)}</strong> adicionou você ao workspace
-      <strong>${escapeHtml(orgName)}</strong> no Wayline.
+      <strong>${escapeHtml(orgName)}</strong> no ${escapeHtml(brand)}.
     </p>
     ${button}
     <p style="font-size:12px;color:#64748B;margin-top:16px">Já está tudo pronto — é só entrar com a sua conta.</p>
   </div>`;
-  return sendEmail(to, `Você foi adicionado a ${orgName} no Wayline`, html);
+  return sendEmail(to, `Você foi adicionado a ${orgName} no ${brand}`, html);
 }
 
 /** Email com o código de verificação de cadastro. */
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
+  const brand = await getBrandName();
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
     <p style="font-size:15px;line-height:1.5;margin:0 0 16px">Seu código de confirmação é:</p>
     <div style="font-size:32px;font-weight:800;letter-spacing:8px;background:#F1F5F9;border-radius:10px;padding:16px;text-align:center;color:#0B1023">${escapeHtml(code)}</div>
     <p style="font-size:13px;color:#64748B;margin-top:16px">Expira em 15 minutos. Se você não tentou criar uma conta, ignore este email.</p>
   </div>`;
-  return sendEmail(to, `${code} é o seu código Wayline`, html);
+  return sendEmail(to, `${code} é o seu código ${brand}`, html);
 }
 
 /** Email de boas-vindas no cadastro. */
 export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
+  const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/app` : undefined;
   const button = link
-    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o Wayline</a></p>`
+    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o ${escapeHtml(brand)}</a></p>`
     : "";
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">Wayline</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Olá, ${escapeHtml(name.split(" ")[0] ?? name)}! Bem-vindo ao Wayline — seu work OS de agência.</p>
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Olá, ${escapeHtml(name.split(" ")[0] ?? name)}! Bem-vindo ao ${escapeHtml(brand)} — seu work OS de agência.</p>
     ${button}
   </div>`;
-  return sendEmail(to, "Bem-vindo ao Wayline 🎉", html);
+  return sendEmail(to, `Bem-vindo ao ${brand} 🎉`, html);
 }
 
 function escapeHtml(s: string): string {
