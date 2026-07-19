@@ -2,12 +2,17 @@
 
 import * as React from "react";
 import {
+  Briefcase,
   ChevronDown,
   Copy,
+  FileSignature,
+  FileText,
+  Image as ImageIcon,
   Inbox,
   ListChecks,
   MessageSquare,
   MoreHorizontal,
+  Package,
   Plus,
   Reply,
   type LucideIcon,
@@ -79,6 +84,12 @@ export function HomePanel({
   onOpenAssigned,
   onOpenReplies,
   isAdmin,
+  salesEnabled = false,
+  onOpenClients,
+  onOpenProposals,
+  onOpenServices,
+  onOpenPortfolio,
+  onOpenContracts,
 }: {
   nav: NavSpace[];
   activeListId: string;
@@ -92,6 +103,12 @@ export function HomePanel({
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
   isAdmin: boolean;
+  salesEnabled?: boolean;
+  onOpenClients?: () => void;
+  onOpenProposals?: () => void;
+  onOpenServices?: () => void;
+  onOpenPortfolio?: () => void;
+  onOpenContracts?: () => void;
 }) {
   const [, startTransition] = React.useTransition();
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
@@ -160,6 +177,23 @@ export function HomePanel({
             />
           );
         })}
+
+        {isAdmin && (
+          <>
+            <div className="px-2.5 pb-1 pt-4">
+              <span className="text-label uppercase text-subtle">Comercial</span>
+            </div>
+            <SidebarItem icon={<Briefcase />} label="Clientes" onClick={onOpenClients} />
+            {salesEnabled && (
+              <>
+                <SidebarItem icon={<FileText />} label="Propostas" onClick={onOpenProposals} />
+                <SidebarItem icon={<Package />} label="Catálogo" onClick={onOpenServices} />
+                <SidebarItem icon={<ImageIcon />} label="Portfólio" onClick={onOpenPortfolio} />
+                <SidebarItem icon={<FileSignature />} label="Contratos" onClick={onOpenContracts} />
+              </>
+            )}
+          </>
+        )}
 
         <div className="flex items-center justify-between px-2.5 pb-1 pt-4">
           <span className="text-label uppercase text-subtle">Spaces</span>

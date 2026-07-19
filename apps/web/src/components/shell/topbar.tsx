@@ -3,15 +3,10 @@
 import * as React from "react";
 import {
   Bell,
-  Briefcase,
   Check,
   ChevronsUpDown,
   Command,
-  FileSignature,
-  FileText,
-  Image as ImageIcon,
   LogOut,
-  Package,
   Plus,
   Search,
   Sparkles,
@@ -25,11 +20,6 @@ import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { createWorkspace, switchOrg } from "@/actions/org";
 import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
-import { ClientsModal } from "@/components/shell/clients-modal";
-import { ProposalsModal } from "@/components/shell/proposals-modal";
-import { ServicesModal } from "@/components/shell/services-modal";
-import { PortfolioModal } from "@/components/shell/portfolio-modal";
-import { ContractsModal } from "@/components/shell/contracts-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
@@ -44,7 +34,6 @@ export function Topbar({
   onOpenPlans,
   isAdmin = false,
   isPlatformAdmin = false,
-  modules = [],
 }: {
   userName: string;
   userAvatar?: string;
@@ -57,14 +46,8 @@ export function Topbar({
   onOpenPlans?: () => void;
   isAdmin?: boolean;
   isPlatformAdmin?: boolean;
-  modules?: string[];
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
-  const [showClients, setShowClients] = React.useState(false);
-  const [showProposals, setShowProposals] = React.useState(false);
-  const [showServices, setShowServices] = React.useState(false);
-  const [showPortfolio, setShowPortfolio] = React.useState(false);
-  const [showContracts, setShowContracts] = React.useState(false);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -80,21 +63,6 @@ export function Topbar({
           isAdmin={isAdmin}
           onClose={() => setShowMembers(false)}
         />
-      )}
-      {showClients && (
-        <ClientsModal orgId={activeOrgId} onClose={() => setShowClients(false)} />
-      )}
-      {showProposals && (
-        <ProposalsModal orgId={activeOrgId} onClose={() => setShowProposals(false)} />
-      )}
-      {showServices && (
-        <ServicesModal orgId={activeOrgId} onClose={() => setShowServices(false)} />
-      )}
-      {showPortfolio && (
-        <PortfolioModal orgId={activeOrgId} onClose={() => setShowPortfolio(false)} />
-      )}
-      {showContracts && (
-        <ContractsModal orgId={activeOrgId} onClose={() => setShowContracts(false)} />
       )}
 
       {/* Busca global (⌘K) */}
@@ -116,61 +84,6 @@ export function Topbar({
           <Sparkles className="size-4" />
           Wayline Brain
         </Button>
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setShowClients(true)}
-            aria-label="Clientes"
-            title="Clientes"
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <Briefcase className="size-4.5" />
-          </button>
-        )}
-        {isAdmin && modules.includes("sales") && (
-          <button
-            type="button"
-            onClick={() => setShowProposals(true)}
-            aria-label="Propostas"
-            title="Propostas comerciais"
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <FileText className="size-4.5" />
-          </button>
-        )}
-        {isAdmin && modules.includes("sales") && (
-          <button
-            type="button"
-            onClick={() => setShowServices(true)}
-            aria-label="Catálogo"
-            title="Catálogo de serviços"
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <Package className="size-4.5" />
-          </button>
-        )}
-        {isAdmin && modules.includes("sales") && (
-          <button
-            type="button"
-            onClick={() => setShowPortfolio(true)}
-            aria-label="Portfólio"
-            title="Portfólio (cases)"
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <ImageIcon className="size-4.5" />
-          </button>
-        )}
-        {isAdmin && modules.includes("sales") && (
-          <button
-            type="button"
-            onClick={() => setShowContracts(true)}
-            aria-label="Contratos"
-            title="Contratos"
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          >
-            <FileSignature className="size-4.5" />
-          </button>
-        )}
         <button
           type="button"
           onClick={() => setShowMembers(true)}

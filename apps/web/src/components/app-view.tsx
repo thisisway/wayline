@@ -33,6 +33,11 @@ import { DocsView } from "@/components/board/docs-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
+import { ClientsModal } from "@/components/shell/clients-modal";
+import { ProposalsModal } from "@/components/shell/proposals-modal";
+import { ServicesModal } from "@/components/shell/services-modal";
+import { PortfolioModal } from "@/components/shell/portfolio-modal";
+import { ContractsModal } from "@/components/shell/contracts-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
 import { PlansModal } from "@/components/shell/plans-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
@@ -115,6 +120,12 @@ export function AppView({
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [plansOpen, setPlansOpen] = React.useState(false);
   const [trialHidden, setTrialHidden] = React.useState(false);
+  const [clientsOpen, setClientsOpen] = React.useState(false);
+  const [proposalsOpen, setProposalsOpen] = React.useState(false);
+  const [servicesOpen, setServicesOpen] = React.useState(false);
+  const [portfolioOpen, setPortfolioOpen] = React.useState(false);
+  const [contractsOpen, setContractsOpen] = React.useState(false);
+  const salesEnabled = modules.includes("sales");
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const orgName = activeOrg?.name ?? "Workspace";
@@ -219,7 +230,24 @@ export function AppView({
           onOpenAssigned={() => setAssignedOpen(true)}
           onOpenReplies={() => setRepliesOpen(true)}
           isAdmin={isAdmin}
+          salesEnabled={salesEnabled}
+          onOpenClients={() => setClientsOpen(true)}
+          onOpenProposals={() => setProposalsOpen(true)}
+          onOpenServices={() => setServicesOpen(true)}
+          onOpenPortfolio={() => setPortfolioOpen(true)}
+          onOpenContracts={() => setContractsOpen(true)}
         />
+      )}
+      {clientsOpen && <ClientsModal orgId={activeOrgId} onClose={() => setClientsOpen(false)} />}
+      {proposalsOpen && (
+        <ProposalsModal orgId={activeOrgId} onClose={() => setProposalsOpen(false)} />
+      )}
+      {servicesOpen && <ServicesModal orgId={activeOrgId} onClose={() => setServicesOpen(false)} />}
+      {portfolioOpen && (
+        <PortfolioModal orgId={activeOrgId} onClose={() => setPortfolioOpen(false)} />
+      )}
+      {contractsOpen && (
+        <ContractsModal orgId={activeOrgId} onClose={() => setContractsOpen(false)} />
       )}
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
@@ -331,7 +359,6 @@ export function AppView({
           onOpenPlans={() => setPlansOpen(true)}
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
-          modules={modules}
         />
         <ViewTabs
           value={view}
