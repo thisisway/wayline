@@ -120,7 +120,7 @@ export async function createContractFromProposal(
     where: and(eq(proposals.id, proposalId), eq(proposals.orgId, orgId)),
     with: { items: true, client: true },
   });
-  if (!p) return null;
+  if (!p || p.status !== "accepted") return null;
   const sub = p.items.reduce((s, i) => s + i.amountCents * i.quantity, 0);
   const total = Math.round(sub * (1 - p.discountPct / 100));
   const lines = p.items
@@ -213,7 +213,8 @@ export async function signContract(tok: string, name: string, doc: string): Prom
   const c = await db.query.contracts.findFirst({
     where: and(eq(contracts.token, tok), isNull(contracts.deletedAt)),
   });
-  if (!c || c.status === "signed" || c.status === "canceled") return false;
+  // Só assina contratos enviados (bloqueia rascunho/assinado/cancelado).
+  if (!c || c.status !== "sent") return false;
   await db
     .update(contracts)
     .set({

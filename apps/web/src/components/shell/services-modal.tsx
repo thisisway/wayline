@@ -18,6 +18,8 @@ function toCents(v: string): number {
   const n = Number(v.replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
 }
+/** cents → texto no formato pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
+const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
 export function ServicesModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const [list, setList] = React.useState<ServiceDTO[] | null>(null);
@@ -40,7 +42,7 @@ export function ServicesModal({ orgId, onClose }: { orgId: string; onClose: () =
   function edit(s: ServiceDTO) {
     setSel(s.id);
     setName(s.name);
-    setValue((s.amountCents / 100).toString());
+    setValue(toInput(s.amountCents));
     setUnit(s.unit);
     setTerm(s.term);
     setDescription(s.description);

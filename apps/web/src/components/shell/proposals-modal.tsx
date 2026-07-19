@@ -42,6 +42,8 @@ function toCents(v: string): number {
   const n = Number(v.replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
 }
+/** cents → texto pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
+const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 const emptyItem = (): ItemRow => ({
   description: "",
   details: "",
@@ -126,6 +128,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
   function loadInto(p: ProposalDTO) {
     setD(p);
     setSelectedId(p.id);
+    setGenMsg(null);
     setTitle(p.title);
     setClientId(p.clientId ?? "");
     setValidUntil(p.validUntil ? new Date(p.validUntil).toISOString().slice(0, 10) : "");
@@ -148,7 +151,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
         ? p.items.map((i) => ({
             description: i.description,
             details: i.details,
-            value: (i.amountCents / 100).toString(),
+            value: toInput(i.amountCents),
             quantity: String(i.quantity),
             unit: i.unit,
             term: i.term,
@@ -231,7 +234,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
           res.items.map((i) => ({
             description: i.description,
             details: "",
-            value: (i.amountCents / 100).toString(),
+            value: toInput(i.amountCents),
             quantity: "1",
             unit: "Unidade",
             term: "",
@@ -522,7 +525,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
                             {
                               description: s.name,
                               details: s.description,
-                              value: (s.amountCents / 100).toString(),
+                              value: toInput(s.amountCents),
                               quantity: "1",
                               unit: s.unit,
                               term: s.term,

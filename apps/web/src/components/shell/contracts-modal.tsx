@@ -26,6 +26,8 @@ const toCents = (v: string) => {
   const n = Number(v.replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
 };
+/** cents → texto pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
+const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
 export function ContractsModal({
   orgId,
@@ -57,7 +59,7 @@ export function ContractsModal({
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [orgId]);
+  }, [orgId, openId]);
 
   function loadInto(c: ContractDTO) {
     setD(c);
@@ -65,7 +67,7 @@ export function ContractsModal({
     setTitle(c.title);
     setClientId(c.clientId ?? "");
     setStatus(c.status);
-    setValue((c.valueCents / 100).toString());
+    setValue(toInput(c.valueCents));
     setContent(c.content);
     setToken(c.token);
   }

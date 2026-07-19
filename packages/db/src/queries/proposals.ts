@@ -294,7 +294,10 @@ export async function decideProposal(
   const p = await db.query.proposals.findFirst({
     where: and(eq(proposals.token, tok), isNull(proposals.deletedAt)),
   });
-  if (!p || p.status === "accepted" || p.status === "rejected") return false;
+  // Só decide propostas enviadas e ainda no prazo (a UI já esconde os botões,
+  // mas a server action é pública — validamos aqui também).
+  if (!p || p.status !== "sent") return false;
+  if (p.validUntil && p.validUntil.getTime() < Date.now()) return false;
   await db
     .update(proposals)
     .set({
