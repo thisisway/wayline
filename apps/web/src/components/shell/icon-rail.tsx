@@ -59,6 +59,7 @@ function RailButton({
 export function IconRail({
   activeView,
   inboxUnread = 0,
+  icon,
   logoLight,
   logoDark,
   onCreate,
@@ -72,6 +73,7 @@ export function IconRail({
 }: {
   activeView: string;
   inboxUnread?: number;
+  icon?: string | null;
   logoLight?: string | null;
   logoDark?: string | null;
   onCreate: () => void;
@@ -85,8 +87,12 @@ export function IconRail({
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
-      {/* Marca da plataforma: só o logo (sem quadrado), ou o badge "W" de fallback */}
-      {hasBrandLogo(logoLight, logoDark) ? (
+      {/* Marca: ícone (símbolo) > logo > badge "W" de fallback */}
+      {icon ? (
+        <div className="mb-1 flex size-9 items-center justify-center overflow-hidden">
+          <img src={icon} alt="Ícone" className="size-full object-contain" />
+        </div>
+      ) : hasBrandLogo(logoLight, logoDark) ? (
         <div className="mb-1 flex h-9 w-12 items-center justify-center overflow-hidden">
           <BrandLogo light={logoLight} dark={logoDark} className="max-h-9 max-w-full" />
         </div>

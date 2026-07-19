@@ -31,6 +31,7 @@ export type SaveBrandingResult = "ok" | "forbidden" | "invalid" | "error";
 export async function setPlatformBrandingAction(patch: {
   logoUrl?: string | null;
   logoUrlDark?: string | null;
+  iconUrl?: string | null;
   faviconUrl?: string | null;
   brandColor?: string | null;
 }): Promise<SaveBrandingResult> {
@@ -41,6 +42,7 @@ export async function setPlatformBrandingAction(patch: {
     await setPlatformSettings({
       logoUrl: patch.logoUrl ?? null,
       logoUrlDark: patch.logoUrlDark ?? null,
+      iconUrl: patch.iconUrl ?? null,
       faviconUrl: patch.faviconUrl ?? null,
       brandColor: color,
     });

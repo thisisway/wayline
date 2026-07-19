@@ -21,6 +21,8 @@ export const platformSettings = pgTable("platform_settings", {
   logoUrl: text("logo_url"),
   /** Logo para tema escuro (fundo escuro). */
   logoUrlDark: text("logo_url_dark"),
+  /** Ícone/símbolo quadrado para a barra lateral (espaço estreito). */
+  iconUrl: text("icon_url"),
   /** Favicon (ícone da aba do navegador). */
   faviconUrl: text("favicon_url"),
   brandColor: text("brand_color"),

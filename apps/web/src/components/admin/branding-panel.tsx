@@ -112,13 +112,19 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
   const router = useRouter();
   const [logoLight, setLogoLight] = React.useState(initial.logoUrl ?? "");
   const [logoDark, setLogoDark] = React.useState(initial.logoUrlDark ?? "");
+  const [icon, setIcon] = React.useState(initial.iconUrl ?? "");
   const [favicon, setFavicon] = React.useState(initial.faviconUrl ?? "");
   const [color, setColor] = React.useState(initial.brandColor ?? "");
   const [saving, setSaving] = React.useState(false);
   const [msg, setMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
+  const iconRef = React.useRef<HTMLInputElement>(null);
   const faviconRef = React.useRef<HTMLInputElement>(null);
 
-  async function onPickFavicon(e: React.ChangeEvent<HTMLInputElement>) {
+  async function pickInto(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (v: string) => void,
+    size: number,
+  ) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -127,9 +133,9 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
       return;
     }
     try {
-      setFavicon(await fileToImageDataUrl(file, 64));
+      setter(await fileToImageDataUrl(file, size));
     } catch {
-      setMsg({ text: "Não foi possível processar o favicon.", ok: false });
+      setMsg({ text: "Não foi possível processar a imagem.", ok: false });
     }
   }
 
@@ -140,6 +146,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
     const res = await setPlatformBrandingAction({
       logoUrl: logoLight || null,
       logoUrlDark: logoDark || null,
+      iconUrl: icon || null,
       faviconUrl: favicon || null,
       brandColor: color || null,
     }).catch(() => "error" as const);
@@ -218,6 +225,47 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
           </div>
         </div>
 
+        {/* Ícone da barra lateral (símbolo) */}
+        <div>
+          <label className="text-label uppercase text-subtle">Ícone da barra lateral</label>
+          <p className="mb-2 text-[11px] text-subtle">
+            Símbolo quadrado para a barra lateral (espaço estreito, fundo escuro). Se vazio, usa o
+            logo.
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0B1023]">
+              {icon ? (
+                <img src={icon} alt="Ícone" className="size-full object-contain" />
+              ) : (
+                <span className="text-[10px] text-white/50">—</span>
+              )}
+            </span>
+            <input
+              ref={iconRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => pickInto(e, setIcon, 128)}
+            />
+            <button
+              type="button"
+              onClick={() => iconRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-8 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+            >
+              <Upload className="size-3.5" /> Enviar ícone
+            </button>
+            {icon && (
+              <button
+                type="button"
+                onClick={() => setIcon("")}
+                className="text-[11px] font-medium text-subtle transition-colors hover:text-danger"
+              >
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Favicon */}
         <div>
           <label className="text-label uppercase text-subtle">Favicon</label>
@@ -235,7 +283,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={onPickFavicon}
+              onChange={(e) => pickInto(e, setFavicon, 64)}
             />
             <button
               type="button"

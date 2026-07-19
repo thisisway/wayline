@@ -93,6 +93,7 @@ export default async function AppPage({
       trialDaysLeft={trialDaysLeft(activeOrg.trialEndsAt)}
       platformLogo={platform.logoUrl}
       platformLogoDark={platform.logoUrlDark}
+      platformIcon={platform.iconUrl}
       focusTaskId={focusTaskId}
     />
   );

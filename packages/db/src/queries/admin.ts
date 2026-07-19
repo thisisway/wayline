@@ -5,6 +5,7 @@ import { memberships, organizations, platformSettings, tasks, users } from "../s
 export interface PlatformBranding {
   logoUrl: string | null;
   logoUrlDark: string | null;
+  iconUrl: string | null;
   faviconUrl: string | null;
   brandColor: string | null;
 }
@@ -21,11 +22,18 @@ export async function getPlatformSettings(): Promise<PlatformBranding> {
     return {
       logoUrl: row?.logoUrl ?? null,
       logoUrlDark: row?.logoUrlDark ?? null,
+      iconUrl: row?.iconUrl ?? null,
       faviconUrl: row?.faviconUrl ?? null,
       brandColor: row?.brandColor ?? null,
     };
   } catch {
-    return { logoUrl: null, logoUrlDark: null, faviconUrl: null, brandColor: null };
+    return {
+      logoUrl: null,
+      logoUrlDark: null,
+      iconUrl: null,
+      faviconUrl: null,
+      brandColor: null,
+    };
   }
 }
 
@@ -38,6 +46,7 @@ export async function setPlatformSettings(patch: PlatformBranding): Promise<void
       id: "singleton",
       logoUrl: patch.logoUrl,
       logoUrlDark: patch.logoUrlDark,
+      iconUrl: patch.iconUrl,
       faviconUrl: patch.faviconUrl,
       brandColor: patch.brandColor,
       updatedAt: new Date(),
@@ -47,6 +56,7 @@ export async function setPlatformSettings(patch: PlatformBranding): Promise<void
       set: {
         logoUrl: patch.logoUrl,
         logoUrlDark: patch.logoUrlDark,
+        iconUrl: patch.iconUrl,
         faviconUrl: patch.faviconUrl,
         brandColor: patch.brandColor,
         updatedAt: new Date(),

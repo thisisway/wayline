@@ -72,6 +72,7 @@ export function AppView({
   trialDaysLeft = 0,
   platformLogo,
   platformLogoDark,
+  platformIcon,
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -93,6 +94,7 @@ export function AppView({
   trialDaysLeft?: number;
   platformLogo?: string | null;
   platformLogoDark?: string | null;
+  platformIcon?: string | null;
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -187,6 +189,7 @@ export function AppView({
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas text-foreground">
       <IconRail
+        icon={platformIcon}
         logoLight={platformLogo}
         logoDark={platformLogoDark}
         activeView={view}
