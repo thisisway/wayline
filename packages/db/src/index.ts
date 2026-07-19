@@ -223,6 +223,14 @@ export {
   type ProposalPatch,
 } from "./queries/proposals";
 export {
+  listServices,
+  createService,
+  updateService,
+  deleteService,
+  type ServiceDTO,
+  type ServiceInput,
+} from "./queries/services";
+export {
   getPlatformOverview,
   getPlatformUsers,
   getPlatformSettings,

@@ -9,6 +9,7 @@ import {
   Command,
   FileText,
   LogOut,
+  Package,
   Plus,
   Search,
   Sparkles,
@@ -24,6 +25,7 @@ import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
+import { ServicesModal } from "@/components/shell/services-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
@@ -56,6 +58,7 @@ export function Topbar({
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
   const [showProposals, setShowProposals] = React.useState(false);
+  const [showServices, setShowServices] = React.useState(false);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -77,6 +80,9 @@ export function Topbar({
       )}
       {showProposals && (
         <ProposalsModal orgId={activeOrgId} onClose={() => setShowProposals(false)} />
+      )}
+      {showServices && (
+        <ServicesModal orgId={activeOrgId} onClose={() => setShowServices(false)} />
       )}
 
       {/* Busca global (⌘K) */}
@@ -118,6 +124,17 @@ export function Topbar({
             className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
           >
             <FileText className="size-4.5" />
+          </button>
+        )}
+        {isAdmin && modules.includes("sales") && (
+          <button
+            type="button"
+            onClick={() => setShowServices(true)}
+            aria-label="Catálogo"
+            title="Catálogo de serviços"
+            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          >
+            <Package className="size-4.5" />
           </button>
         )}
         <button

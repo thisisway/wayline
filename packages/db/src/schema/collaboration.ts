@@ -355,6 +355,29 @@ export const automations = pgTable(
 );
 
 /**
+ * CATÁLOGO DE SERVIÇOS (módulo Comercial). Serviços reutilizáveis que preenchem
+ * itens de proposta. COM RLS por org (conteúdo interno, não é compartilhado).
+ */
+export const services = pgTable(
+  "services",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default(""),
+    description: text("description").notNull().default(""),
+    amountCents: integer("amount_cents").notNull().default(0),
+    unit: text("unit").notNull().default("Unidade"),
+    term: text("term").notNull().default(""),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("services_org_idx").on(t.orgId)],
+);
+
+/**
  * PROPOSTAS comerciais. SEM RLS (como `invitations`/`board_shares`): o `token`
  * é o segredo do link público, e as buscas internas filtram por `org_id`
  * explicitamente (guardadas por assertMember/assertRole nas actions).

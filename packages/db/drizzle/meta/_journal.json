@@ -253,6 +253,13 @@
       "when": 1784489869958,
       "tag": "0035_left_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1784491372758,
+      "tag": "0036_violet_shadow_king",
+      "breakpoints": true
     }
   ]
 }

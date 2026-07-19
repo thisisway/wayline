@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, FileText, Plus, Sparkles, Trash2, X } from "lucide-react";
-import type { ProposalDTO, ProposalListItem } from "@wayline/db";
+import { Check, Copy, FileText, Package, Plus, Sparkles, Trash2, X } from "lucide-react";
+import type { ProposalDTO, ProposalListItem, ServiceDTO } from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
+import { listServicesAction } from "@/actions/services";
 import {
   aiEnabledAction,
   clientOptionsAction,
@@ -101,11 +102,15 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
   const [aiBusy, setAiBusy] = React.useState(false);
   const [aiPanel, setAiPanel] = React.useState(false);
 
+  const [catalog, setCatalog] = React.useState<ServiceDTO[]>([]);
+  const [catalogOpen, setCatalogOpen] = React.useState(false);
+
   const reload = React.useCallback(() => listProposalsAction(orgId).then(setList), [orgId]);
 
   React.useEffect(() => {
     reload();
     clientOptionsAction(orgId).then(setClients);
+    listServicesAction(orgId).then(setCatalog);
     aiEnabledAction().then(setAiOn);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -453,7 +458,46 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
 
               {/* Investimento */}
               <div>
-                <span className="text-dense font-medium text-muted">Investimento</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-dense font-medium text-muted">Investimento</span>
+                  {catalog.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCatalogOpen((v) => !v)}
+                      className="flex items-center gap-1 text-dense font-medium text-brand hover:underline"
+                    >
+                      <Package className="size-3.5" /> Catálogo
+                    </button>
+                  )}
+                </div>
+                {catalogOpen && (
+                  <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-border bg-canvas p-1">
+                    {catalog.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setItems((arr) => [
+                            ...arr.filter((x) => x.description.trim() || x.value.trim()),
+                            {
+                              description: s.name,
+                              details: s.description,
+                              value: (s.amountCents / 100).toString(),
+                              quantity: "1",
+                              unit: s.unit,
+                              term: s.term,
+                            },
+                          ]);
+                          setCatalogOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-dense hover:bg-elevated"
+                      >
+                        <span className="truncate text-foreground">{s.name}</span>
+                        <span className="shrink-0 tabular-nums text-subtle">{brl(s.amountCents)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-1 space-y-3">
                   {items.map((it, i) => (
                     <div key={i} className="rounded-lg border border-border p-3">
