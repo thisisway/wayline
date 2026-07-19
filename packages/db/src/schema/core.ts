@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "./_shared";
 
 /**
@@ -19,6 +19,8 @@ export const platformSettings = pgTable("platform_settings", {
   id: text("id").primaryKey().default("singleton"),
   /** Nome da plataforma (white-label) — título da aba, login, emails. */
   platformName: text("platform_name"),
+  /** Módulos ativos da plataforma (ex.: "sales"). Controla o que aparece na UI. */
+  modules: jsonb("modules").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   /** Logo para tema claro (fundo claro). */
   logoUrl: text("logo_url"),
   /** Logo para tema escuro (fundo escuro). */

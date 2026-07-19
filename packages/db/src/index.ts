@@ -226,6 +226,8 @@ export {
   getPlatformSettings,
   setPlatformSettings,
   getBrandName,
+  getPlatformModules,
+  setPlatformModules,
   type PlatformOverview,
   type AdminOrgRow,
   type AdminUserRow,

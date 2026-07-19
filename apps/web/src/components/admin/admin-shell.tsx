@@ -8,6 +8,7 @@ import {
   Building2,
   LayoutDashboard,
   Palette,
+  Puzzle,
   Settings,
   TrendingUp,
   Users,
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/admin/receita", label: "Receita", icon: TrendingUp },
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
+  { href: "/admin/modulos", label: "Módulos", icon: Puzzle },
   { href: "/admin/marca", label: "Marca", icon: Palette },
   { href: "/admin/config", label: "Configurações", icon: Settings },
 ];

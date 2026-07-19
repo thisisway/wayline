@@ -38,6 +38,7 @@ export function Topbar({
   onOpenPlans,
   isAdmin = false,
   isPlatformAdmin = false,
+  modules = [],
 }: {
   userName: string;
   userAvatar?: string;
@@ -50,6 +51,7 @@ export function Topbar({
   onOpenPlans?: () => void;
   isAdmin?: boolean;
   isPlatformAdmin?: boolean;
+  modules?: string[];
 }) {
   const [showMembers, setShowMembers] = React.useState(false);
   const [showClients, setShowClients] = React.useState(false);
@@ -107,7 +109,7 @@ export function Topbar({
             <Briefcase className="size-4.5" />
           </button>
         )}
-        {isAdmin && (
+        {isAdmin && modules.includes("sales") && (
           <button
             type="button"
             onClick={() => setShowProposals(true)}

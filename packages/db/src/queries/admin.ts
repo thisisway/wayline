@@ -46,6 +46,26 @@ export async function getBrandName(): Promise<string> {
   return s.name?.trim() || "Wayline";
 }
 
+/** Módulos ativos da plataforma. Resiliente: [] se a coluna/tabela faltar. */
+export async function getPlatformModules(): Promise<string[]> {
+  try {
+    const db = getDb();
+    const row = await db.query.platformSettings.findFirst();
+    return row?.modules ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Define os módulos ativos (upsert do singleton). */
+export async function setPlatformModules(modules: string[]): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(platformSettings)
+    .values({ id: "singleton", modules, updatedAt: new Date() })
+    .onConflictDoUpdate({ target: platformSettings.id, set: { modules, updatedAt: new Date() } });
+}
+
 /** Grava a marca da plataforma (upsert do singleton). */
 export async function setPlatformSettings(patch: PlatformBranding): Promise<void> {
   const db = getDb();

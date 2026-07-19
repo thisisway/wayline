@@ -239,6 +239,13 @@
       "when": 1784479307314,
       "tag": "0033_needy_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1784487602535,
+      "tag": "0034_tranquil_omega_red",
+      "breakpoints": true
     }
   ]
 }

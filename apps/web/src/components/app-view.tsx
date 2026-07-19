@@ -73,6 +73,7 @@ export function AppView({
   platformLogo,
   platformLogoDark,
   platformIcon,
+  modules = [],
   focusTaskId,
 }: {
   data: BoardData | null;
@@ -95,6 +96,7 @@ export function AppView({
   platformLogo?: string | null;
   platformLogoDark?: string | null;
   platformIcon?: string | null;
+  modules?: string[];
   focusTaskId?: string;
 }) {
   const router = useRouter();
@@ -329,6 +331,7 @@ export function AppView({
           onOpenPlans={() => setPlansOpen(true)}
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
+          modules={modules}
         />
         <ViewTabs
           value={view}

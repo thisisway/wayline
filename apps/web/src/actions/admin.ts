@@ -5,8 +5,10 @@ import {
   setOrgPlan,
   setOrgTrial,
   setPlatformSettings,
+  setPlatformModules,
   type PlatformOverview,
 } from "@wayline/db";
+import { MODULES } from "@/lib/modules";
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/authz";
 import { isKnownPlan } from "@/lib/plans";
@@ -53,6 +55,16 @@ export async function setPlatformBrandingAction(patch: {
   }
   revalidatePath("/", "layout"); // marca é global
   return "ok";
+}
+
+/** Superadmin liga/desliga os módulos da plataforma. */
+export async function setPlatformModulesAction(modules: string[]): Promise<boolean> {
+  if (!(await isPlatformAdmin())) return false;
+  const valid = new Set(MODULES.map((m) => m.id));
+  const clean = [...new Set(modules.filter((m) => valid.has(m)))];
+  await setPlatformModules(clean);
+  revalidatePath("/", "layout");
+  return true;
 }
 
 /** Superadmin define o trial: `days` a partir de agora, ou null para encerrar. */

@@ -7,6 +7,7 @@ import {
   getMyTasks,
   getNotifications,
   getPlatformSettings,
+  getPlatformModules,
   getUserOrgs,
   getUserProfile,
   getWorkspaceNav,
@@ -42,6 +43,7 @@ export default async function AppPage({
   const profile = await getUserProfile(session.user.id);
   const platformAdmin = await isPlatformAdmin();
   const platform = await getPlatformSettings();
+  const modules = await getPlatformModules();
 
   const store = await cookies();
 
@@ -94,6 +96,7 @@ export default async function AppPage({
       platformLogo={platform.logoUrl}
       platformLogoDark={platform.logoUrlDark}
       platformIcon={platform.iconUrl}
+      modules={modules}
       focusTaskId={focusTaskId}
     />
   );
