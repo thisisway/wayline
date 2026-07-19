@@ -488,6 +488,44 @@ export const proposalItemsRelations = relations(proposalItems, ({ one }) => ({
 }));
 
 /**
+ * CONTRATOS (módulo Comercial). Documento assinável por link público (token é o
+ * segredo, como propostas). Pode nascer de uma proposta aceita.
+ */
+export const contracts = pgTable(
+  "contracts",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
+    number: integer("number").notNull().default(0),
+    title: text("title").notNull().default("Contrato"),
+    content: text("content").notNull().default(""),
+    valueCents: integer("value_cents").notNull().default(0),
+    /** draft | sent | signed | canceled */
+    status: text("status").notNull().default("draft"),
+    token: text("token").notNull().unique(),
+    signedByName: text("signed_by_name"),
+    signedByDoc: text("signed_by_doc"),
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("contracts_org_idx").on(t.orgId), index("contracts_token_idx").on(t.token)],
+);
+
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  client: one(clients, { fields: [contracts.clientId], references: [clients.id] }),
+  organization: one(organizations, {
+    fields: [contracts.orgId],
+    references: [organizations.id],
+  }),
+}));
+
+/**
  * COMPARTILHAMENTO de board por link público (read-only). SEM RLS (como
  * `invitations`): a busca por token acontece sem sessão. O token é o segredo.
  */

@@ -240,6 +240,20 @@ export {
   type PortfolioInput,
 } from "./queries/portfolio";
 export {
+  listContracts,
+  getContract,
+  createContract,
+  createContractFromProposal,
+  updateContract,
+  deleteContract,
+  getContractByToken,
+  signContract,
+  type ContractListItem,
+  type ContractDTO,
+  type PublicContract,
+  type ContractPatch,
+} from "./queries/contracts";
+export {
   getPlatformOverview,
   getPlatformUsers,
   getPlatformSettings,

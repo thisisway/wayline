@@ -6,6 +6,7 @@ import type { PortfolioItemDTO, ProposalDTO, ProposalListItem, ServiceDTO } from
 import { Badge, Button, Input, cn } from "@wayline/ui";
 import { listServicesAction } from "@/actions/services";
 import { listPortfolioAction } from "@/actions/portfolio";
+import { contractFromProposalAction } from "@/actions/contracts";
 import {
   aiEnabledAction,
   clientOptionsAction,
@@ -98,6 +99,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
   const [token, setToken] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [genMsg, setGenMsg] = React.useState<string | null>(null);
 
   const [briefing, setBriefing] = React.useState("");
   const [aiBusy, setAiBusy] = React.useState(false);
@@ -657,13 +659,37 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
               </Field>
 
               {decided && d?.decidedByName && (
-                <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-dense">
-                  <span className="font-semibold text-success">
-                    {status === "accepted" ? "Aceita" : "Recusada"}
-                  </span>{" "}
-                  por <strong>{d.decidedByName}</strong>
-                  {d.decidedByDoc && ` (${d.decidedByDoc})`}
-                  {d.decidedAt && ` em ${new Date(d.decidedAt).toLocaleString("pt-BR")}`}
+                <div className="space-y-2 rounded-lg border border-success/30 bg-success/5 p-3 text-dense">
+                  <p>
+                    <span className="font-semibold text-success">
+                      {status === "accepted" ? "Aceita" : "Recusada"}
+                    </span>{" "}
+                    por <strong>{d.decidedByName}</strong>
+                    {d.decidedByDoc && ` (${d.decidedByDoc})`}
+                    {d.decidedAt && ` em ${new Date(d.decidedAt).toLocaleString("pt-BR")}`}
+                  </p>
+                  {status === "accepted" && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={async () => {
+                          if (!selectedId) return;
+                          const id = await contractFromProposalAction(orgId, selectedId).catch(
+                            () => null,
+                          );
+                          setGenMsg(
+                            id
+                              ? "Contrato gerado — abra Contratos (📝) no topo para editar/enviar."
+                              : "Não foi possível gerar o contrato.",
+                          );
+                        }}
+                      >
+                        Gerar contrato
+                      </Button>
+                      {genMsg && <span className="text-muted">{genMsg}</span>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
