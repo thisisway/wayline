@@ -92,6 +92,32 @@ export function PublicProposalView({
             </Section>
           )}
 
+          {proposal.portfolio.length > 0 && (
+            <Section title="Portfólio">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {proposal.portfolio.map((c) => {
+                  const card = (
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <img src={c.imageUrl} alt={c.title} className="aspect-video w-full object-cover" />
+                      {c.title && (
+                        <p className="truncate px-2 py-1.5 text-dense font-medium text-foreground">
+                          {c.title}
+                        </p>
+                      )}
+                    </div>
+                  );
+                  return c.linkUrl ? (
+                    <a key={c.id} href={c.linkUrl} target="_blank" rel="noreferrer" className="block">
+                      {card}
+                    </a>
+                  ) : (
+                    <div key={c.id}>{card}</div>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
           {proposal.schedule.length > 0 && (
             <Section title="Cronograma de entrega">
               <ul className="space-y-1.5">

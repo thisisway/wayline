@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { Check, Copy, FileText, Package, Plus, Sparkles, Trash2, X } from "lucide-react";
-import type { ProposalDTO, ProposalListItem, ServiceDTO } from "@wayline/db";
+import type { PortfolioItemDTO, ProposalDTO, ProposalListItem, ServiceDTO } from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
 import { listServicesAction } from "@/actions/services";
+import { listPortfolioAction } from "@/actions/portfolio";
 import {
   aiEnabledAction,
   clientOptionsAction,
@@ -104,6 +105,8 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
 
   const [catalog, setCatalog] = React.useState<ServiceDTO[]>([]);
   const [catalogOpen, setCatalogOpen] = React.useState(false);
+  const [portfolio, setPortfolio] = React.useState<PortfolioItemDTO[]>([]);
+  const [portfolioIds, setPortfolioIds] = React.useState<string[]>([]);
 
   const reload = React.useCallback(() => listProposalsAction(orgId).then(setList), [orgId]);
 
@@ -111,6 +114,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     reload();
     clientOptionsAction(orgId).then(setClients);
     listServicesAction(orgId).then(setCatalog);
+    listPortfolioAction(orgId).then(setPortfolio);
     aiEnabledAction().then(setAiOn);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -135,6 +139,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
     setDiscount(String(p.discountPct));
     setPayMethod(p.paymentMethod);
     setPayTerms(p.paymentTerms);
+    setPortfolioIds(p.portfolioIds);
     setToken(p.token);
     setItems(
       p.items.length
@@ -178,6 +183,7 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
       discountPct: Number(discount) || 0,
       paymentMethod: payMethod,
       paymentTerms: payTerms,
+      portfolioIds,
       recurrence,
       clientId: clientId || null,
       status,
@@ -414,6 +420,38 @@ export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () 
               <Field label="Objetivo">
                 <Area value={objective} onChange={(e) => setObjective(e.target.value)} className="h-16" />
               </Field>
+
+              {/* Portfólio */}
+              {portfolio.length > 0 && (
+                <div>
+                  <span className="text-dense font-medium text-muted">
+                    Portfólio ({portfolioIds.length} selecionado{portfolioIds.length === 1 ? "" : "s"})
+                  </span>
+                  <div className="mt-1 grid grid-cols-4 gap-2">
+                    {portfolio.map((c) => {
+                      const on = portfolioIds.includes(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() =>
+                            setPortfolioIds((ids) =>
+                              on ? ids.filter((x) => x !== c.id) : [...ids, c.id],
+                            )
+                          }
+                          title={c.title}
+                          className={cn(
+                            "overflow-hidden rounded-md border-2 transition",
+                            on ? "border-brand" : "border-transparent opacity-60 hover:opacity-100",
+                          )}
+                        >
+                          <img src={c.imageUrl} alt={c.title} className="aspect-video w-full object-cover" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Cronograma */}
               <div>

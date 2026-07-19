@@ -231,6 +231,15 @@ export {
   type ServiceInput,
 } from "./queries/services";
 export {
+  listPortfolio,
+  getPortfolioByIds,
+  createPortfolioItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+  type PortfolioItemDTO,
+  type PortfolioInput,
+} from "./queries/portfolio";
+export {
   getPlatformOverview,
   getPlatformUsers,
   getPlatformSettings,

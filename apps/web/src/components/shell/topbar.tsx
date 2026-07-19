@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   Command,
   FileText,
+  Image as ImageIcon,
   LogOut,
   Package,
   Plus,
@@ -26,6 +27,7 @@ import { MembersModal } from "@/components/shell/members-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
 import { ServicesModal } from "@/components/shell/services-modal";
+import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function Topbar({
@@ -59,6 +61,7 @@ export function Topbar({
   const [showClients, setShowClients] = React.useState(false);
   const [showProposals, setShowProposals] = React.useState(false);
   const [showServices, setShowServices] = React.useState(false);
+  const [showPortfolio, setShowPortfolio] = React.useState(false);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
@@ -83,6 +86,9 @@ export function Topbar({
       )}
       {showServices && (
         <ServicesModal orgId={activeOrgId} onClose={() => setShowServices(false)} />
+      )}
+      {showPortfolio && (
+        <PortfolioModal orgId={activeOrgId} onClose={() => setShowPortfolio(false)} />
       )}
 
       {/* Busca global (⌘K) */}
@@ -135,6 +141,17 @@ export function Topbar({
             className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
           >
             <Package className="size-4.5" />
+          </button>
+        )}
+        {isAdmin && modules.includes("sales") && (
+          <button
+            type="button"
+            onClick={() => setShowPortfolio(true)}
+            aria-label="Portfólio"
+            title="Portfólio (cases)"
+            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          >
+            <ImageIcon className="size-4.5" />
           </button>
         )}
         <button

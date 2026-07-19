@@ -260,6 +260,13 @@
       "when": 1784491372758,
       "tag": "0036_violet_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1784493743731,
+      "tag": "0037_open_komodo",
+      "breakpoints": true
     }
   ]
 }

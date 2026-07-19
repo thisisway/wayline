@@ -2,6 +2,7 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb } from "../client";
 import { clients, proposalItems, proposals } from "../schema";
+import { getPortfolioByIds, type PortfolioItemDTO } from "./portfolio";
 
 export interface SchedulePhase {
   label: string;
@@ -45,6 +46,7 @@ export interface ProposalDTO {
   recurrence: string;
   nextSteps: string;
   internalNotes: string;
+  portfolioIds: string[];
   status: string;
   token: string;
   clientId: string | null;
@@ -55,10 +57,11 @@ export interface ProposalDTO {
   items: ProposalItemDTO[];
 }
 
-/** Proposta pública (link do cliente). Sem `internalNotes`. */
+/** Proposta pública (link do cliente). Sem `internalNotes`; portfólio resolvido. */
 export interface PublicProposal extends Omit<ProposalDTO, "internalNotes"> {
   orgName: string;
   clientName: string | null;
+  portfolio: PortfolioItemDTO[];
 }
 
 function token(): string {
@@ -123,6 +126,7 @@ function baseDTO(p: RawProposal): Omit<ProposalDTO, "internalNotes"> & { interna
     recurrence: p.recurrence,
     nextSteps: p.nextSteps,
     internalNotes: p.internalNotes,
+    portfolioIds: p.portfolioIds ?? [],
     status: p.status,
     token: p.token,
     clientId: p.clientId,
@@ -181,6 +185,7 @@ export interface ProposalPatch {
   recurrence?: string;
   nextSteps?: string;
   internalNotes?: string;
+  portfolioIds?: string[];
   clientId?: string | null;
   status?: string;
   validUntil?: Date | null;
@@ -206,6 +211,7 @@ export async function updateProposal(
   if (patch.recurrence !== undefined) set.recurrence = patch.recurrence;
   if (patch.nextSteps !== undefined) set.nextSteps = patch.nextSteps;
   if (patch.internalNotes !== undefined) set.internalNotes = patch.internalNotes;
+  if (patch.portfolioIds !== undefined) set.portfolioIds = patch.portfolioIds;
   if (patch.clientId !== undefined) set.clientId = patch.clientId;
   if (patch.status !== undefined) set.status = patch.status;
   if (patch.validUntil !== undefined) set.validUntil = patch.validUntil;
@@ -252,10 +258,12 @@ export async function getProposalByToken(tok: string): Promise<PublicProposal | 
   const dto = baseDTO(p as RawProposal);
   const { internalNotes: _omit, ...pub } = dto;
   void _omit;
+  const portfolio = await getPortfolioByIds(p.orgId, dto.portfolioIds);
   return {
     ...pub,
     orgName: (p as RawProposal & { organization?: { name?: string } }).organization?.name ?? "",
     clientName: (p as RawProposal & { client?: { name?: string } }).client?.name ?? null,
+    portfolio,
   };
 }
 

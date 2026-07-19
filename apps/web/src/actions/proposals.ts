@@ -56,6 +56,7 @@ export interface ProposalPatchInput {
   recurrence?: string;
   nextSteps?: string;
   internalNotes?: string;
+  portfolioIds?: string[];
   clientId?: string | null;
   status?: string;
   validUntilIso?: string | null;
@@ -88,6 +89,7 @@ export async function updateProposalAction(
     recurrence: patch.recurrence,
     nextSteps: patch.nextSteps,
     internalNotes: patch.internalNotes,
+    portfolioIds: patch.portfolioIds,
     clientId: patch.clientId,
     status: patch.status,
     items: patch.items,

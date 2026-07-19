@@ -355,6 +355,27 @@ export const automations = pgTable(
 );
 
 /**
+ * PORTFÓLIO (módulo Comercial): cases/trabalhos exibidos na proposta. SEM RLS
+ * (aparecem no link público das propostas; org_id filtrado no app).
+ */
+export const portfolioItems = pgTable(
+  "portfolio_items",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    imageUrl: text("image_url").notNull().default(""),
+    linkUrl: text("link_url"),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("portfolio_org_idx").on(t.orgId)],
+);
+
+/**
  * CATÁLOGO DE SERVIÇOS (módulo Comercial). Serviços reutilizáveis que preenchem
  * itens de proposta. COM RLS por org (conteúdo interno, não é compartilhado).
  */
@@ -402,6 +423,8 @@ export const proposals = pgTable(
     schedule: jsonb("schedule").$type<Array<{ label: string; duration: string }>>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    /** IDs de cases do portfólio incluídos na proposta. */
+    portfolioIds: jsonb("portfolio_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     /** Comercial. */
     discountPct: integer("discount_pct").notNull().default(0),
     paymentMethod: text("payment_method").notNull().default(""),
