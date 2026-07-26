@@ -90,9 +90,49 @@ export async function createSupportTicket(input: SupportTicketInput): Promise<st
   }
 }
 
+/** Horas sem resposta do usuário (após o admin responder) para auto-resolver. */
+export const AUTO_RESOLVE_HOURS = 42;
+
+/**
+ * Resolve automaticamente chamados abertos cuja ÚLTIMA mensagem é do suporte
+ * (admin) e já passou de `hours` horas — ou seja, o usuário não respondeu.
+ * Idempotente e resiliente. Retorna quantos foram resolvidos.
+ */
+export async function autoResolveStaleTickets(hours = AUTO_RESOLVE_HOURS): Promise<number> {
+  try {
+    const db = getDb();
+    const cutoff = Date.now() - hours * 3600 * 1000;
+    const open = await db.query.supportTickets.findMany({
+      where: eq(supportTickets.status, "open"),
+      limit: 500,
+    });
+    let closed = 0;
+    for (const t of open) {
+      const last = await db.query.supportMessages.findFirst({
+        where: eq(supportMessages.ticketId, t.id),
+        orderBy: [desc(supportMessages.createdAt)],
+      });
+      if (last && last.isAdmin && last.createdAt.getTime() < cutoff) {
+        await db
+          .update(supportTickets)
+          .set({ status: "closed", updatedAt: new Date() })
+          .where(eq(supportTickets.id, t.id));
+        if (t.userId) {
+          await notifyUser(t.orgId, t.userId, "support_resolved", t.subject || "Seu chamado", "Suporte");
+        }
+        closed++;
+      }
+    }
+    return closed;
+  } catch {
+    return 0;
+  }
+}
+
 /** Todos os chamados (superadmin). Resiliente: [] se a tabela faltar. */
 export async function listSupportTickets(): Promise<SupportTicketDTO[]> {
   try {
+    await autoResolveStaleTickets(); // resolve os parados antes de listar
     const db = getDb();
     const rows = await db.query.supportTickets.findMany({
       orderBy: [desc(supportTickets.updatedAt)],

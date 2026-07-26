@@ -273,6 +273,8 @@ export {
   getTicket,
   getTicketThread,
   addSupportMessage,
+  autoResolveStaleTickets,
+  AUTO_RESOLVE_HOURS,
   countOpenTickets,
   setSupportTicketStatus,
   getSupportWhatsappUrl,
