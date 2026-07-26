@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Building2,
   LayoutDashboard,
+  LifeBuoy,
   Palette,
   Puzzle,
   Settings,
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
   { href: "/admin/modulos", label: "Módulos", icon: Puzzle },
+  { href: "/admin/suporte", label: "Suporte", icon: LifeBuoy },
   { href: "/admin/marca", label: "Marca", icon: Palette },
   { href: "/admin/config", label: "Configurações", icon: Settings },
 ];

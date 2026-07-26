@@ -40,6 +40,7 @@ import { ServicesModal } from "@/components/shell/services-modal";
 import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ContractsModal } from "@/components/shell/contracts-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
+import { SupportModal } from "@/components/shell/support-modal";
 import { PlansModal } from "@/components/shell/plans-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { DocPanel } from "@/components/panels/doc-panel";
@@ -118,6 +119,7 @@ export function AppView({
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [brainOpen, setBrainOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [supportOpen, setSupportOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [plansOpen, setPlansOpen] = React.useState(false);
   const [trialHidden, setTrialHidden] = React.useState(false);
@@ -208,7 +210,6 @@ export function AppView({
         logoLight={platformLogo}
         logoDark={platformLogoDark}
         activeView={view}
-        inboxUnread={inbox.unread}
         sidebarOpen={sidebarOpen}
         onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}
         onHome={() => setView("board")}
@@ -216,7 +217,7 @@ export function AppView({
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenBrain={() => setBrainOpen(true)}
         onOpenSearch={() => setSearchOpen(true)}
-        onOpenInbox={() => setInboxOpen(true)}
+        onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
       {sidebarOpen && (
@@ -302,6 +303,9 @@ export function AppView({
           currentPlan={orgPlan}
           onClose={() => setPlansOpen(false)}
         />
+      )}
+      {supportOpen && (
+        <SupportModal orgId={activeOrgId} orgName={orgName} onClose={() => setSupportOpen(false)} />
       )}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
       {fieldsOpen && data && (

@@ -73,7 +73,7 @@ export function TabsTrigger({ value, icon, className, children }: TabsTriggerPro
       tabIndex={active ? 0 : -1}
       onClick={() => setValue(value)}
       className={cn(
-        "inline-flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 text-dense font-sans font-medium transition-colors",
+        "inline-flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 text-[12px] font-sans font-medium transition-colors",
         "[&_svg]:size-3.5 [&_svg]:shrink-0",
         active
           ? "border-foreground text-foreground"

@@ -30,8 +30,33 @@ export const platformSettings = pgTable("platform_settings", {
   /** Favicon (ícone da aba do navegador). */
   faviconUrl: text("favicon_url"),
   brandColor: text("brand_color"),
+  /** Link do grupo de WhatsApp (suporte/comunidade) exibido no modal de Suporte. */
+  supportWhatsappUrl: text("support_whatsapp_url"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
+
+/**
+ * SUPORTE: chamados abertos pelos usuários (suporte, bug, sugestão). Sem RLS —
+ * é lido/gerido pelo superadmin em /admin; org_id filtrado no app.
+ */
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id").notNull(),
+    userId: uuid("user_id"),
+    userName: text("user_name").notNull().default(""),
+    userEmail: text("user_email").notNull().default(""),
+    orgName: text("org_name").notNull().default(""),
+    category: text("category").notNull().default("support"), // support | bug | idea
+    subject: text("subject").notNull().default(""),
+    message: text("message").notNull().default(""),
+    status: text("status").notNull().default("open"), // open | closed
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("support_tickets_status_idx").on(t.status)],
+);
 
 export const organizations = pgTable("organizations", {
   id: idColumn(),

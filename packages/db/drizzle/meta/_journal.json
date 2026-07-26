@@ -274,6 +274,13 @@
       "when": 1784494619806,
       "tag": "0038_goofy_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1785084305701,
+      "tag": "0039_wide_katie_power",
+      "breakpoints": true
     }
   ]
 }

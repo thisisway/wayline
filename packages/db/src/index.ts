@@ -266,6 +266,18 @@ export {
   type AdminUserRow,
   type PlatformBranding,
 } from "./queries/admin";
+export {
+  createSupportTicket,
+  listSupportTickets,
+  countOpenTickets,
+  setSupportTicketStatus,
+  getSupportWhatsappUrl,
+  setSupportWhatsappUrl,
+  type SupportTicketInput,
+  type SupportTicketDTO,
+  type TicketCategory,
+  type TicketStatus,
+} from "./queries/support";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

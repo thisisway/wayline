@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  Bell,
   CheckSquare,
   ChevronsLeft,
   ChevronsRight,
   Home,
+  LifeBuoy,
   Plus,
   Search,
   Settings,
@@ -59,7 +59,6 @@ function RailButton({
 
 export function IconRail({
   activeView,
-  inboxUnread = 0,
   sidebarOpen = true,
   icon,
   logoLight,
@@ -70,11 +69,10 @@ export function IconRail({
   onOpenMyTasks,
   onOpenBrain,
   onOpenSearch,
-  onOpenInbox,
+  onOpenSupport,
   onOpenSettings,
 }: {
   activeView: string;
-  inboxUnread?: number;
   sidebarOpen?: boolean;
   icon?: string | null;
   logoLight?: string | null;
@@ -85,7 +83,7 @@ export function IconRail({
   onOpenMyTasks: () => void;
   onOpenBrain: () => void;
   onOpenSearch: () => void;
-  onOpenInbox: () => void;
+  onOpenSupport: () => void;
   onOpenSettings: () => void;
 }) {
   return (
@@ -122,12 +120,7 @@ export function IconRail({
       <RailButton icon={Search} label="Buscar (⌘K)" onClick={onOpenSearch} />
 
       <div className="mt-auto flex flex-col items-center gap-2">
-        <RailButton
-          icon={Bell}
-          label="Notificações"
-          badge={inboxUnread}
-          onClick={onOpenInbox}
-        />
+        <RailButton icon={LifeBuoy} label="Suporte" onClick={onOpenSupport} />
         <RailButton icon={Settings} label="Configurações" onClick={onOpenSettings} />
       </div>
     </nav>
