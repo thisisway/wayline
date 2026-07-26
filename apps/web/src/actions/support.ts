@@ -142,6 +142,19 @@ export async function replyTicketAction(
       ticketId,
     }).catch(() => false);
   }
+  // Usuário respondeu → alerta o admin no WhatsApp (best-effort, se configurado).
+  if (ok && !admin) {
+    const to = await getSupportAlertWhatsapp();
+    if (to) {
+      const link = process.env.APP_URL ? `\n${process.env.APP_URL}/admin/suporte` : "";
+      const wbody =
+        `💬 Resposta no chamado — ${t.subject || "chamado"}` +
+        `\nDe: ${user.name}${user.email ? ` (${user.email})` : ""} · ${t.orgName}` +
+        `\n${body.trim().slice(0, 400)}` +
+        link;
+      await sendWhatsappAlert(to, wbody).catch(() => false);
+    }
+  }
   if (admin) revalidatePath("/admin/suporte");
   return ok;
 }
