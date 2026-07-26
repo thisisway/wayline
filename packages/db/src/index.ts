@@ -309,6 +309,12 @@ export {
   type FormSeed,
   type FormPatch,
 } from "./queries/forms";
+export {
+  exportUserData,
+  deleteUserAccount,
+  type UserDataExport,
+  type DeleteAccountResult,
+} from "./queries/account";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

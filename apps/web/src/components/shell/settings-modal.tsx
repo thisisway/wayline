@@ -13,6 +13,7 @@ import {
   type ChangePasswordResult,
 } from "@/actions/profile";
 import { subscriptionSummaryAction } from "@/actions/billing";
+import { AccountDataSection } from "@/components/shell/account-data-section";
 import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
 
 /**
@@ -416,6 +417,8 @@ export function SettingsModal({
               <Keyboard className="size-4" /> Atalhos de teclado
             </button>
           </Section>
+
+          <AccountDataSection userEmail={email} />
         </div>
 
         <div className="border-t border-border px-5 py-3">
