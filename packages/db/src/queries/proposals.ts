@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb } from "../client";
 import { clients, proposalItems, proposals } from "../schema";
 import { getPortfolioByIds, type PortfolioItemDTO } from "./portfolio";
+import { notifyCommercial } from "./notifications";
 
 export interface SchedulePhase {
   label: string;
@@ -307,6 +308,13 @@ export async function decideProposal(
       decidedAt: new Date(),
     })
     .where(eq(proposals.id, p.id));
+  await notifyCommercial(
+    p.orgId,
+    decision === "accepted" ? "proposal_accepted" : "proposal_rejected",
+    p.title,
+    byName,
+    p.createdBy,
+  );
   return true;
 }
 

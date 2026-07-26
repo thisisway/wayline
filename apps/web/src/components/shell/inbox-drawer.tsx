@@ -6,7 +6,8 @@ import {
   AlertTriangle,
   AtSign,
   CheckCheck,
-  CheckCircle2,
+  FileSignature,
+  Handshake,
   Inbox,
   MessageSquare,
   UserPlus,
@@ -32,6 +33,9 @@ function message(n: NotificationDTO): string {
   if (n.type === "mention") return `${n.actorName} mencionou você em`;
   if (n.type === "approved") return `${n.actorName} aprovou`;
   if (n.type === "changes") return `${n.actorName} pediu ajustes em`;
+  if (n.type === "proposal_accepted") return `${n.actorName} aceitou a proposta`;
+  if (n.type === "proposal_rejected") return `${n.actorName} recusou a proposta`;
+  if (n.type === "contract_signed") return `${n.actorName} assinou o contrato`;
   return `${n.actorName} atualizou`;
 }
 
@@ -119,7 +123,7 @@ export function InboxDrawer({
                 <span
                   className={cn(
                     "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
-                    n.type === "changes"
+                    n.type === "changes" || n.type === "proposal_rejected"
                       ? "bg-warning/15 text-warning"
                       : n.type === "comment" || n.type === "mention"
                         ? "bg-brand/15 text-brand"
@@ -128,9 +132,11 @@ export function InboxDrawer({
                 >
                   {n.type === "mention" ? (
                     <AtSign className="size-4" />
-                  ) : n.type === "approved" ? (
-                    <CheckCircle2 className="size-4" />
-                  ) : n.type === "changes" ? (
+                  ) : n.type === "approved" || n.type === "proposal_accepted" ? (
+                    <Handshake className="size-4" />
+                  ) : n.type === "contract_signed" ? (
+                    <FileSignature className="size-4" />
+                  ) : n.type === "changes" || n.type === "proposal_rejected" ? (
                     <AlertTriangle className="size-4" />
                   ) : n.type === "comment" ? (
                     <MessageSquare className="size-4" />

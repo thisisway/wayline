@@ -1,6 +1,50 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { withOrg } from "../client";
-import { notifications, tasks } from "../schema";
+import { memberships, notifications, tasks } from "../schema";
+
+export type CommercialEvent =
+  | "proposal_accepted"
+  | "proposal_rejected"
+  | "contract_signed";
+
+/**
+ * Notifica owners/admins (e o criador, se houver) sobre um evento comercial
+ * vindo do link público — que não tem tarefa nem sessão. Resiliente: nunca
+ * lança (uma falha aqui não pode impedir o aceite/assinatura do cliente).
+ */
+export async function notifyCommercial(
+  orgId: string,
+  type: CommercialEvent,
+  title: string,
+  clientName: string,
+  createdBy?: string | null,
+): Promise<void> {
+  try {
+    await withOrg(orgId, async (tx) => {
+      const members = await tx.query.memberships.findMany({
+        where: eq(memberships.orgId, orgId),
+      });
+      const recipients = new Set(
+        members.filter((m) => m.role === "owner" || m.role === "admin").map((m) => m.userId),
+      );
+      if (createdBy) recipients.add(createdBy);
+      if (recipients.size === 0) return;
+      await tx.insert(notifications).values(
+        [...recipients].map((userId) => ({
+          orgId,
+          userId,
+          type,
+          taskId: null,
+          listId: null,
+          taskTitle: title,
+          actorName: clientName || "Cliente",
+        })),
+      );
+    });
+  } catch {
+    // silencioso de propósito — notificação é secundária ao ato do cliente
+  }
+}
 
 export interface NotificationDTO {
   id: string;

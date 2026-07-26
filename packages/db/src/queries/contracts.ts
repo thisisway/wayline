@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb } from "../client";
 import { contracts, proposals } from "../schema";
+import { notifyCommercial } from "./notifications";
 
 export interface ContractListItem {
   id: string;
@@ -224,5 +225,6 @@ export async function signContract(tok: string, name: string, doc: string): Prom
       signedAt: new Date(),
     })
     .where(eq(contracts.id, c.id));
+  await notifyCommercial(c.orgId, "contract_signed", c.title, name, c.createdBy);
   return true;
 }
