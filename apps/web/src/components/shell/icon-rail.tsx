@@ -1,13 +1,13 @@
 "use client";
 
 import {
+  Briefcase,
   CheckSquare,
   ChevronsLeft,
   ChevronsRight,
   Home,
   LifeBuoy,
   Plus,
-  Search,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -68,9 +68,10 @@ export function IconRail({
   onToggleSidebar,
   onOpenMyTasks,
   onOpenBrain,
-  onOpenSearch,
+  onOpenComercial,
   onOpenSupport,
   onOpenSettings,
+  showComercial = false,
 }: {
   activeView: string;
   sidebarOpen?: boolean;
@@ -82,9 +83,10 @@ export function IconRail({
   onToggleSidebar: () => void;
   onOpenMyTasks: () => void;
   onOpenBrain: () => void;
-  onOpenSearch: () => void;
+  onOpenComercial: () => void;
   onOpenSupport: () => void;
   onOpenSettings: () => void;
+  showComercial?: boolean;
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
@@ -117,7 +119,14 @@ export function IconRail({
       <RailButton icon={Home} label="Board" active={activeView === "board"} onClick={onHome} />
       <RailButton icon={CheckSquare} label="Minhas tarefas" onClick={onOpenMyTasks} />
       <RailButton icon={Sparkles} label="Wayline Brain" onClick={onOpenBrain} />
-      <RailButton icon={Search} label="Buscar (⌘K)" onClick={onOpenSearch} />
+      {showComercial && (
+        <RailButton
+          icon={Briefcase}
+          label="Comercial"
+          active={activeView === "comercial"}
+          onClick={onOpenComercial}
+        />
+      )}
 
       <div className="mt-auto flex flex-col items-center gap-2">
         <RailButton icon={LifeBuoy} label="Suporte" onClick={onOpenSupport} />

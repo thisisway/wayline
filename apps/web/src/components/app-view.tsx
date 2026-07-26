@@ -33,6 +33,7 @@ import { DocsView } from "@/components/board/docs-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
+import { CommercialPage } from "@/components/shell/commercial-page";
 import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
@@ -216,9 +217,10 @@ export function AppView({
         onToggleSidebar={() => setSidebarOpen((s) => !s)}
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenBrain={() => setBrainOpen(true)}
-        onOpenSearch={() => setSearchOpen(true)}
+        onOpenComercial={() => setView("comercial")}
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        showComercial={isAdmin}
       />
       {sidebarOpen && (
         <HomePanel
@@ -235,13 +237,6 @@ export function AppView({
           onOpenReplies={() => setRepliesOpen(true)}
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
-          salesEnabled={salesEnabled}
-          onOpenOverview={() => setOverviewOpen(true)}
-          onOpenClients={() => setClientsOpen(true)}
-          onOpenProposals={() => setProposalsOpen(true)}
-          onOpenServices={() => setServicesOpen(true)}
-          onOpenPortfolio={() => setPortfolioOpen(true)}
-          onOpenContracts={() => setContractsOpen(true)}
         />
       )}
       {overviewOpen && (
@@ -372,27 +367,39 @@ export function AppView({
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
         />
-        <ViewTabs
-          value={view}
-          onValueChange={setView}
-          listName={listName}
-          viewers={viewers}
-          filters={filters}
-          onFiltersChange={setFilters}
-          clients={data?.clients ?? []}
-          members={data?.members ?? []}
-          tags={tagOptions}
-          customFieldOptions={customFieldOptions}
-          onOpenFields={() => setFieldsOpen(true)}
-          onExport={handleExport}
-          onShare={() => setShareOpen(true)}
-          onOpenAutomations={() => setAutomationsOpen(true)}
-          isAdmin={isAdmin}
-          planFlags={planFlags}
-          onLocked={() => setPlansOpen(true)}
-        />
+        {view !== "comercial" && (
+          <ViewTabs
+            value={view}
+            onValueChange={setView}
+            listName={listName}
+            viewers={viewers}
+            filters={filters}
+            onFiltersChange={setFilters}
+            clients={data?.clients ?? []}
+            members={data?.members ?? []}
+            tags={tagOptions}
+            customFieldOptions={customFieldOptions}
+            onOpenFields={() => setFieldsOpen(true)}
+            onExport={handleExport}
+            onShare={() => setShareOpen(true)}
+            onOpenAutomations={() => setAutomationsOpen(true)}
+            isAdmin={isAdmin}
+            planFlags={planFlags}
+            onLocked={() => setPlansOpen(true)}
+          />
+        )}
 
-        {view === "board" ? (
+        {view === "comercial" ? (
+          <CommercialPage
+            salesEnabled={salesEnabled}
+            onOpenOverview={() => setOverviewOpen(true)}
+            onOpenClients={() => setClientsOpen(true)}
+            onOpenProposals={() => setProposalsOpen(true)}
+            onOpenServices={() => setServicesOpen(true)}
+            onOpenPortfolio={() => setPortfolioOpen(true)}
+            onOpenContracts={() => setContractsOpen(true)}
+          />
+        ) : view === "board" ? (
           !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
