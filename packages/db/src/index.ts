@@ -200,6 +200,7 @@ export {
 export {
   getOrgPlan,
   getOrgBilling,
+  setOrgStripeCustomer,
   setOrgPlan,
   setOrgTrial,
   setOrgBranding,

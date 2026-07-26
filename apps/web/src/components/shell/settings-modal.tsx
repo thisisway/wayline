@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Keyboard, LogOut, Moon, Sparkles, Sun, Upload, X } from "lucide-react";
+import { Check, CreditCard, Keyboard, LogOut, Moon, Sparkles, Sun, Upload, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
@@ -12,7 +12,7 @@ import {
   updateProfileAction,
   type ChangePasswordResult,
 } from "@/actions/profile";
-import { subscriptionSummaryAction } from "@/actions/billing";
+import { billingPortalAction, subscriptionSummaryAction } from "@/actions/billing";
 import { AccountDataSection } from "@/components/shell/account-data-section";
 import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
 
@@ -102,10 +102,20 @@ export function SettingsModal({
     plan: string;
     members: number;
     trialEndsAt: string | null;
+    manageable: boolean;
   } | null>(null);
+  const [portalBusy, setPortalBusy] = React.useState(false);
   React.useEffect(() => {
     subscriptionSummaryAction(orgId).then((s) => s && setSub(s));
   }, [orgId]);
+
+  async function openBillingPortal() {
+    if (portalBusy) return;
+    setPortalBusy(true);
+    const res = await billingPortalAction(orgId).catch(() => ({ status: "error" }) as const);
+    setPortalBusy(false);
+    if (res.status === "ok") window.location.href = res.url;
+  }
 
   React.useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -402,6 +412,17 @@ export function SettingsModal({
             >
               <Sparkles className="size-4" /> Ver planos & fazer upgrade
             </button>
+            {sub?.manageable && (
+              <button
+                type="button"
+                onClick={openBillingPortal}
+                disabled={portalBusy}
+                className="mt-2 flex w-full items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground disabled:opacity-60"
+              >
+                <CreditCard className="size-4" />
+                {portalBusy ? "Abrindo…" : "Gerenciar assinatura & faturas"}
+              </button>
+            )}
           </Section>
 
           {/* Atalhos */}

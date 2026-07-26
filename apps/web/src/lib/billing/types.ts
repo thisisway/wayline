@@ -23,4 +23,6 @@ export interface WebhookResult {
   orgId?: string;
   /** Novo plano a gravar ("free" em cancelamento/inadimplência). */
   plan?: string;
+  /** Customer do Stripe a persistir (para o portal de cobrança). */
+  customerId?: string;
 }

@@ -10,6 +10,7 @@ import {
   type BillingProvider,
   type PaidPlan,
 } from "@/lib/billing";
+import { stripeBillingPortal, stripeEnabled } from "@/lib/billing/stripe";
 import type { BillingCycle } from "@/lib/plans";
 
 export async function billingProvidersAction(): Promise<BillingProvider[]> {
@@ -20,6 +21,8 @@ export interface SubscriptionSummary {
   plan: string;
   members: number;
   trialEndsAt: string | null;
+  /** Tem assinatura Stripe gerenciável (mostra "Gerenciar assinatura"). */
+  manageable: boolean;
 }
 
 /** Resumo de assinatura da org (plano bruto + assentos + fim do trial). */
@@ -27,7 +30,7 @@ export async function subscriptionSummaryAction(
   orgId: string,
 ): Promise<SubscriptionSummary | null> {
   if (!(await assertMember(orgId))) return null;
-  const [{ plan, trialEndsAt }, members] = await Promise.all([
+  const [{ plan, trialEndsAt, stripeCustomerId }, members] = await Promise.all([
     getOrgBilling(orgId),
     getWorkspaceMembers(orgId),
   ]);
@@ -35,7 +38,27 @@ export async function subscriptionSummaryAction(
     plan,
     members: members.length,
     trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
+    manageable: stripeEnabled() && Boolean(stripeCustomerId),
   };
+}
+
+export type PortalResult =
+  | { status: "ok"; url: string }
+  | { status: "none" }
+  | { status: "forbidden" }
+  | { status: "error" };
+
+/**
+ * Abre o Portal de Cobrança do Stripe (cancelar, faturas, cartão, trocar
+ * plano). Owner/Admin. Requer que a org já tenha um customer no Stripe.
+ */
+export async function billingPortalAction(orgId: string): Promise<PortalResult> {
+  if (!(await assertRole(orgId, "admin"))) return { status: "forbidden" };
+  if (!appUrl) return { status: "error" };
+  const { stripeCustomerId } = await getOrgBilling(orgId);
+  if (!stripeCustomerId || !stripeEnabled()) return { status: "none" };
+  const url = await stripeBillingPortal(stripeCustomerId, `${appUrl}/app`);
+  return url ? { status: "ok", url } : { status: "error" };
 }
 
 export type CheckoutResult =

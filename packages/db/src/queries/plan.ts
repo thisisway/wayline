@@ -12,13 +12,27 @@ export async function getOrgPlan(orgId: string): Promise<string> {
 export interface OrgBilling {
   plan: string;
   trialEndsAt: Date | null;
+  stripeCustomerId: string | null;
 }
 
 /** Plano + fim do trial da org (para calcular o plano efetivo). */
 export async function getOrgBilling(orgId: string): Promise<OrgBilling> {
   const db = getDb();
   const o = await db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
-  return { plan: o?.plan ?? "free", trialEndsAt: o?.trialEndsAt ?? null };
+  return {
+    plan: o?.plan ?? "free",
+    trialEndsAt: o?.trialEndsAt ?? null,
+    stripeCustomerId: o?.stripeCustomerId ?? null,
+  };
+}
+
+/** Guarda o customer do Stripe na org (do webhook de checkout). */
+export async function setOrgStripeCustomer(orgId: string, customerId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(organizations)
+    .set({ stripeCustomerId: customerId })
+    .where(eq(organizations.id, orgId));
 }
 
 /** Define o plano da org (usado quando houver cobrança/admin). */

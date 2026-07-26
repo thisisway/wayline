@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { setOrgPlan } from "@wayline/db";
+import { setOrgPlan, setOrgStripeCustomer } from "@wayline/db";
 import { stripeWebhook } from "@/lib/billing/stripe";
 import { isKnownPlan } from "@/lib/plans";
 
@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
 
   if (result.orgId && result.plan && isKnownPlan(result.plan)) {
     await setOrgPlan(result.orgId, result.plan).catch(() => undefined);
+  }
+  if (result.orgId && result.customerId) {
+    await setOrgStripeCustomer(result.orgId, result.customerId).catch(() => undefined);
   }
   return NextResponse.json({ received: true });
 }

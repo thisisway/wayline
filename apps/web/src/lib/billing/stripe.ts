@@ -54,6 +54,23 @@ export async function stripeCheckout(input: CheckoutInput): Promise<string | nul
   return session.url;
 }
 
+/** Cria uma sessão do Portal de Cobrança do Stripe (cancelar, faturas, cartão). */
+export async function stripeBillingPortal(
+  customerId: string,
+  returnUrl: string,
+): Promise<string | null> {
+  if (!stripeEnabled()) return null;
+  try {
+    const session = await stripe().billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+    return session.url;
+  } catch {
+    return null;
+  }
+}
+
 export async function stripeWebhook(body: string, signature: string): Promise<WebhookResult> {
   if (!stripeEnabled() || !webhookSecret) return { handled: false };
   let event: Stripe.Event;
@@ -68,7 +85,13 @@ export async function stripeWebhook(body: string, signature: string): Promise<We
       const s = event.data.object as Stripe.Checkout.Session;
       const orgId = s.metadata?.orgId ?? s.client_reference_id ?? undefined;
       const plan = s.metadata?.plan;
-      return { handled: true, orgId: orgId ?? undefined, plan: plan ?? undefined };
+      const customerId = typeof s.customer === "string" ? s.customer : s.customer?.id;
+      return {
+        handled: true,
+        orgId: orgId ?? undefined,
+        plan: plan ?? undefined,
+        customerId: customerId ?? undefined,
+      };
     }
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;

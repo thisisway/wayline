@@ -94,6 +94,8 @@ export const organizations = pgTable("organizations", {
   /** Marca personalizada (Business+): logo (data URL) e cor de destaque (hex). */
   logoUrl: text("logo_url"),
   brandColor: text("brand_color"),
+  /** Cliente no Stripe (para o portal de cobrança self-service). */
+  stripeCustomerId: text("stripe_customer_id"),
   ...timestamps,
   ...softDelete,
 });
