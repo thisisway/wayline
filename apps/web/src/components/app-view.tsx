@@ -209,6 +209,7 @@ export function AppView({
         logoDark={platformLogoDark}
         activeView={view}
         inboxUnread={inbox.unread}
+        sidebarOpen={sidebarOpen}
         onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}
         onHome={() => setView("board")}
         onToggleSidebar={() => setSidebarOpen((s) => !s)}
@@ -232,6 +233,7 @@ export function AppView({
           onOpenAssigned={() => setAssignedOpen(true)}
           onOpenReplies={() => setRepliesOpen(true)}
           isAdmin={isAdmin}
+          onCollapse={() => setSidebarOpen(false)}
           salesEnabled={salesEnabled}
           onOpenOverview={() => setOverviewOpen(true)}
           onOpenClients={() => setClientsOpen(true)}

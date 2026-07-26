@@ -14,6 +14,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   Package,
+  PanelLeftClose,
   Plus,
   Reply,
   type LucideIcon,
@@ -85,6 +86,7 @@ export function HomePanel({
   onOpenAssigned,
   onOpenReplies,
   isAdmin,
+  onCollapse,
   salesEnabled = false,
   onOpenOverview,
   onOpenClients,
@@ -105,6 +107,7 @@ export function HomePanel({
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
   isAdmin: boolean;
+  onCollapse?: () => void;
   salesEnabled?: boolean;
   onOpenOverview?: () => void;
   onOpenClients?: () => void;
@@ -138,13 +141,24 @@ export function HomePanel({
     <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
       <div className="flex items-center justify-between px-4 py-3">
         <h1 className="font-display text-h3 font-bold">Home</h1>
-        <button
-          type="button"
-          className="flex size-7 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-          aria-label="Nova ação"
-        >
-          <Plus className="size-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+            aria-label="Nova ação"
+          >
+            <Plus className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Recolher menu"
+            aria-label="Recolher menu"
+            className="flex size-7 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-4">

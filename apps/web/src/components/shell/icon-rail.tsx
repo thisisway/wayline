@@ -59,6 +59,7 @@ function RailButton({
 export function IconRail({
   activeView,
   inboxUnread = 0,
+  sidebarOpen = true,
   icon,
   logoLight,
   logoDark,
@@ -73,6 +74,7 @@ export function IconRail({
 }: {
   activeView: string;
   inboxUnread?: number;
+  sidebarOpen?: boolean;
   icon?: string | null;
   logoLight?: string | null;
   logoDark?: string | null;
@@ -107,7 +109,12 @@ export function IconRail({
       <div className="my-1 h-px w-6 bg-white/10" />
 
       <RailButton icon={Home} label="Board" active={activeView === "board"} onClick={onHome} />
-      <RailButton icon={PanelLeft} label="Mostrar/ocultar menu" onClick={onToggleSidebar} />
+      <RailButton
+        icon={PanelLeft}
+        label={sidebarOpen ? "Ocultar menu" : "Mostrar menu"}
+        active={sidebarOpen}
+        onClick={onToggleSidebar}
+      />
       <RailButton icon={CheckSquare} label="Minhas tarefas" onClick={onOpenMyTasks} />
       <RailButton icon={Sparkles} label="Wayline Brain" onClick={onOpenBrain} />
       <RailButton icon={Search} label="Buscar (⌘K)" onClick={onOpenSearch} />
