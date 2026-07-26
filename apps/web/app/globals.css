@@ -192,8 +192,45 @@
   box-shadow: 0 18px 40px -20px rgb(var(--wc-brand) / 0.35);
 }
 
+@keyframes wl-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-14px) rotate(1.5deg); }
+}
+@keyframes wl-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes wl-hue {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes wl-rise {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.wl-bob { animation: wl-bob 6s ease-in-out infinite; }
+.wl-shimmer {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  background-size: 200% 100%;
+  animation: wl-shimmer 2.4s linear infinite;
+}
+.wl-hero-gradient {
+  background: linear-gradient(140deg, #0a1130 0%, #16225e 34%, #2340b8 70%, #4f46e5 100%);
+  background-size: 180% 180%;
+  animation: wl-hue 14s ease infinite;
+}
+.wl-streaks {
+  background-image: repeating-linear-gradient(
+    100deg,
+    rgb(255 255 255 / 0.05) 0px,
+    rgb(255 255 255 / 0.05) 1px,
+    transparent 1px,
+    transparent 42px
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .wl-float, .wl-float-slow, .wl-spin-slow, .wl-blob, .wl-marquee,
-  .wl-gradient-text, .wl-pulse-ring::after { animation: none !important; }
+  .wl-float, .wl-float-slow, .wl-spin-slow, .wl-blob, .wl-marquee, .wl-bob,
+  .wl-shimmer, .wl-hero-gradient, .wl-gradient-text, .wl-pulse-ring::after { animation: none !important; }
   .wl-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
 }
