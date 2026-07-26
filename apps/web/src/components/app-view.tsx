@@ -34,6 +34,7 @@ import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
 import { CommercialPage } from "@/components/shell/commercial-page";
+import { FormsPage } from "@/components/shell/forms-page";
 import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
@@ -218,6 +219,7 @@ export function AppView({
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenBrain={() => setBrainOpen(true)}
         onOpenComercial={() => setView("comercial")}
+        onOpenForms={() => setView("forms")}
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         showComercial={isAdmin}
@@ -367,7 +369,7 @@ export function AppView({
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
         />
-        {view !== "comercial" && (
+        {view !== "comercial" && view !== "forms" && (
           <ViewTabs
             value={view}
             onValueChange={setView}
@@ -399,6 +401,8 @@ export function AppView({
             onOpenPortfolio={() => setPortfolioOpen(true)}
             onOpenContracts={() => setContractsOpen(true)}
           />
+        ) : view === "forms" ? (
+          <FormsPage orgId={activeOrgId} isAdmin={isAdmin} />
         ) : view === "board" ? (
           !data || data.columns.length === 0 ? (
             <EmptyBoard />

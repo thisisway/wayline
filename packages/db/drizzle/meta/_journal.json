@@ -281,6 +281,13 @@
       "when": 1785084305701,
       "tag": "0039_wide_katie_power",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1785093662297,
+      "tag": "0040_strong_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

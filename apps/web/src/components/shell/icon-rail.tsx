@@ -5,6 +5,7 @@ import {
   CheckSquare,
   ChevronsLeft,
   ChevronsRight,
+  ClipboardList,
   Home,
   LifeBuoy,
   Plus,
@@ -69,6 +70,7 @@ export function IconRail({
   onOpenMyTasks,
   onOpenBrain,
   onOpenComercial,
+  onOpenForms,
   onOpenSupport,
   onOpenSettings,
   showComercial = false,
@@ -84,6 +86,7 @@ export function IconRail({
   onOpenMyTasks: () => void;
   onOpenBrain: () => void;
   onOpenComercial: () => void;
+  onOpenForms: () => void;
   onOpenSupport: () => void;
   onOpenSettings: () => void;
   showComercial?: boolean;
@@ -127,6 +130,12 @@ export function IconRail({
           onClick={onOpenComercial}
         />
       )}
+      <RailButton
+        icon={ClipboardList}
+        label="Formulários"
+        active={activeView === "forms"}
+        onClick={onOpenForms}
+      />
 
       <div className="mt-auto flex flex-col items-center gap-2">
         <RailButton icon={LifeBuoy} label="Suporte" onClick={onOpenSupport} />

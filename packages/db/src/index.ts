@@ -278,6 +278,23 @@ export {
   type TicketCategory,
   type TicketStatus,
 } from "./queries/support";
+export {
+  listForms,
+  getForm,
+  createForm,
+  updateForm,
+  deleteForm,
+  getFormByToken,
+  submitFormResponse,
+  listFormResponses,
+  type FormListItem,
+  type FormDTO,
+  type PublicForm,
+  type FormResponseDTO,
+  type FormFieldSchema,
+  type FormSeed,
+  type FormPatch,
+} from "./queries/forms";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

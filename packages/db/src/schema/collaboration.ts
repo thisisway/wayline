@@ -546,3 +546,65 @@ export const boardShares = pgTable(
   },
   (t) => [index("board_shares_list_idx").on(t.listId), index("board_shares_org_idx").on(t.orgId)],
 );
+
+/**
+ * FORMULÁRIOS (estilo ClickUp). Sem RLS: o link público de resposta é lido
+ * sem sessão (token é o segredo); org_id é filtrado no app.
+ */
+export const forms = pgTable(
+  "forms",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default("Formulário"),
+    description: text("description").notNull().default(""),
+    /** Campos do formulário: [{id,type,label,placeholder,required,options[]}]. */
+    fields: jsonb("fields").$type<FormFieldSchema[]>().notNull().default(sql`'[]'::jsonb`),
+    status: text("status").notNull().default("draft"), // draft | published
+    token: text("token").notNull().unique(),
+    /** Mensagem exibida após o envio. */
+    thankYou: text("thank_you").notNull().default("Obrigado! Sua resposta foi registrada."),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("forms_org_idx").on(t.orgId), index("forms_token_idx").on(t.token)],
+);
+
+export const formResponses = pgTable(
+  "form_responses",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id").notNull(),
+    formId: uuid("form_id")
+      .notNull()
+      .references(() => forms.id, { onDelete: "cascade" }),
+    /** Respostas: { [fieldId]: valor }. */
+    answers: jsonb("answers").$type<Record<string, string>>().notNull().default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("form_responses_form_idx").on(t.formId), index("form_responses_org_idx").on(t.orgId)],
+);
+
+export interface FormFieldSchema {
+  id: string;
+  type: "text" | "textarea" | "email" | "number" | "phone" | "select";
+  label: string;
+  placeholder: string;
+  required: boolean;
+  options: string[];
+}
+
+export const formsRelations = relations(forms, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [forms.orgId],
+    references: [organizations.id],
+  }),
+  responses: many(formResponses),
+}));
+
+export const formResponsesRelations = relations(formResponses, ({ one }) => ({
+  form: one(forms, { fields: [formResponses.formId], references: [forms.id] }),
+}));
