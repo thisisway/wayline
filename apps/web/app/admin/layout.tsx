@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getPlatformSettings, getUserProfile } from "@wayline/db";
+import { countOpenTickets, getPlatformSettings, getUserProfile } from "@wayline/db";
 import { auth } from "@/auth";
 import { isPlatformAdmin } from "@/lib/authz";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -16,12 +16,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     return <NoAccess email={email} />;
   }
 
-  const platform = await getPlatformSettings();
+  const [platform, openTickets] = await Promise.all([
+    getPlatformSettings(),
+    countOpenTickets(),
+  ]);
   return (
     <AdminShell
       adminEmail={session.user.email ?? ""}
       logoLight={platform.logoUrl}
       logoDark={platform.logoUrlDark}
+      openTickets={openTickets}
     >
       {children}
     </AdminShell>

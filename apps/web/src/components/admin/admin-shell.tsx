@@ -23,7 +23,7 @@ const NAV = [
   { href: "/admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
   { href: "/admin/modulos", label: "Módulos", icon: Puzzle },
-  { href: "/admin/suporte", label: "Suporte", icon: LifeBuoy },
+  { href: "/admin/suporte", label: "Suporte", icon: LifeBuoy, badgeKey: "openTickets" as const },
   { href: "/admin/marca", label: "Marca", icon: Palette },
   { href: "/admin/config", label: "Configurações", icon: Settings },
 ];
@@ -32,11 +32,13 @@ export function AdminShell({
   adminEmail,
   logoLight,
   logoDark,
+  openTickets = 0,
   children,
 }: {
   adminEmail: string;
   logoLight?: string | null;
   logoDark?: string | null;
+  openTickets?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -72,6 +74,7 @@ export function AdminShell({
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact);
+            const badge = item.badgeKey === "openTickets" ? openTickets : 0;
             return (
               <Link
                 key={item.href}
@@ -84,7 +87,12 @@ export function AdminShell({
                 )}
               >
                 <Icon className="size-4" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {badge > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[11px] font-bold text-white">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
