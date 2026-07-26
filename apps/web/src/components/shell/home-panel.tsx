@@ -9,6 +9,7 @@ import {
   FileText,
   Image as ImageIcon,
   Inbox,
+  LayoutDashboard,
   ListChecks,
   MessageSquare,
   MoreHorizontal,
@@ -85,6 +86,7 @@ export function HomePanel({
   onOpenReplies,
   isAdmin,
   salesEnabled = false,
+  onOpenOverview,
   onOpenClients,
   onOpenProposals,
   onOpenServices,
@@ -104,6 +106,7 @@ export function HomePanel({
   onOpenReplies: () => void;
   isAdmin: boolean;
   salesEnabled?: boolean;
+  onOpenOverview?: () => void;
   onOpenClients?: () => void;
   onOpenProposals?: () => void;
   onOpenServices?: () => void;
@@ -183,6 +186,9 @@ export function HomePanel({
             <div className="px-2.5 pb-1 pt-4">
               <span className="text-label uppercase text-subtle">Comercial</span>
             </div>
+            {salesEnabled && (
+              <SidebarItem icon={<LayoutDashboard />} label="Visão geral" onClick={onOpenOverview} />
+            )}
             <SidebarItem icon={<Briefcase />} label="Clientes" onClick={onOpenClients} />
             {salesEnabled && (
               <>

@@ -33,6 +33,7 @@ import { DocsView } from "@/components/board/docs-view";
 import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
+import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
 import { ServicesModal } from "@/components/shell/services-modal";
@@ -120,6 +121,7 @@ export function AppView({
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [plansOpen, setPlansOpen] = React.useState(false);
   const [trialHidden, setTrialHidden] = React.useState(false);
+  const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [clientsOpen, setClientsOpen] = React.useState(false);
   const [proposalsOpen, setProposalsOpen] = React.useState(false);
   const [servicesOpen, setServicesOpen] = React.useState(false);
@@ -231,12 +233,16 @@ export function AppView({
           onOpenReplies={() => setRepliesOpen(true)}
           isAdmin={isAdmin}
           salesEnabled={salesEnabled}
+          onOpenOverview={() => setOverviewOpen(true)}
           onOpenClients={() => setClientsOpen(true)}
           onOpenProposals={() => setProposalsOpen(true)}
           onOpenServices={() => setServicesOpen(true)}
           onOpenPortfolio={() => setPortfolioOpen(true)}
           onOpenContracts={() => setContractsOpen(true)}
         />
+      )}
+      {overviewOpen && (
+        <OverviewModal orgId={activeOrgId} onClose={() => setOverviewOpen(false)} />
       )}
       {clientsOpen && <ClientsModal orgId={activeOrgId} onClose={() => setClientsOpen(false)} />}
       {proposalsOpen && (
