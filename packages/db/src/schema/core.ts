@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { clientStatus, idColumn, membershipRole, softDelete, timestamps } from "./_shared";
 
 /**
@@ -51,11 +51,32 @@ export const supportTickets = pgTable(
     category: text("category").notNull().default("support"), // support | bug | idea
     subject: text("subject").notNull().default(""),
     message: text("message").notNull().default(""),
+    /** Print/anexo inicial (data URL de imagem), opcional. */
+    attachmentUrl: text("attachment_url"),
     status: text("status").notNull().default("open"), // open | closed
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   },
   (t) => [index("support_tickets_status_idx").on(t.status)],
+);
+
+/** Mensagens (thread) de um chamado — respostas do usuário e do suporte. */
+export const supportMessages = pgTable(
+  "support_messages",
+  {
+    id: idColumn(),
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => supportTickets.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id").notNull(),
+    authorId: uuid("author_id"),
+    authorName: text("author_name").notNull().default(""),
+    isAdmin: boolean("is_admin").notNull().default(false),
+    body: text("body").notNull().default(""),
+    attachmentUrl: text("attachment_url"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("support_messages_ticket_idx").on(t.ticketId)],
 );
 
 export const organizations = pgTable("organizations", {

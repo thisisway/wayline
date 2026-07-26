@@ -9,6 +9,7 @@ import {
   FileSignature,
   Handshake,
   Inbox,
+  LifeBuoy,
   MessageSquare,
   UserPlus,
   X,
@@ -36,6 +37,8 @@ function message(n: NotificationDTO): string {
   if (n.type === "proposal_accepted") return `${n.actorName} aceitou a proposta`;
   if (n.type === "proposal_rejected") return `${n.actorName} recusou a proposta`;
   if (n.type === "contract_signed") return `${n.actorName} assinou o contrato`;
+  if (n.type === "support_reply") return `${n.actorName} respondeu seu chamado`;
+  if (n.type === "support_resolved") return `${n.actorName} resolveu seu chamado`;
   return `${n.actorName} atualizou`;
 }
 
@@ -136,6 +139,8 @@ export function InboxDrawer({
                     <Handshake className="size-4" />
                   ) : n.type === "contract_signed" ? (
                     <FileSignature className="size-4" />
+                  ) : n.type === "support_reply" || n.type === "support_resolved" ? (
+                    <LifeBuoy className="size-4" />
                   ) : n.type === "changes" || n.type === "proposal_rejected" ? (
                     <AlertTriangle className="size-4" />
                   ) : n.type === "comment" ? (

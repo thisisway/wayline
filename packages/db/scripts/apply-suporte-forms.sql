@@ -28,6 +28,18 @@ CREATE INDEX IF NOT EXISTS "support_tickets_status_idx" ON "support_tickets"("st
 ALTER TABLE "platform_settings" ADD COLUMN IF NOT EXISTS "support_whatsapp_url" text;
 GRANT SELECT, INSERT, UPDATE, DELETE ON "support_tickets" TO wayline_app;
 
+-- 0042: anexo (print) + thread de mensagens do chamado
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "attachment_url" text;
+CREATE TABLE IF NOT EXISTS "support_messages" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "ticket_id" uuid NOT NULL, "org_id" uuid NOT NULL, "author_id" uuid,
+  "author_name" text DEFAULT '' NOT NULL, "is_admin" boolean DEFAULT false NOT NULL,
+  "body" text DEFAULT '' NOT NULL, "attachment_url" text,
+  "created_at" timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "support_messages_ticket_idx" ON "support_messages"("ticket_id");
+GRANT SELECT, INSERT, UPDATE, DELETE ON "support_messages" TO wayline_app;
+
 -- ---------------------------------------------------------------------------
 -- 0040: formulários + respostas (no-RLS; token público)
 -- ---------------------------------------------------------------------------

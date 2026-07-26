@@ -295,6 +295,13 @@
       "when": 1785094232293,
       "tag": "0041_premium_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1785098713317,
+      "tag": "0042_stormy_firebird",
+      "breakpoints": true
     }
   ]
 }

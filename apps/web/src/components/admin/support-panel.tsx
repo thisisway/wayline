@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Bug, Check, LifeBuoy, Lightbulb, RotateCcw } from "lucide-react";
+import { Bug, Check, LifeBuoy, Lightbulb, MessageSquare, RotateCcw, X } from "lucide-react";
 import type { SupportTicketDTO } from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
 import {
   setSupportTicketStatusAction,
   setSupportWhatsappUrlAction,
 } from "@/actions/support";
+import { SupportThread } from "@/components/shell/support-thread";
 
 const CAT: Record<string, { label: string; icon: typeof Bug; variant: "brand" | "danger" | "success" }> = {
   support: { label: "Suporte", icon: LifeBuoy, variant: "brand" },
@@ -32,6 +33,7 @@ export function SupportPanel({
   const [savingUrl, setSavingUrl] = React.useState(false);
   const [urlMsg, setUrlMsg] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState<"open" | "all">("open");
+  const [openId, setOpenId] = React.useState<string | null>(null);
 
   async function saveUrl() {
     setSavingUrl(true);
@@ -132,27 +134,66 @@ export function SupportPanel({
                       )}
                     </div>
                     <p className="mt-1 whitespace-pre-wrap text-dense text-foreground">{t.message}</p>
+                    {t.attachmentUrl && (
+                      <img
+                        src={t.attachmentUrl}
+                        alt="Anexo"
+                        className="mt-2 max-h-40 rounded-lg border border-border"
+                      />
+                    )}
                     <p className="mt-2 text-[11px] text-subtle">
                       {t.userName || "Alguém"}
                       {t.userEmail && ` · ${t.userEmail}`}
                       {t.orgName && ` · ${t.orgName}`} · {timeAgo(t.createdAt)}
                     </p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => toggle(t)}>
-                    {closed ? (
-                      <>
-                        <RotateCcw className="size-4" /> Reabrir
-                      </>
-                    ) : (
-                      <>
-                        <Check className="size-4" /> Resolver
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex shrink-0 flex-col gap-2">
+                    <Button size="sm" onClick={() => setOpenId(t.id)}>
+                      <MessageSquare className="size-4" /> Responder
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => toggle(t)}>
+                      {closed ? (
+                        <>
+                          <RotateCcw className="size-4" /> Reabrir
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-4" /> Resolver
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal da conversa */}
+      {openId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 p-4 animate-fade-in"
+          onClick={() => setOpenId(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="flex h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-surface p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setOpenId(null)}
+                aria-label="Fechar"
+                className="flex size-7 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <SupportThread ticketId={openId} onChanged={() => { /* status muda no card ao fechar */ }} />
+          </div>
         </div>
       )}
     </div>

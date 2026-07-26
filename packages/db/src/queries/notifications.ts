@@ -46,6 +46,31 @@ export async function notifyCommercial(
   }
 }
 
+/** Notifica um único usuário (sem tarefa). Resiliente. Ex.: resposta de suporte. */
+export async function notifyUser(
+  orgId: string,
+  userId: string,
+  type: string,
+  title: string,
+  actorName: string,
+): Promise<void> {
+  try {
+    await withOrg(orgId, async (tx) => {
+      await tx.insert(notifications).values({
+        orgId,
+        userId,
+        type,
+        taskId: null,
+        listId: null,
+        taskTitle: title,
+        actorName: actorName || "Suporte",
+      });
+    });
+  } catch {
+    // notificação é secundária — nunca derruba o fluxo
+  }
+}
+
 export interface NotificationDTO {
   id: string;
   type: string;
