@@ -273,6 +273,8 @@ export {
   getTicket,
   getTicketThread,
   addSupportMessage,
+  markTicketReadByUser,
+  countAwaitingUser,
   autoResolveStaleTickets,
   AUTO_RESOLVE_HOURS,
   countOpenTickets,

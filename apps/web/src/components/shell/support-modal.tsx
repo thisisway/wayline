@@ -37,12 +37,16 @@ export function SupportModal({
   orgId,
   orgName,
   onClose,
+  initialTicketId,
 }: {
   orgId: string;
   orgName: string;
   onClose: () => void;
+  initialTicketId?: string | null;
 }) {
-  const [mode, setMode] = React.useState<Mode>({ view: "list" });
+  const [mode, setMode] = React.useState<Mode>(
+    initialTicketId ? { view: "thread", id: initialTicketId } : { view: "list" },
+  );
   const [tickets, setTickets] = React.useState<SupportTicketDTO[] | null>(null);
   const [whatsapp, setWhatsapp] = React.useState<string | null>(null);
 
@@ -295,7 +299,7 @@ export function SupportModal({
         {/* THREAD */}
         {mode.view === "thread" && (
           <div className="flex min-h-0 flex-1 flex-col p-5">
-            <SupportThread ticketId={mode.id} onChanged={reload} />
+            <SupportThread ticketId={mode.id} onChanged={reload} showAutoResolveHint />
           </div>
         )}
       </div>

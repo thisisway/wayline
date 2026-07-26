@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS "support_messages" (
 CREATE INDEX IF NOT EXISTS "support_messages_ticket_idx" ON "support_messages"("ticket_id");
 GRANT SELECT, INSERT, UPDATE, DELETE ON "support_messages" TO wayline_app;
 
+-- 0043: leitura do usuário (badge "aguardando você")
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "user_read_at" timestamptz;
+
 -- ---------------------------------------------------------------------------
 -- 0040: formulários + respostas (no-RLS; token público)
 -- ---------------------------------------------------------------------------

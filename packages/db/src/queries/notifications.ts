@@ -46,13 +46,17 @@ export async function notifyCommercial(
   }
 }
 
-/** Notifica um único usuário (sem tarefa). Resiliente. Ex.: resposta de suporte. */
+/**
+ * Notifica um único usuário (sem tarefa). Resiliente. Ex.: resposta de suporte.
+ * `refId` (opcional) é guardado em taskId — usado para abrir o alvo (ex.: chamado).
+ */
 export async function notifyUser(
   orgId: string,
   userId: string,
   type: string,
   title: string,
   actorName: string,
+  refId?: string | null,
 ): Promise<void> {
   try {
     await withOrg(orgId, async (tx) => {
@@ -60,7 +64,7 @@ export async function notifyUser(
         orgId,
         userId,
         type,
-        taskId: null,
+        taskId: refId ?? null,
         listId: null,
         taskTitle: title,
         actorName: actorName || "Suporte",

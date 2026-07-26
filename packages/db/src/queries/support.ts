@@ -118,7 +118,7 @@ export async function autoResolveStaleTickets(hours = AUTO_RESOLVE_HOURS): Promi
           .set({ status: "closed", updatedAt: new Date() })
           .where(eq(supportTickets.id, t.id));
         if (t.userId) {
-          await notifyUser(t.orgId, t.userId, "support_resolved", t.subject || "Seu chamado", "Suporte");
+          await notifyUser(t.orgId, t.userId, "support_resolved", t.subject || "Seu chamado", "Suporte", t.id);
         }
         closed++;
       }
@@ -225,11 +225,52 @@ export async function addSupportMessage(input: SupportReplyInput): Promise<boole
     .update(supportTickets)
     .set({ updatedAt: new Date(), ...(input.isAdmin ? {} : { status: "open" }) })
     .where(eq(supportTickets.id, t.id));
-  // Admin respondeu → notifica o autor do chamado.
+  // Admin respondeu → notifica o autor do chamado (com ref para abrir a conversa).
   if (input.isAdmin && t.userId) {
-    await notifyUser(t.orgId, t.userId, "support_reply", t.subject || "Seu chamado", "Suporte");
+    await notifyUser(t.orgId, t.userId, "support_reply", t.subject || "Seu chamado", "Suporte", t.id);
   }
   return true;
+}
+
+/** Marca a conversa como lida pelo autor (para o badge "aguardando você"). */
+export async function markTicketReadByUser(ticketId: string): Promise<void> {
+  try {
+    const db = getDb();
+    await db
+      .update(supportTickets)
+      .set({ userReadAt: new Date() })
+      .where(eq(supportTickets.id, ticketId));
+  } catch {
+    /* silencioso */
+  }
+}
+
+/** Quantos chamados do usuário têm resposta do suporte ainda não lida. */
+export async function countAwaitingUser(orgId: string, userId: string): Promise<number> {
+  try {
+    const db = getDb();
+    const tickets = await db.query.supportTickets.findMany({
+      where: and(eq(supportTickets.orgId, orgId), eq(supportTickets.userId, userId)),
+      limit: 200,
+    });
+    let n = 0;
+    for (const t of tickets) {
+      const last = await db.query.supportMessages.findFirst({
+        where: eq(supportMessages.ticketId, t.id),
+        orderBy: [desc(supportMessages.createdAt)],
+      });
+      if (
+        last &&
+        last.isAdmin &&
+        (!t.userReadAt || last.createdAt.getTime() > t.userReadAt.getTime())
+      ) {
+        n++;
+      }
+    }
+    return n;
+  } catch {
+    return 0;
+  }
 }
 
 export async function countOpenTickets(): Promise<number> {
@@ -248,7 +289,7 @@ export async function setSupportTicketStatus(id: string, status: TicketStatus): 
     .set({ status, updatedAt: new Date() })
     .where(eq(supportTickets.id, id));
   if (status === "closed" && t?.userId) {
-    await notifyUser(t.orgId, t.userId, "support_resolved", t.subject || "Seu chamado", "Suporte");
+    await notifyUser(t.orgId, t.userId, "support_resolved", t.subject || "Seu chamado", "Suporte", t.id);
   }
 }
 

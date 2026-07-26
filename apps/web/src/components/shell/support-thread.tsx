@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { ImagePlus, Send, X } from "lucide-react";
+import { Clock, ImagePlus, Send, X } from "lucide-react";
 import type { TicketThread } from "@wayline/db";
 import { Badge, Button, cn } from "@wayline/ui";
 import { replyTicketAction, ticketThreadAction } from "@/actions/support";
 import { fileToImageDataUrl } from "@/lib/image-file";
 
 const CAT_LABEL: Record<string, string> = { support: "Suporte", bug: "Bug", idea: "Sugestão" };
+const AUTO_RESOLVE_HOURS = 42;
 
 function when(d: Date): string {
   return new Date(d).toLocaleString("pt-BR", {
@@ -22,9 +23,11 @@ function when(d: Date): string {
 export function SupportThread({
   ticketId,
   onChanged,
+  showAutoResolveHint = false,
 }: {
   ticketId: string;
   onChanged?: () => void;
+  showAutoResolveHint?: boolean;
 }) {
   const [thread, setThread] = React.useState<TicketThread | null>(null);
   const [body, setBody] = React.useState("");
@@ -74,6 +77,15 @@ export function SupportThread({
   const { ticket, messages } = thread;
   const closed = ticket.status === "closed";
 
+  // Aviso de auto-resolução: última mensagem do suporte, chamado aberto.
+  const last = messages[messages.length - 1];
+  const awaitingUser = !closed && !!last && last.isAdmin;
+  let hoursLeft = 0;
+  if (awaitingUser && last) {
+    const elapsed = (Date.now() - new Date(last.createdAt).getTime()) / 3_600_000;
+    hoursLeft = Math.max(0, Math.ceil(AUTO_RESOLVE_HOURS - elapsed));
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Cabeçalho */}
@@ -111,6 +123,16 @@ export function SupportThread({
         ))}
         <div ref={endRef} />
       </div>
+
+      {/* Aviso de auto-resolução (só para o usuário) */}
+      {showAutoResolveHint && awaitingUser && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-dense text-muted">
+          <Clock className="size-4 shrink-0 text-warning" />
+          <span>
+            Este chamado será resolvido automaticamente em ~{hoursLeft}h se você não responder.
+          </span>
+        </div>
+      )}
 
       {/* Resposta */}
       <div className="border-t border-border pt-2">

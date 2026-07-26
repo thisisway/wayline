@@ -30,9 +30,9 @@ export const dynamic = "force-dynamic";
 export default async function AppPage({
   searchParams,
 }: {
-  searchParams: Promise<{ task?: string }>;
+  searchParams: Promise<{ task?: string; ticket?: string }>;
 }) {
-  const { task: focusTaskId } = await searchParams;
+  const { task: focusTaskId, ticket: focusTicketId } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -98,6 +98,7 @@ export default async function AppPage({
       platformIcon={platform.iconUrl}
       modules={modules}
       focusTaskId={focusTaskId}
+      focusTicketId={focusTicketId}
     />
   );
 }

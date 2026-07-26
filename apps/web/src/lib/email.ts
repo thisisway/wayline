@@ -87,6 +87,37 @@ export async function emailNotify(
   }
 }
 
+/** Email ao usuário quando o suporte responde ou resolve o chamado. */
+export async function sendSupportUpdateEmail(
+  to: string,
+  opts: { kind: "reply" | "resolved"; ticketSubject: string; ticketId: string },
+): Promise<boolean> {
+  if (!emailEnabled() || !to) return false;
+  const brand = await getBrandName();
+  const link = appUrl ? `${appUrl}/app?ticket=${opts.ticketId}` : appUrl;
+  const line =
+    opts.kind === "reply"
+      ? "O suporte respondeu seu chamado"
+      : "Seu chamado foi marcado como resolvido";
+  const button = link
+    ? `<a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir chamado</a>`
+    : "";
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
+    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">${escapeHtml(line)}:
+      <strong>${escapeHtml(opts.ticketSubject || "Seu chamado")}</strong>.
+    </p>
+    <p style="margin:16px 0">${button}</p>
+    <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email por ter aberto um chamado no ${escapeHtml(brand)}.</p>
+  </div>`;
+  const subject =
+    opts.kind === "reply"
+      ? `Resposta do suporte: ${opts.ticketSubject || "seu chamado"}`
+      : `Chamado resolvido: ${opts.ticketSubject || "seu chamado"}`;
+  return sendEmail(to, subject, html);
+}
+
 /** Email de convite para um workspace, com o link de aceite. */
 export async function sendInviteEmail(
   to: string,

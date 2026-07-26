@@ -54,6 +54,8 @@ export const supportTickets = pgTable(
     /** Print/anexo inicial (data URL de imagem), opcional. */
     attachmentUrl: text("attachment_url"),
     status: text("status").notNull().default("open"), // open | closed
+    /** Última vez que o AUTOR do chamado leu a conversa (para badge "aguardando você"). */
+    userReadAt: timestamp("user_read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   },

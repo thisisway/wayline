@@ -74,6 +74,7 @@ export function IconRail({
   onOpenSupport,
   onOpenSettings,
   showComercial = false,
+  supportBadge = 0,
 }: {
   activeView: string;
   sidebarOpen?: boolean;
@@ -90,6 +91,7 @@ export function IconRail({
   onOpenSupport: () => void;
   onOpenSettings: () => void;
   showComercial?: boolean;
+  supportBadge?: number;
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
@@ -138,7 +140,7 @@ export function IconRail({
       />
 
       <div className="mt-auto flex flex-col items-center gap-2">
-        <RailButton icon={LifeBuoy} label="Suporte" onClick={onOpenSupport} />
+        <RailButton icon={LifeBuoy} label="Suporte" badge={supportBadge} onClick={onOpenSupport} />
         <RailButton icon={Settings} label="Configurações" onClick={onOpenSettings} />
       </div>
     </nav>

@@ -63,6 +63,12 @@ export function InboxDrawer({
   function open(n: NotificationDTO) {
     startTransition(async () => {
       void markInboxReadAction(orgId);
+      // Chamados de suporte: abre a conversa (ticketId guardado em taskId).
+      if ((n.type === "support_reply" || n.type === "support_resolved") && n.taskId) {
+        router.push(`/app?ticket=${n.taskId}`);
+        onClose();
+        return;
+      }
       if (n.listId) await switchList(n.listId);
       if (n.taskId) router.push(`/app?task=${n.taskId}`);
       onClose();

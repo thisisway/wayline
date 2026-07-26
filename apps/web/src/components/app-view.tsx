@@ -58,6 +58,7 @@ import {
   type BoardFilters,
 } from "@/lib/board-filter";
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
+import { supportAwaitingCountAction } from "@/actions/support";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
 
@@ -84,6 +85,7 @@ export function AppView({
   platformIcon,
   modules = [],
   focusTaskId,
+  focusTicketId,
 }: {
   data: BoardData | null;
   orgs: UserOrg[];
@@ -107,6 +109,7 @@ export function AppView({
   platformIcon?: string | null;
   modules?: string[];
   focusTaskId?: string;
+  focusTicketId?: string;
 }) {
   const router = useRouter();
   const [view, setView] = React.useState("board");
@@ -122,6 +125,8 @@ export function AppView({
   const [brainOpen, setBrainOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [supportOpen, setSupportOpen] = React.useState(false);
+  const [supportInitialTicket, setSupportInitialTicket] = React.useState<string | null>(null);
+  const [supportAwaiting, setSupportAwaiting] = React.useState(0);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [plansOpen, setPlansOpen] = React.useState(false);
   const [trialHidden, setTrialHidden] = React.useState(false);
@@ -147,6 +152,20 @@ export function AppView({
       router.replace("/app");
     }
   }, [focusTaskId, data]);
+
+  // Abre a conversa do chamado vinda do sino (?ticket=<id>) e limpa o parâmetro.
+  React.useEffect(() => {
+    if (!focusTicketId) return;
+    setSupportInitialTicket(focusTicketId);
+    setSupportOpen(true);
+    router.replace("/app");
+  }, [focusTicketId]);
+
+  // Badge de "aguardando você" no ícone de Suporte; recarrega ao fechar o modal.
+  React.useEffect(() => {
+    if (supportOpen) return;
+    supportAwaitingCountAction(activeOrgId).then(setSupportAwaiting);
+  }, [supportOpen, activeOrgId]);
 
   // Atalhos de teclado (power-user). Ignora quando digitando ou com modal aberto.
   React.useEffect(() => {
@@ -223,6 +242,7 @@ export function AppView({
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         showComercial={isAdmin}
+        supportBadge={supportAwaiting}
       />
       {sidebarOpen && (
         <HomePanel
@@ -302,7 +322,15 @@ export function AppView({
         />
       )}
       {supportOpen && (
-        <SupportModal orgId={activeOrgId} orgName={orgName} onClose={() => setSupportOpen(false)} />
+        <SupportModal
+          orgId={activeOrgId}
+          orgName={orgName}
+          initialTicketId={supportInitialTicket}
+          onClose={() => {
+            setSupportOpen(false);
+            setSupportInitialTicket(null);
+          }}
+        />
       )}
       {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
       {fieldsOpen && data && (
