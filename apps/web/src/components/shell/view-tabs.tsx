@@ -39,17 +39,18 @@ import {
 } from "@/lib/board-filter";
 import { clients as mockClients } from "@/mock/data";
 
+// Ícones coloridos por visão (estilo ClickUp) — cor fixa em ativo/inativo.
 const views = [
-  { id: "chat", label: "Chat", icon: <MessageSquare /> },
-  { id: "board", label: "Board", icon: <LayoutGrid /> },
-  { id: "list", label: "List", icon: <List /> },
-  { id: "gantt", label: "Gantt", icon: <GanttChartSquare /> },
-  { id: "calendar", label: "Calendar", icon: <Calendar /> },
-  { id: "mindmap", label: "Mind Map", icon: <Network /> },
-  { id: "docs", label: "Docs", icon: <FileText /> },
-  { id: "reports", label: "Relatórios", icon: <BarChart3 /> },
+  { id: "chat", label: "Chat", icon: <MessageSquare className="text-[#3B82F6]" /> },
+  { id: "board", label: "Board", icon: <LayoutGrid className="text-[#8B5CF6]" /> },
+  { id: "list", label: "List", icon: <List className="text-[#10B981]" /> },
+  { id: "gantt", label: "Gantt", icon: <GanttChartSquare className="text-[#F59E0B]" /> },
+  { id: "calendar", label: "Calendar", icon: <Calendar className="text-[#EF4444]" /> },
+  { id: "mindmap", label: "Mind Map", icon: <Network className="text-[#EC4899]" /> },
+  { id: "docs", label: "Docs", icon: <FileText className="text-[#6366F1]" /> },
+  { id: "reports", label: "Relatórios", icon: <BarChart3 className="text-[#0EA5E9]" /> },
   // Somente admin+ (visão executiva da org inteira).
-  { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard />, adminOnly: true },
+  { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="text-[#14B8A6]" />, adminOnly: true },
 ];
 
 const PRIORITIES = [
@@ -114,9 +115,9 @@ export function ViewTabs({
         value={value}
         defaultValue="board"
         onValueChange={onValueChange}
-        className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="min-w-0 flex-1 self-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <TabsList className="w-max">
+        <TabsList className="h-full w-max gap-0">
           {views
             .filter((v) => !v.adminOnly || isAdmin)
             .map((v) => {
@@ -129,7 +130,7 @@ export function ViewTabs({
                     type="button"
                     onClick={onLocked}
                     title={`${v.label} — recurso de plano pago`}
-                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 h-9 text-ui font-medium text-subtle transition-colors hover:bg-elevated hover:text-foreground [&_svg]:size-4"
+                    className="inline-flex h-full shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-ui font-medium text-subtle transition-colors hover:text-foreground [&_svg]:size-4 [&_svg]:!text-subtle"
                   >
                     {v.icon}
                     {v.label}
