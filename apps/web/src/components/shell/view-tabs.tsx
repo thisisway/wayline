@@ -129,7 +129,7 @@ export function ViewTabs({
                     type="button"
                     onClick={onLocked}
                     title={`${v.label} — recurso de plano pago`}
-                    className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 h-8 text-dense font-medium text-subtle transition-colors hover:bg-elevated hover:text-foreground [&_svg]:size-4"
+                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 h-9 text-ui font-medium text-subtle transition-colors hover:bg-elevated hover:text-foreground [&_svg]:size-4"
                   >
                     {v.icon}
                     {v.label}
@@ -146,7 +146,7 @@ export function ViewTabs({
         </TabsList>
       </Tabs>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5">
         {viewers.length > 0 && (
           <span
             className="flex items-center gap-2"

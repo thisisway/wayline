@@ -79,7 +79,7 @@ export function Topbar({
       </button>
 
       {/* Ações */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <Button variant="primary" size="sm" onClick={onOpenBrain}>
           <Sparkles className="size-4" />
           Wayline Brain
@@ -89,7 +89,7 @@ export function Topbar({
           onClick={() => setShowMembers(true)}
           aria-label="Membros"
           title="Membros do workspace"
-          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
         >
           <Users className="size-4" />
         </button>
@@ -98,7 +98,7 @@ export function Topbar({
           onClick={onOpenInbox}
           aria-label="Notificações"
           title="Notificações"
-          className="relative flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+          className="relative flex size-8 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
         >
           <Bell className="size-4" />
           {inboxUnread > 0 && (
@@ -114,7 +114,7 @@ export function Topbar({
           onClick={() => signOut({ redirectTo: "/login" })}
           aria-label="Sair"
           title="Sair"
-          className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-danger"
+          className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-danger"
         >
           <LogOut className="size-4" />
         </button>
