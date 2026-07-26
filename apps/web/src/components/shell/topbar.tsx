@@ -91,7 +91,7 @@ export function Topbar({
           title="Membros do workspace"
           className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
         >
-          <Users className="size-4.5" />
+          <Users className="size-4" />
         </button>
         <button
           type="button"
@@ -100,7 +100,7 @@ export function Topbar({
           title="Notificações"
           className="relative flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
         >
-          <Bell className="size-4.5" />
+          <Bell className="size-4" />
           {inboxUnread > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white ring-2 ring-surface">
               {inboxUnread > 9 ? "9+" : inboxUnread}
@@ -116,7 +116,7 @@ export function Topbar({
           title="Sair"
           className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-danger"
         >
-          <LogOut className="size-4.5" />
+          <LogOut className="size-4" />
         </button>
       </div>
     </header>

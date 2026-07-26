@@ -28,7 +28,7 @@ export function ThemeToggle() {
       title={dark ? "Tema claro" : "Tema escuro"}
       className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
     >
-      {dark ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
+      {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>
   );
 }
