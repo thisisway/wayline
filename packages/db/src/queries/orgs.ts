@@ -9,7 +9,39 @@ import {
   organizations,
   spaces,
   statuses,
+  tasks,
 } from "../schema";
+
+/** Tarefas de exemplo para um board novo (onboarding). */
+function starterTasks(orgId: string, listId: string, statusId: string) {
+  return [
+    {
+      orgId,
+      listId,
+      statusId,
+      title: "👋 Bem-vindo! Abra esta tarefa",
+      description:
+        "Esta é uma tarefa de exemplo. Clique para abrir, edite o título, a descrição, defina responsável, prazo e prioridade. Arraste os cards entre as colunas para mudar o status.",
+      position: 0,
+    },
+    {
+      orgId,
+      listId,
+      statusId,
+      title: "➕ Crie sua primeira tarefa",
+      description: "Use o botão + no topo de cada coluna para adicionar tarefas.",
+      position: 1,
+    },
+    {
+      orgId,
+      listId,
+      statusId,
+      title: "👥 Convide seu time",
+      description: "Abra Membros no topo direito para convidar colegas ao workspace.",
+      position: 2,
+    },
+  ];
+}
 
 /** Colunas padrão de um board novo. */
 function defaultStatuses(orgId: string, listId: string) {
@@ -67,7 +99,11 @@ export async function createOrg(userId: string, name: string): Promise<string> {
       .insert(lists)
       .values({ orgId: org.id, spaceId: space!.id, name: "Tarefas" })
       .returning();
-    await tx.insert(statuses).values(defaultStatuses(org.id, list!.id));
+    const cols = await tx.insert(statuses).values(defaultStatuses(org.id, list!.id)).returning();
+    const todo = cols.find((c) => c.position === 0) ?? cols[0];
+    if (todo) {
+      await tx.insert(tasks).values(starterTasks(org.id, list!.id, todo.id));
+    }
   });
 
   return org.id;

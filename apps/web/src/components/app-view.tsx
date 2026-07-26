@@ -35,6 +35,8 @@ import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
 import { CommercialPage } from "@/components/shell/commercial-page";
 import { FormsPage } from "@/components/shell/forms-page";
+import { WelcomeChecklist, type OnboardStep } from "@/components/shell/welcome-checklist";
+import { CheckSquare, ClipboardList as ClipboardIcon, Briefcase as BriefcaseIcon, Settings as SettingsIcon } from "lucide-react";
 import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
@@ -206,6 +208,34 @@ export function AppView({
     () => (data ? collectCustomFieldOptions(data) : []),
     [data],
   );
+
+  // Onboarding: passos de primeiros passos (o card some quando concluído/dispensado).
+  const taskCount = React.useMemo(
+    () => (data ? data.columns.reduce((n, c) => n + c.tasks.length, 0) : 0),
+    [data],
+  );
+  const onboardingSteps: OnboardStep[] = React.useMemo(() => {
+    const steps: OnboardStep[] = [
+      {
+        id: "task",
+        label: "Crie uma tarefa",
+        icon: CheckSquare,
+        done: taskCount > 3, // além das 3 tarefas de exemplo
+        onClick: () => data && focusEditor.openCreate(data.columns[0]?.id ?? ""),
+      },
+      { id: "forms", label: "Monte um formulário", icon: ClipboardIcon, onClick: () => setView("forms") },
+      { id: "settings", label: "Personalize sua conta", icon: SettingsIcon, onClick: () => setSettingsOpen(true) },
+    ];
+    if (isAdmin) {
+      steps.splice(1, 0, {
+        id: "comercial",
+        label: "Explore o Comercial",
+        icon: BriefcaseIcon,
+        onClick: () => setView("comercial"),
+      });
+    }
+    return steps;
+  }, [taskCount, data, isAdmin, focusEditor]);
 
   // Views bloqueadas por plano (a aba mostra cadeado e abre a tela de Planos).
   const VIEW_FLAG: Partial<Record<string, keyof PlanFlags>> = {
@@ -435,20 +465,23 @@ export function AppView({
           !data || data.columns.length === 0 ? (
             <EmptyBoard />
           ) : (
-            <div className="relative min-h-0 flex-1">
-              {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
-              <DndBoard key={data.listId} data={filtered!} isAdmin={isAdmin} isGuest={isGuest} />
+            <div className="flex min-h-0 flex-1 flex-col">
+              <WelcomeChecklist orgId={activeOrgId} steps={onboardingSteps} />
+              <div className="relative min-h-0 flex-1">
+                {/* key por lista: remonta (reseta o estado local) ao trocar de org/board */}
+                <DndBoard key={data.listId} data={filtered!} isAdmin={isAdmin} isGuest={isGuest} />
 
-              {data.columns.some((c) => c.tasks.length > 0) && (
-                <>
-                  <div className="pointer-events-none absolute bottom-5 left-4 z-20">
-                    <DocPanel orgId={data.orgId} listId={data.listId} listName={listName} />
-                  </div>
-                  <div className="pointer-events-none absolute bottom-5 right-4 z-20">
-                    <ExecutiveSummaryPanel data={data} />
-                  </div>
-                </>
-              )}
+                {data.columns.some((c) => c.tasks.length > 0) && (
+                  <>
+                    <div className="pointer-events-none absolute bottom-5 left-4 z-20">
+                      <DocPanel orgId={data.orgId} listId={data.listId} listName={listName} />
+                    </div>
+                    <div className="pointer-events-none absolute bottom-5 right-4 z-20">
+                      <ExecutiveSummaryPanel data={data} />
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )
         ) : view === "list" ? (
@@ -558,10 +591,10 @@ function EmptyBoard() {
         <Database className="size-6" />
       </span>
       <div>
-        <p className="font-display text-h3 font-bold">Board vazio</p>
+        <p className="font-display text-h3 font-bold">Seu board está pronto</p>
         <p className="mt-1 max-w-sm text-ui text-muted">
-          Sem lista/colunas no Postgres ainda. Rode o seed (
-          <code>pnpm --filter @wayline/db db:seed</code>) ou verifique a conexão com o banco.
+          Ainda não há uma lista por aqui. Crie um Space e uma lista na barra lateral para começar a
+          adicionar tarefas.
         </p>
       </div>
     </div>
