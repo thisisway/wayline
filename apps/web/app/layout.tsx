@@ -5,6 +5,7 @@ import { getPlatformSettings } from "@wayline/db";
 import { THEME_COOKIE } from "@/lib/constants";
 import { hexToRgbTriple } from "@/lib/color";
 import { Providers } from "@/components/providers";
+import { CookieConsent } from "@/components/legal/cookie-consent";
 import "./globals.css";
 
 const inter = Inter({
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body style={brandStyle}>
         <Providers>{children}</Providers>
+        <CookieConsent />
       </body>
     </html>
   );

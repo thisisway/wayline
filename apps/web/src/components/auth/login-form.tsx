@@ -120,6 +120,15 @@ export function LoginForm({
             </Link>
           </p>
         </form>
+        <p className="mt-6 text-center text-[11px] text-subtle">
+          <Link href="/privacidade" className="hover:underline">
+            Privacidade
+          </Link>
+          {" · "}
+          <Link href="/termos" className="hover:underline">
+            Termos de Uso
+          </Link>
+        </p>
       </div>
     </div>
   );
