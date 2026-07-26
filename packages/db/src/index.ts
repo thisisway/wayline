@@ -287,6 +287,7 @@ export {
   getFormByToken,
   submitFormResponse,
   listFormResponses,
+  listListOptions,
   type FormListItem,
   type FormDTO,
   type PublicForm,

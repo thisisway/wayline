@@ -564,6 +564,8 @@ export const forms = pgTable(
     fields: jsonb("fields").$type<FormFieldSchema[]>().notNull().default(sql`'[]'::jsonb`),
     status: text("status").notNull().default("draft"), // draft | published
     token: text("token").notNull().unique(),
+    /** Lista onde cada resposta vira uma tarefa (opcional). */
+    targetListId: uuid("target_list_id"),
     /** Mensagem exibida após o envio. */
     thankYou: text("thank_you").notNull().default("Obrigado! Sua resposta foi registrada."),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),

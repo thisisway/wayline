@@ -19,6 +19,7 @@ import {
   deleteFormAction,
   getFormAction,
   listFormResponsesAction,
+  listListOptionsAction,
   updateFormAction,
 } from "@/actions/forms";
 
@@ -64,6 +65,8 @@ export function FormBuilderModal({
   const [thankYou, setThankYou] = React.useState("");
   const [fields, setFields] = React.useState<FormFieldSchema[]>([]);
   const [published, setPublished] = React.useState(false);
+  const [targetListId, setTargetListId] = React.useState("");
+  const [lists, setLists] = React.useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [responses, setResponses] = React.useState<FormResponseDTO[] | null>(null);
@@ -77,7 +80,9 @@ export function FormBuilderModal({
       setThankYou(f.thankYou);
       setFields(f.fields);
       setPublished(f.status === "published");
+      setTargetListId(f.targetListId ?? "");
     });
+    listListOptionsAction(orgId).then(setLists);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -109,6 +114,7 @@ export function FormBuilderModal({
       thankYou,
       fields,
       status: nextPublished ? "published" : "draft",
+      targetListId: targetListId || null,
     }).catch(() => {});
     setSaving(false);
     setPublished(nextPublished);
@@ -305,6 +311,27 @@ export function FormBuilderModal({
             <label className="block pt-2">
               <span className="text-dense font-medium text-muted">Mensagem de agradecimento</span>
               <Input value={thankYou} onChange={(e) => setThankYou(e.target.value)} className="mt-1" />
+            </label>
+
+            <label className="block">
+              <span className="text-dense font-medium text-muted">
+                Criar tarefa a cada resposta em
+              </span>
+              <select
+                value={targetListId}
+                onChange={(e) => setTargetListId(e.target.value)}
+                className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+              >
+                <option value="">Não criar tarefa</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] text-subtle">
+                Cada envio vira um card na 1ª coluna da lista escolhida (título = 1º campo preenchido).
+              </span>
             </label>
           </div>
         ) : (

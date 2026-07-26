@@ -6,6 +6,7 @@ import {
   getForm,
   listFormResponses,
   listForms,
+  listListOptions,
   updateForm,
   type FormDTO,
   type FormFieldSchema,
@@ -41,6 +42,7 @@ export interface FormPatchInput {
   fields?: FormFieldSchema[];
   status?: string;
   thankYou?: string;
+  targetListId?: string | null;
 }
 
 export async function updateFormAction(
@@ -55,10 +57,18 @@ export async function updateFormAction(
     fields: patch.fields,
     status: patch.status === "published" ? "published" : patch.status === "draft" ? "draft" : undefined,
     thankYou: patch.thankYou,
+    targetListId: patch.targetListId,
   };
   await updateForm(orgId, id, clean);
   revalidatePath("/app");
   return true;
+}
+
+export async function listListOptionsAction(
+  orgId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  if (!(await assertMember(orgId))) return [];
+  return listListOptions(orgId);
 }
 
 export async function deleteFormAction(orgId: string, id: string): Promise<void> {

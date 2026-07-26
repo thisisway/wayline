@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
-import { getDb } from "../client";
-import { forms, formResponses } from "../schema";
+import { getDb, withOrg } from "../client";
+import { forms, formResponses, lists, statuses, tasks } from "../schema";
 import type { FormFieldSchema } from "../schema/collaboration";
 
 export type { FormFieldSchema };
@@ -24,6 +24,7 @@ export interface FormDTO {
   status: string;
   token: string;
   thankYou: string;
+  targetListId: string | null;
 }
 
 /** Formulário público (link de resposta) — sem dados internos. */
@@ -56,7 +57,24 @@ function toDTO(f: typeof forms.$inferSelect): FormDTO {
     status: f.status,
     token: f.token,
     thankYou: f.thankYou,
+    targetListId: f.targetListId ?? null,
   };
+}
+
+/** Listas do board (para escolher onde criar tarefas). Resiliente. */
+export async function listListOptions(
+  orgId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const db = getDb();
+    const rows = await db.query.lists.findMany({
+      where: and(eq(lists.orgId, orgId), isNull(lists.deletedAt)),
+      orderBy: [asc(lists.name)],
+    });
+    return rows.map((l) => ({ id: l.id, name: l.name }));
+  } catch {
+    return [];
+  }
 }
 
 /** `forms` é no-RLS: filtramos por org_id em toda query. Resiliente. */
@@ -131,6 +149,7 @@ export interface FormPatch {
   fields?: FormFieldSchema[];
   status?: string;
   thankYou?: string;
+  targetListId?: string | null;
 }
 
 export async function updateForm(orgId: string, id: string, patch: FormPatch): Promise<void> {
@@ -141,6 +160,7 @@ export async function updateForm(orgId: string, id: string, patch: FormPatch): P
   if (patch.fields !== undefined) set.fields = patch.fields;
   if (patch.status !== undefined) set.status = patch.status;
   if (patch.thankYou !== undefined) set.thankYou = patch.thankYou;
+  if (patch.targetListId !== undefined) set.targetListId = patch.targetListId;
   await db.update(forms).set(set).where(and(eq(forms.id, id), eq(forms.orgId, orgId)));
 }
 
@@ -192,7 +212,56 @@ export async function submitFormResponse(
     if (allow.has(k)) clean[k] = String(v ?? "").slice(0, 5000);
   }
   await db.insert(formResponses).values({ orgId: f.orgId, formId: f.id, answers: clean });
+
+  // Roteia a resposta para o board como tarefa (se configurado). Best-effort.
+  if (f.targetListId) {
+    try {
+      await createTaskFromForm(f.orgId, f.targetListId, f.fields ?? [], clean, f.title);
+    } catch {
+      // não falha o envio do usuário se a criação da tarefa falhar
+    }
+  }
   return true;
+}
+
+/** Cria uma tarefa na 1ª coluna da lista a partir de uma resposta de formulário. */
+async function createTaskFromForm(
+  orgId: string,
+  listId: string,
+  fields: FormFieldSchema[],
+  answers: Record<string, string>,
+  formTitle: string,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    // Garante que a lista pertence à org e pega a 1ª coluna.
+    const list = await tx.query.lists.findFirst({
+      where: and(eq(lists.id, listId), eq(lists.orgId, orgId), isNull(lists.deletedAt)),
+    });
+    if (!list) return;
+    const firstStatus = await tx.query.statuses.findFirst({
+      where: eq(statuses.listId, listId),
+      orderBy: [asc(statuses.position)],
+    });
+
+    const firstVal = fields.map((fld) => answers[fld.id]).find((v) => v && v.trim());
+    const title = (firstVal || formTitle || "Resposta de formulário").slice(0, 200);
+    const description = fields
+      .map((fld) => `${fld.label}: ${answers[fld.id] ?? "—"}`)
+      .join("\n");
+
+    const position = await tx.$count(
+      tasks,
+      and(eq(tasks.listId, listId), isNull(tasks.deletedAt)),
+    );
+    await tx.insert(tasks).values({
+      orgId,
+      listId,
+      statusId: firstStatus?.id ?? null,
+      title,
+      description,
+      position,
+    });
+  });
 }
 
 export async function listFormResponses(
