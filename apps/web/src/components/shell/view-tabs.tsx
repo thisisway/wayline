@@ -130,7 +130,7 @@ export function ViewTabs({
                     type="button"
                     onClick={onLocked}
                     title={`${v.label} — recurso de plano pago`}
-                    className="inline-flex h-full shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-ui font-medium text-subtle transition-colors hover:text-foreground [&_svg]:size-4 [&_svg]:!text-subtle"
+                    className="inline-flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-2.5 text-dense font-medium text-subtle transition-colors hover:text-foreground [&_svg]:size-3.5 [&_svg]:!text-subtle"
                   >
                     {v.icon}
                     {v.label}

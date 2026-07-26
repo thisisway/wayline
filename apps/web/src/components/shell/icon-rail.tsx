@@ -3,8 +3,9 @@
 import {
   Bell,
   CheckSquare,
+  ChevronsLeft,
+  ChevronsRight,
   Home,
-  PanelLeft,
   Plus,
   Search,
   Settings,
@@ -89,6 +90,13 @@ export function IconRail({
 }) {
   return (
     <nav className="flex w-14 shrink-0 flex-col items-center gap-2 bg-dark py-3">
+      {/* Recolher/expandir o painel Home (»/«) */}
+      <RailButton
+        icon={sidebarOpen ? ChevronsLeft : ChevronsRight}
+        label={sidebarOpen ? "Ocultar menu" : "Mostrar menu"}
+        onClick={onToggleSidebar}
+      />
+
       {/* Marca: ícone (símbolo) > logo > badge "W" de fallback */}
       {icon ? (
         <div className="mb-1 flex size-9 items-center justify-center overflow-hidden">
@@ -109,12 +117,6 @@ export function IconRail({
       <div className="my-1 h-px w-6 bg-white/10" />
 
       <RailButton icon={Home} label="Board" active={activeView === "board"} onClick={onHome} />
-      <RailButton
-        icon={PanelLeft}
-        label={sidebarOpen ? "Ocultar menu" : "Mostrar menu"}
-        active={sidebarOpen}
-        onClick={onToggleSidebar}
-      />
       <RailButton icon={CheckSquare} label="Minhas tarefas" onClick={onOpenMyTasks} />
       <RailButton icon={Sparkles} label="Wayline Brain" onClick={onOpenBrain} />
       <RailButton icon={Search} label="Buscar (⌘K)" onClick={onOpenSearch} />
