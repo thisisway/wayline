@@ -43,6 +43,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "support_messages" TO wayline_app;
 -- 0043: leitura do usuário (badge "aguardando você")
 ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "user_read_at" timestamptz;
 
+-- 0044: número de alerta de novo chamado (WhatsApp)
+ALTER TABLE "platform_settings" ADD COLUMN IF NOT EXISTS "support_alert_whatsapp" text;
+
 -- ---------------------------------------------------------------------------
 -- 0040: formulários + respostas (no-RLS; token público)
 -- ---------------------------------------------------------------------------

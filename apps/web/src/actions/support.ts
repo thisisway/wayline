@@ -4,12 +4,14 @@ import {
   addSupportMessage,
   countAwaitingUser,
   createSupportTicket,
+  getSupportAlertWhatsapp,
   getSupportWhatsappUrl,
   getTicket,
   getTicketThread,
   listMyTickets,
   listSupportTickets,
   markTicketReadByUser,
+  setSupportAlertWhatsapp,
   setSupportTicketStatus,
   setSupportWhatsappUrl,
   type SupportTicketDTO,
@@ -20,6 +22,9 @@ import {
 import { revalidatePath } from "next/cache";
 import { assertMember, getSessionUser, isPlatformAdmin } from "@/lib/authz";
 import { sendSupportUpdateEmail } from "@/lib/email";
+import { sendWhatsappAlert } from "@/lib/whatsapp";
+
+const CAT_PT: Record<string, string> = { support: "Suporte", bug: "Bug", idea: "Sugestão" };
 
 const CATEGORIES: TicketCategory[] = ["support", "bug", "idea"];
 const MAX_IMG = 1_500_000; // ~1.5MB (data URL de print)
@@ -60,6 +65,21 @@ export async function createSupportTicketAction(
     message: input.message.trim(),
     attachmentUrl: validImage(input.attachmentUrl),
   });
+
+  // Avisa o admin de um novo chamado via WhatsApp (best-effort; no-op se não configurado).
+  if (id) {
+    const to = await getSupportAlertWhatsapp();
+    if (to) {
+      const link = process.env.APP_URL ? `\n${process.env.APP_URL}/admin/suporte` : "";
+      const body =
+        `🆘 Novo chamado (${CAT_PT[category] ?? "Suporte"})` +
+        (input.subject.trim() ? ` — ${input.subject.trim()}` : "") +
+        `\nDe: ${user?.name ?? "Alguém"}${user?.email ? ` (${user.email})` : ""} · ${orgName}` +
+        `\n${input.message.trim().slice(0, 400)}` +
+        link;
+      await sendWhatsappAlert(to, body).catch(() => false);
+    }
+  }
   return id !== null;
 }
 
@@ -164,6 +184,16 @@ export async function setSupportWhatsappUrlAction(url: string): Promise<boolean>
   const clean = url.trim();
   if (clean && !/^https?:\/\//i.test(clean)) return false;
   await setSupportWhatsappUrl(clean || null);
+  revalidatePath("/admin/suporte");
+  return true;
+}
+
+/** Superadmin: número (E.164) que recebe alerta de novo chamado via WhatsApp. */
+export async function setSupportAlertWhatsappAction(num: string): Promise<boolean> {
+  if (!(await isPlatformAdmin())) return false;
+  const digits = num.replace(/\D/g, "");
+  if (digits && (digits.length < 10 || digits.length > 15)) return false;
+  await setSupportAlertWhatsapp(digits || null);
   revalidatePath("/admin/suporte");
   return true;
 }

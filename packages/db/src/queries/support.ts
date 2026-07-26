@@ -315,3 +315,25 @@ export async function setSupportWhatsappUrl(url: string | null): Promise<void> {
       set: { supportWhatsappUrl: url, updatedAt: new Date() },
     });
 }
+
+/** Número (E.164) que recebe alerta de novo chamado via WhatsApp. Resiliente. */
+export async function getSupportAlertWhatsapp(): Promise<string | null> {
+  try {
+    const db = getDb();
+    const row = await db.query.platformSettings.findFirst();
+    return row?.supportAlertWhatsapp ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setSupportAlertWhatsapp(num: string | null): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(platformSettings)
+    .values({ id: "singleton", supportAlertWhatsapp: num, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: platformSettings.id,
+      set: { supportAlertWhatsapp: num, updatedAt: new Date() },
+    });
+}

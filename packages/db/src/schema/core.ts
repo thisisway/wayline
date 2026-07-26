@@ -32,6 +32,8 @@ export const platformSettings = pgTable("platform_settings", {
   brandColor: text("brand_color"),
   /** Link do grupo de WhatsApp (suporte/comunidade) exibido no modal de Suporte. */
   supportWhatsappUrl: text("support_whatsapp_url"),
+  /** Número (E.164, ex.: 5511999999999) que recebe alerta de novo chamado via WhatsApp. */
+  supportAlertWhatsapp: text("support_alert_whatsapp"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 

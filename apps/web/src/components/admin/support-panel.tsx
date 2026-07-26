@@ -5,6 +5,7 @@ import { Bug, Check, LifeBuoy, Lightbulb, MessageSquare, RotateCcw, X } from "lu
 import type { SupportTicketDTO } from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
 import {
+  setSupportAlertWhatsappAction,
   setSupportTicketStatusAction,
   setSupportWhatsappUrlAction,
 } from "@/actions/support";
@@ -24,14 +25,19 @@ function timeAgo(value: Date): string {
 export function SupportPanel({
   tickets,
   whatsappUrl,
+  alertWhatsapp,
 }: {
   tickets: SupportTicketDTO[];
   whatsappUrl: string | null;
+  alertWhatsapp: string | null;
 }) {
   const [rows, setRows] = React.useState(tickets);
   const [url, setUrl] = React.useState(whatsappUrl ?? "");
   const [savingUrl, setSavingUrl] = React.useState(false);
   const [urlMsg, setUrlMsg] = React.useState<string | null>(null);
+  const [alertNum, setAlertNum] = React.useState(alertWhatsapp ?? "");
+  const [savingAlert, setSavingAlert] = React.useState(false);
+  const [alertMsg, setAlertMsg] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState<"open" | "all">("open");
   const [openId, setOpenId] = React.useState<string | null>(null);
 
@@ -41,6 +47,14 @@ export function SupportPanel({
     setSavingUrl(false);
     setUrlMsg(ok ? "Link salvo." : "Link inválido (use http(s)://).");
     setTimeout(() => setUrlMsg(null), 2500);
+  }
+
+  async function saveAlert() {
+    setSavingAlert(true);
+    const ok = await setSupportAlertWhatsappAction(alertNum).catch(() => false);
+    setSavingAlert(false);
+    setAlertMsg(ok ? "Número salvo." : "Número inválido (use DDI+DDD, ex.: 5511999999999).");
+    setTimeout(() => setAlertMsg(null), 2500);
   }
 
   async function toggle(t: SupportTicketDTO) {
@@ -76,6 +90,27 @@ export function SupportPanel({
         {urlMsg && <p className="mt-1.5 text-dense text-muted">{urlMsg}</p>}
         <p className="mt-1.5 text-[11px] text-subtle">
           Aparece como botão “Entrar” no modal de Suporte dos usuários. Deixe vazio para ocultar.
+        </p>
+      </div>
+
+      {/* Número de alerta (novo chamado) */}
+      <div className="mb-6 rounded-xl border border-border bg-surface p-4">
+        <h3 className="mb-2 text-label uppercase text-subtle">Alerta de novo chamado (WhatsApp)</h3>
+        <div className="flex items-center gap-2">
+          <Input
+            value={alertNum}
+            onChange={(e) => setAlertNum(e.target.value)}
+            placeholder="5511999999999 (DDI + DDD + número)"
+            className="flex-1"
+          />
+          <Button onClick={saveAlert} disabled={savingAlert}>
+            {savingAlert ? "Salvando…" : "Salvar número"}
+          </Button>
+        </div>
+        {alertMsg && <p className="mt-1.5 text-dense text-muted">{alertMsg}</p>}
+        <p className="mt-1.5 text-[11px] text-subtle">
+          Recebe uma mensagem a cada chamado aberto. Requer as envs do WhatsApp Cloud API
+          (WHATSAPP_TOKEN, WHATSAPP_PHONE_ID). Deixe vazio para desativar.
         </p>
       </div>
 

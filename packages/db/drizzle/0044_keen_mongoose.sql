@@ -1,0 +1,1 @@
+ALTER TABLE "platform_settings" ADD COLUMN "support_alert_whatsapp" text;

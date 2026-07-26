@@ -281,6 +281,8 @@ export {
   setSupportTicketStatus,
   getSupportWhatsappUrl,
   setSupportWhatsappUrl,
+  getSupportAlertWhatsapp,
+  setSupportAlertWhatsapp,
   type SupportTicketInput,
   type SupportTicketDTO,
   type SupportMessageDTO,
