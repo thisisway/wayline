@@ -1,6 +1,7 @@
 "use server";
 
 import { decideProposal, getProposalByToken, type PublicProposal } from "@wayline/db";
+import { rateLimit, MIN } from "@/lib/rate-limit";
 
 export async function getPublicProposalAction(token: string): Promise<PublicProposal | null> {
   if (!token) return null;
@@ -16,5 +17,6 @@ export async function decideProposalAction(
 ): Promise<boolean> {
   const who = name.trim();
   if (!token || !who || (decision !== "accepted" && decision !== "rejected")) return false;
+  if (!(await rateLimit("proposal-decide", 10, MIN))) return false;
   return decideProposal(token, decision, who, doc.trim());
 }

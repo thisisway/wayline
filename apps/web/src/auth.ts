@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getUserByEmail, getUserProfile, resolveUserOrg } from "@wayline/db";
+import { clientIp, rateLimitByKey, MIN } from "@/lib/rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // JWT: obrigatório com Credentials; sem tabela de sessão.
@@ -18,6 +19,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = String(creds?.email ?? "").toLowerCase().trim();
         const password = String(creds?.password ?? "");
         if (!email || !password) return null;
+
+        // Anti brute-force: no máx. 10 tentativas por IP+email a cada 5 min.
+        const ip = await clientIp();
+        if (!rateLimitByKey("login", `${ip}:${email}`, 10, 5 * MIN)) return null;
 
         const user = await getUserByEmail(email);
         if (!user?.passwordHash) return null;

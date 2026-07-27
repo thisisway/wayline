@@ -1,6 +1,7 @@
 "use server";
 
 import { getContractByToken, signContract, type PublicContract } from "@wayline/db";
+import { rateLimit, MIN } from "@/lib/rate-limit";
 
 export async function getPublicContractAction(token: string): Promise<PublicContract | null> {
   if (!token) return null;
@@ -15,5 +16,6 @@ export async function signContractAction(
 ): Promise<boolean> {
   const who = name.trim();
   if (!token || !who) return false;
+  if (!(await rateLimit("contract-sign", 10, MIN))) return false;
   return signContract(token, who, doc.trim());
 }

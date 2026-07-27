@@ -14,6 +14,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { assertMember, assertRole, getSessionUserId } from "@/lib/authz";
 import { aiEnabled, draftProposal } from "@/lib/ai";
+import { rateLimit, MIN } from "@/lib/rate-limit";
 
 export async function listProposalsAction(orgId: string): Promise<ProposalListItem[]> {
   if (!(await assertMember(orgId))) return [];
@@ -114,6 +115,8 @@ export async function draftProposalAction(
   briefing: string,
 ): Promise<{ intro: string; items: Array<{ description: string; amountCents: number }> } | null> {
   if (!aiEnabled() || !briefing.trim() || !(await assertRole(orgId, "admin"))) return null;
+  // Protege contra abuso de créditos de IA: 20 gerações por IP a cada 10 min.
+  if (!(await rateLimit("ai-draft", 20, 10 * MIN))) return null;
   return draftProposal(briefing.trim());
 }
 

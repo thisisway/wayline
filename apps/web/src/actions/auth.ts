@@ -12,6 +12,9 @@ import {
   upsertVerification,
 } from "@wayline/db";
 import { emailEnabled, sendVerificationEmail, sendWelcomeEmail } from "@/lib/email";
+import { rateLimit, MIN } from "@/lib/rate-limit";
+
+const TOO_MANY = "Muitas tentativas. Aguarde alguns minutos e tente de novo.";
 
 /** `verified: true` = conta já criada (email desativado no ambiente → sem código). */
 export type StartResult =
@@ -33,6 +36,8 @@ export async function startRegistrationAction(
   const e = email.trim().toLowerCase();
   if (!n || !e) return { ok: false, error: "Preencha nome e email." };
   if (password.length < 6) return { ok: false, error: "A senha precisa ter ao menos 6 caracteres." };
+  // Anti-spam de cadastro: 6 tentativas por IP a cada 10 min.
+  if (!(await rateLimit("register", 6, 10 * MIN))) return { ok: false, error: TOO_MANY };
 
   const existing = await getUserByEmail(e);
   if (existing) return { ok: false, error: "Esse email já está cadastrado." };
@@ -67,6 +72,8 @@ export async function verifyRegistrationAction(
   code: string,
 ): Promise<VerifyResult> {
   const e = email.trim().toLowerCase();
+  // Anti brute-force do código: 12 tentativas por IP a cada 10 min.
+  if (!(await rateLimit("verify", 12, 10 * MIN))) return { ok: false, error: TOO_MANY };
   const v = await getVerification(e);
   if (!v) return { ok: false, error: "Nenhum código pendente. Recomece o cadastro." };
   if (v.expiresAt.getTime() < Date.now()) {
@@ -98,6 +105,8 @@ export async function verifyRegistrationAction(
 /** Reenvia o código (gera um novo) se houver cadastro pendente. */
 export async function resendCodeAction(email: string): Promise<VerifyResult> {
   const e = email.trim().toLowerCase();
+  // Anti-spam de reenvio: 4 por IP a cada 10 min.
+  if (!(await rateLimit("resend", 4, 10 * MIN))) return { ok: false, error: TOO_MANY };
   const v = await getVerification(e);
   if (!v) return { ok: false, error: "Nenhum cadastro pendente. Recomece." };
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
