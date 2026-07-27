@@ -177,14 +177,19 @@ export function Landing({
   brandName,
   logoLight,
   logoDark,
+  authBase = "",
 }: {
   brandName: string;
   logoLight?: string | null;
   logoDark?: string | null;
+  /** Base para login/cadastro (ex.: https://app.wayline.com.br). Vazio = mesmo host. */
+  authBase?: string;
 }) {
   const logo = logoLight || logoDark || null;
   const [yearly, setYearly] = React.useState(true);
   const [faq, setFaq] = React.useState<number | null>(0);
+  const reg = `${authBase}/register`;
+  const login = `${authBase}/login`;
 
   return (
     <div className="min-h-dvh scroll-smooth bg-canvas text-foreground">
@@ -222,10 +227,10 @@ export function Landing({
               ))}
             </nav>
             <div className="flex items-center gap-2">
-              <Link href="/login" className="hidden h-9 items-center rounded-md px-3 text-ui font-medium text-white/80 transition-colors hover:text-white sm:flex">
+              <Link href={login} className="hidden h-9 items-center rounded-md px-3 text-ui font-medium text-white/80 transition-colors hover:text-white sm:flex">
                 Entrar
               </Link>
-              <Link href="/register" className="flex h-9 items-center gap-1.5 rounded-pill bg-white px-4 text-ui font-semibold text-[#16225e] shadow-lg transition-transform hover:scale-[1.03]">
+              <Link href={reg} className="flex h-9 items-center gap-1.5 rounded-pill bg-white px-4 text-ui font-semibold text-[#16225e] shadow-lg transition-transform hover:scale-[1.03]">
                 Começar grátis
               </Link>
             </div>
@@ -250,7 +255,7 @@ export function Landing({
               integrada. Menos abas abertas, mais negócio fechado.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/register" className="group flex h-12 items-center gap-2 rounded-pill bg-white px-7 text-body font-semibold text-[#16225e] shadow-xl transition-transform hover:scale-[1.03]">
+              <Link href={reg} className="group flex h-12 items-center gap-2 rounded-pill bg-white px-7 text-body font-semibold text-[#16225e] shadow-xl transition-transform hover:scale-[1.03]">
                 Começar grátis <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <a href="#recursos" className="flex h-12 items-center gap-2 rounded-pill border border-white/25 bg-white/5 px-7 text-body font-medium text-white backdrop-blur transition-colors hover:bg-white/15">
@@ -584,7 +589,7 @@ export function Landing({
                         </li>
                       ))}
                     </ul>
-                    <Link href="/register" className={"mt-5 flex h-10 items-center justify-center rounded-lg text-ui font-medium transition-colors " + (p.highlight ? "bg-brand text-white hover:bg-brand-80" : "bg-white/10 text-white hover:bg-white/20")}>
+                    <Link href={reg} className={"mt-5 flex h-10 items-center justify-center rounded-lg text-ui font-medium transition-colors " + (p.highlight ? "bg-brand text-white hover:bg-brand-80" : "bg-white/10 text-white hover:bg-white/20")}>
                       {p.cta}
                     </Link>
                   </div>
@@ -668,7 +673,7 @@ export function Landing({
             <div className="relative">
               <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Organize sua agência hoje</h2>
               <p className="mx-auto mt-2 max-w-lg text-white/85">Workspace pronto em minutos. 14 dias de Business grátis, sem cartão.</p>
-              <Link href="/register" className="mt-7 inline-flex h-12 items-center gap-2 rounded-pill bg-white px-7 text-body font-semibold text-[#16225e] transition-transform hover:scale-[1.03]">
+              <Link href={reg} className="mt-7 inline-flex h-12 items-center gap-2 rounded-pill bg-white px-7 text-body font-semibold text-[#16225e] transition-transform hover:scale-[1.03]">
                 Começar grátis <ArrowRight className="size-4" />
               </Link>
             </div>
@@ -693,7 +698,7 @@ export function Landing({
             <p className="mt-3 max-w-xs text-dense text-muted">O sistema operacional de trabalho para agências.</p>
           </div>
           <FooterCol title="Produto" links={[["Recursos", "#recursos"], ["Benefícios", "#beneficios"], ["Preços", "#precos"], ["FAQ", "#faq"]]} />
-          <FooterCol title="Conta" links={[["Entrar", "/login"], ["Criar conta", "/register"]]} />
+          <FooterCol title="Conta" links={[["Entrar", login], ["Criar conta", reg]]} />
           <FooterCol title="Legal" links={[["Privacidade", "/privacidade"], ["Termos de Uso", "/termos"]]} />
         </div>
         <div className="border-t border-border py-5 text-center text-dense text-subtle">© {brandName} · Feito no Brasil</div>
