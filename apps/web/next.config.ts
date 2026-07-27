@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,4 +40,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// O plugin de build do Sentry (source maps + release) só entra quando há
+// SENTRY_AUTH_TOKEN — assim o build local/CI sem Sentry segue leve e intacto.
+// A captura de erros em runtime funciona de qualquer forma (via instrumentation).
+export default process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      widenClientFileUpload: true,
+      disableLogger: true,
+    })
+  : nextConfig;
