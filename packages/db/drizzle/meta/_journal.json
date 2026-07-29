@@ -351,6 +351,13 @@
       "when": 1785341255188,
       "tag": "0049_ambitious_trauma",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1785343194641,
+      "tag": "0050_demonic_nitro",
+      "breakpoints": true
     }
   ]
 }

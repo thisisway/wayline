@@ -343,6 +343,14 @@ export {
   type PublicInvoice,
   type InvoicePatch,
 } from "./queries/invoices";
+export {
+  listExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  type ExpenseDTO,
+  type ExpenseInput,
+} from "./queries/expenses";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

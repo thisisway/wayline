@@ -669,3 +669,33 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
   organization: one(organizations, { fields: [invoices.orgId], references: [organizations.id] }),
 }));
+
+/**
+ * DESPESAS (financeiro — saída de caixa). Sem RLS (uso interno; org_id filtrado
+ * no app). Sem link público.
+ */
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    description: text("description").notNull().default(""),
+    category: text("category").notNull().default("Geral"),
+    amountCents: integer("amount_cents").notNull().default(0),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    paid: boolean("paid").notNull().default(false),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    recurrence: text("recurrence").notNull().default("none"), // none | monthly
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("expenses_org_idx").on(t.orgId)],
+);
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  client: one(clients, { fields: [expenses.clientId], references: [clients.id] }),
+}));
