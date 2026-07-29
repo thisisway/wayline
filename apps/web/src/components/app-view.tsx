@@ -164,7 +164,6 @@ export function AppView({
   const [contractsOpen, setContractsOpen] = React.useState(false);
   const [invoicesOpen, setInvoicesOpen] = React.useState(false);
   const salesEnabled = modules.includes("sales");
-  const financeEnabled = modules.includes("finance");
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const orgName = activeOrg?.name ?? "Workspace";
@@ -299,7 +298,7 @@ export function AppView({
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         showComercial={isAdmin}
-        showFinance={isAdmin && financeEnabled}
+        showFinance={isAdmin}
         supportBadge={supportAwaiting}
       />
       {sidebarOpen && (
