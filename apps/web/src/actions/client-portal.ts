@@ -1,13 +1,18 @@
 "use server";
 
 import {
+  addPublicComment,
   getClientPortal,
   getOrCreateClientPortal,
+  getPublicComments,
   notifyApproval,
+  notifyTaskAssignees,
   resolvePortalToken,
+  revokeClientPortal,
   setTaskApproval,
   taskBelongsToClient,
   type ClientPortal,
+  type PublicCommentDTO,
 } from "@wayline/db";
 import { assertMember } from "@/lib/authz";
 import { rateLimit, MIN } from "@/lib/rate-limit";
@@ -19,6 +24,13 @@ export async function clientPortalLinkAction(
 ): Promise<string | null> {
   if (!(await assertMember(orgId))) return null;
   return getOrCreateClientPortal(orgId, clientId);
+}
+
+/** Agência: revoga o link do portal de um cliente. */
+export async function revokeClientPortalAction(orgId: string, clientId: string): Promise<boolean> {
+  if (!(await assertMember(orgId))) return false;
+  await revokeClientPortal(orgId, clientId);
+  return true;
 }
 
 /** Público: conteúdo do portal pelo token (sem sessão). */
@@ -43,4 +55,32 @@ export async function portalApproveAction(
   await setTaskApproval(ref.orgId, taskId, status, who);
   await notifyApproval(ref.orgId, taskId, `${who} (cliente)`, status === "approved").catch(() => {});
   return true;
+}
+
+/** Público: comentários de uma entrega. */
+export async function portalCommentsAction(
+  token: string,
+  taskId: string,
+): Promise<PublicCommentDTO[]> {
+  const ref = await resolvePortalToken(token);
+  if (!ref || !(await taskBelongsToClient(ref.orgId, taskId, ref.clientId))) return [];
+  return getPublicComments(ref.orgId, taskId);
+}
+
+/** Público: cliente comenta numa entrega. */
+export async function portalAddCommentAction(
+  token: string,
+  taskId: string,
+  name: string,
+  body: string,
+): Promise<PublicCommentDTO | null> {
+  const who = name.trim().slice(0, 60);
+  const text = body.trim();
+  if (!who || !text) return null;
+  if (!(await rateLimit("portal-comment", 20, MIN))) return null;
+  const ref = await resolvePortalToken(token);
+  if (!ref || !(await taskBelongsToClient(ref.orgId, taskId, ref.clientId))) return null;
+  const created = await addPublicComment(ref.orgId, taskId, who, text);
+  await notifyTaskAssignees(ref.orgId, taskId, "", `${who} (cliente)`, "comment").catch(() => {});
+  return created;
 }

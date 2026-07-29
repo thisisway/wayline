@@ -10,9 +10,10 @@ import {
   MessageCircleWarning,
   type LucideIcon,
 } from "lucide-react";
-import type { ClientPortal } from "@wayline/db";
+import { MessageSquare } from "lucide-react";
+import type { ClientPortal, PublicCommentDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
-import { portalApproveAction } from "@/actions/client-portal";
+import { portalAddCommentAction, portalApproveAction, portalCommentsAction } from "@/actions/client-portal";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -97,7 +98,8 @@ export function ClientPortalView({
                     <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-subtle">{project}</p>
                     <div className="overflow-hidden rounded-xl border border-border">
                       {tasks.map((t, i) => (
-                        <div key={t.id} className={cn("flex flex-wrap items-center gap-3 bg-surface p-3", i > 0 && "border-t border-border")}>
+                        <div key={t.id} className={cn("bg-surface", i > 0 && "border-t border-border")}>
+                        <div className="flex flex-wrap items-center gap-3 p-3">
                           <span className="min-w-0 flex-1 text-ui font-medium">{t.title}</span>
                           <span
                             className="inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-bold uppercase"
@@ -128,6 +130,8 @@ export function ClientPortalView({
                               </Button>
                             </div>
                           )}
+                        </div>
+                        <TaskComments token={token} taskId={t.id} authorName={name} />
                         </div>
                       ))}
                     </div>
@@ -186,6 +190,71 @@ function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: str
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <p className="rounded-xl border border-dashed border-border p-4 text-center text-dense text-subtle">{children}</p>
+  );
+}
+
+function TaskComments({ token, taskId, authorName }: { token: string; taskId: string; authorName: string }) {
+  const [open, setOpen] = React.useState(false);
+  const [items, setItems] = React.useState<PublicCommentDTO[] | null>(null);
+  const [body, setBody] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open && items === null) portalCommentsAction(token, taskId).then(setItems);
+  }, [open, items, token, taskId]);
+
+  async function send() {
+    if (!body.trim() || !authorName.trim() || sending) return;
+    setSending(true);
+    const c = await portalAddCommentAction(token, taskId, authorName, body).catch(() => null);
+    setSending(false);
+    if (c) {
+      setItems((xs) => [...(xs ?? []), c]);
+      setBody("");
+    }
+  }
+
+  return (
+    <div className="border-t border-border/60 px-3 py-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-dense font-medium text-muted transition-colors hover:text-foreground"
+      >
+        <MessageSquare className="size-3.5" />
+        {open ? "Ocultar comentários" : "Comentários"}
+        {items && items.length > 0 && <span className="text-subtle">({items.length})</span>}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          {items === null ? (
+            <p className="text-[11px] text-subtle">Carregando…</p>
+          ) : (
+            items.map((c) => (
+              <div key={c.id} className="rounded-lg bg-canvas px-3 py-2">
+                <p className="text-[11px] font-semibold text-muted">
+                  {c.name} · {new Date(c.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </p>
+                <p className="whitespace-pre-wrap text-dense text-foreground">{c.body}</p>
+              </div>
+            ))
+          )}
+          <div className="flex items-end gap-2">
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={authorName.trim() ? "Escreva um comentário…" : "Informe seu nome acima para comentar"}
+              disabled={!authorName.trim()}
+              className="h-14 flex-1 resize-none rounded-md border border-border bg-canvas p-2 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            />
+            <Button size="sm" onClick={send} disabled={!body.trim() || !authorName.trim() || sending}>
+              Enviar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

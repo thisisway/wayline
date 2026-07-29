@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Link2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Link2, Link2Off, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ClientDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import {
@@ -10,7 +10,7 @@ import {
   listClientsAction,
   updateClientAction,
 } from "@/actions/clients";
-import { clientPortalLinkAction } from "@/actions/client-portal";
+import { clientPortalLinkAction, revokeClientPortalAction } from "@/actions/client-portal";
 
 const COLORS = ["#1D66FF", "#17C86A", "#FFB800", "#FF3B30", "#7C5CFF", "#0EA5E9", "#EC4899", "#94A3B8"];
 
@@ -28,6 +28,11 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
     navigator.clipboard?.writeText(`${window.location.origin}/portal/${tok}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1500);
+  }
+
+  async function revokePortal(id: string) {
+    if (!confirm("Revogar o link do portal deste cliente? O link atual deixa de funcionar.")) return;
+    await revokeClientPortalAction(orgId, id).catch(() => {});
   }
 
   React.useEffect(() => {
@@ -145,6 +150,15 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
                     className="flex size-7 items-center justify-center rounded-md text-subtle opacity-0 transition-opacity hover:text-brand group-hover:opacity-100"
                   >
                     {copiedId === c.id ? <Check className="size-3.5 text-success" /> : <Link2 className="size-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => revokePortal(c.id)}
+                    aria-label={`Revogar link do portal de ${c.name}`}
+                    title="Revogar link do portal"
+                    className="flex size-7 items-center justify-center rounded-md text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+                  >
+                    <Link2Off className="size-3.5" />
                   </button>
                   <button
                     type="button"

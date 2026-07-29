@@ -52,6 +52,15 @@ export async function getOrCreateClientPortal(orgId: string, clientId: string): 
   return row!.token;
 }
 
+/** Revoga o link do portal de um cliente (deixa de resolver). */
+export async function revokeClientPortal(orgId: string, clientId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(clientPortals)
+    .set({ revoked: true })
+    .where(and(eq(clientPortals.orgId, orgId), eq(clientPortals.clientId, clientId)));
+}
+
 export async function resolvePortalToken(
   tok: string,
 ): Promise<{ orgId: string; clientId: string } | null> {

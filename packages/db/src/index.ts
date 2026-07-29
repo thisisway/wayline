@@ -318,6 +318,7 @@ export {
 } from "./queries/account";
 export {
   getOrCreateClientPortal,
+  revokeClientPortal,
   resolvePortalToken,
   taskBelongsToClient,
   getClientPortal,
