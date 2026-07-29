@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Link2, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ClientDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import {
@@ -10,6 +10,7 @@ import {
   listClientsAction,
   updateClientAction,
 } from "@/actions/clients";
+import { clientPortalLinkAction } from "@/actions/client-portal";
 
 const COLORS = ["#1D66FF", "#17C86A", "#FFB800", "#FF3B30", "#7C5CFF", "#0EA5E9", "#EC4899", "#94A3B8"];
 
@@ -19,6 +20,15 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
   const [color, setColor] = React.useState(COLORS[0]!);
   const [busy, setBusy] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+
+  async function copyPortal(id: string) {
+    const tok = await clientPortalLinkAction(orgId, id).catch(() => null);
+    if (!tok) return;
+    navigator.clipboard?.writeText(`${window.location.origin}/portal/${tok}`);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1500);
+  }
 
   React.useEffect(() => {
     listClientsAction(orgId).then(setClients);
@@ -127,6 +137,15 @@ export function ClientsModal({ orgId, onClose }: { orgId: string; onClose: () =>
                       {c.hourBudget}h/mês
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => copyPortal(c.id)}
+                    aria-label={`Copiar link do portal de ${c.name}`}
+                    title="Copiar link do portal do cliente"
+                    className="flex size-7 items-center justify-center rounded-md text-subtle opacity-0 transition-opacity hover:text-brand group-hover:opacity-100"
+                  >
+                    {copiedId === c.id ? <Check className="size-3.5 text-success" /> : <Link2 className="size-3.5" />}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setEditingId(c.id)}

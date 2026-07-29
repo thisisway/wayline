@@ -316,6 +316,15 @@ export {
   type UserDataExport,
   type DeleteAccountResult,
 } from "./queries/account";
+export {
+  getOrCreateClientPortal,
+  resolvePortalToken,
+  taskBelongsToClient,
+  getClientPortal,
+  type ClientPortal,
+  type PortalDeliverable,
+  type PortalDoc,
+} from "./queries/portal";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

@@ -610,3 +610,21 @@ export const formsRelations = relations(forms, ({ one, many }) => ({
 export const formResponsesRelations = relations(formResponses, ({ one }) => ({
   form: one(forms, { fields: [formResponses.formId], references: [forms.id] }),
 }));
+
+/**
+ * PORTAL DO CLIENTE: 1 link (token) por cliente que agrega entregas, propostas
+ * e contratos daquele cliente. SEM RLS (como board_shares): resolve o token sem
+ * sessão → org+cliente; a leitura do conteúdo roda depois em withOrg.
+ */
+export const clientPortals = pgTable(
+  "client_portals",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id").notNull(),
+    clientId: uuid("client_id").notNull().unique(),
+    token: text("token").notNull().unique(),
+    revoked: boolean("revoked").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("client_portals_token_idx").on(t.token)],
+);
