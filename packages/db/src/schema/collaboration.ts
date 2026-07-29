@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -37,6 +38,10 @@ export const comments = pgTable(
     assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
     parentId: uuid("parent_id"),
     body: text("body").notNull(),
+    /** Proofing: anotação ancorada a um anexo (imagem) num ponto x,y em %. */
+    attachmentId: uuid("attachment_id"),
+    pinX: real("pin_x"),
+    pinY: real("pin_y"),
     ...timestamps,
     ...softDelete,
   },

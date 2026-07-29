@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb, withOrg } from "../client";
-import { clientPortals, clients, contracts, organizations, proposals, tasks } from "../schema";
+import { attachments, clientPortals, clients, contracts, organizations, proposals, tasks } from "../schema";
 
 export interface PortalDeliverable {
   id: string;
@@ -11,6 +11,7 @@ export interface PortalDeliverable {
   statusColor: string;
   dueDate: Date | null;
   approvalStatus: string | null; // 'approved' | 'changes' | null
+  imageCount: number; // criativos (imagens) anexados — habilita o proofing
 }
 
 export interface PortalDoc {
@@ -115,6 +116,14 @@ export async function getClientPortal(tok: string): Promise<ClientPortal | null>
         orderBy: [desc(tasks.updatedAt)],
         limit: 200,
       });
+      const ids = rows.map((r) => r.id);
+      const imgs = ids.length
+        ? await tx.query.attachments.findMany({
+            where: and(inArray(attachments.taskId, ids), like(attachments.contentType, "image/%")),
+          })
+        : [];
+      const imgCount = new Map<string, number>();
+      for (const a of imgs) imgCount.set(a.taskId, (imgCount.get(a.taskId) ?? 0) + 1);
       return rows.map((t) => {
         const st = (t as typeof t & { status?: { name?: string; color?: string } }).status;
         const ls = (t as typeof t & { list?: { name?: string } }).list;
@@ -126,6 +135,7 @@ export async function getClientPortal(tok: string): Promise<ClientPortal | null>
           statusColor: st?.color ?? "#94A3B8",
           dueDate: t.dueDate,
           approvalStatus: t.approvalStatus,
+          imageCount: imgCount.get(t.id) ?? 0,
         };
       });
     });

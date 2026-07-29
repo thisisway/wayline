@@ -81,6 +81,7 @@ export async function getPublicComments(
       where: and(
         eq(comments.taskId, taskId),
         isNull(comments.authorId),
+        isNull(comments.attachmentId), // exclui anotações de proofing
         isNull(comments.deletedAt),
       ),
       orderBy: [asc(comments.createdAt)],
@@ -91,6 +92,74 @@ export async function getPublicComments(
       body: r.body,
       createdAt: r.createdAt,
     }));
+  });
+}
+
+export interface AnnotationDTO {
+  id: string;
+  name: string;
+  body: string;
+  x: number;
+  y: number;
+  createdAt: Date;
+}
+
+/** Anotações (pins) de um anexo/imagem — proofing. */
+export async function listAnnotations(
+  orgId: string,
+  attachmentId: string,
+): Promise<AnnotationDTO[]> {
+  return withOrg(orgId, async (tx) => {
+    const rows = await tx.query.comments.findMany({
+      where: and(eq(comments.attachmentId, attachmentId), isNull(comments.deletedAt)),
+      orderBy: [asc(comments.createdAt)],
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.guestName ?? "Cliente",
+      body: r.body,
+      x: r.pinX ?? 0,
+      y: r.pinY ?? 0,
+      createdAt: r.createdAt,
+    }));
+  });
+}
+
+/** Cria uma anotação (pin x,y em %) num anexo. Guest (portal) ou membro. */
+export async function addAnnotation(input: {
+  orgId: string;
+  taskId: string;
+  attachmentId: string;
+  x: number;
+  y: number;
+  body: string;
+  guestName?: string | null;
+  authorId?: string | null;
+}): Promise<AnnotationDTO> {
+  return withOrg(input.orgId, async (tx) => {
+    const name = (input.guestName ?? "").trim().slice(0, 60) || "Cliente";
+    const [created] = await tx
+      .insert(comments)
+      .values({
+        orgId: input.orgId,
+        taskId: input.taskId,
+        attachmentId: input.attachmentId,
+        authorId: input.authorId ?? null,
+        guestName: input.authorId ? null : name,
+        pinX: Math.max(0, Math.min(100, input.x)),
+        pinY: Math.max(0, Math.min(100, input.y)),
+        body: input.body.trim(),
+      })
+      .returning();
+    if (!created) throw new Error("falha ao anotar");
+    return {
+      id: created.id,
+      name: created.guestName ?? "Cliente",
+      body: created.body,
+      x: created.pinX ?? 0,
+      y: created.pinY ?? 0,
+      createdAt: created.createdAt,
+    };
   });
 }
 

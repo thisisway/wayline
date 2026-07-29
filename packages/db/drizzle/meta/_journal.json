@@ -330,6 +330,13 @@
       "when": 1785288684448,
       "tag": "0046_adorable_kinsey_walden",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1785331842053,
+      "tag": "0047_empty_scalphunter",
+      "breakpoints": true
     }
   ]
 }
