@@ -12,6 +12,7 @@ import {
   updateContractAction,
 } from "@/actions/contracts";
 import { clientOptionsAction } from "@/actions/proposals";
+import { toCents, toInput } from "@/lib/money";
 
 const STATUS: Record<string, { label: string; variant: "neutral" | "brand" | "success" | "danger" }> = {
   draft: { label: "Rascunho", variant: "neutral" },
@@ -22,12 +23,6 @@ const STATUS: Record<string, { label: string; variant: "neutral" | "brand" | "su
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const no = (n: number) => `CTR-${String(n).padStart(5, "0")}`;
-const toCents = (v: string) => {
-  const n = Number(v.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
-};
-/** cents → texto pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
-const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
 export function ContractsModal({
   orgId,

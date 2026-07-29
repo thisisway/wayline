@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Copy, FileText, Package, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type { PortfolioItemDTO, ProposalDTO, ProposalListItem, ServiceDTO } from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
+import { toCents, toInput } from "@/lib/money";
 import { listServicesAction } from "@/actions/services";
 import { listPortfolioAction } from "@/actions/portfolio";
 import { contractFromProposalAction } from "@/actions/contracts";
@@ -38,12 +39,6 @@ interface ItemRow {
   term: string;
 }
 
-function toCents(v: string): number {
-  const n = Number(v.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
-}
-/** cents → texto pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
-const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 const emptyItem = (): ItemRow => ({
   description: "",
   details: "",

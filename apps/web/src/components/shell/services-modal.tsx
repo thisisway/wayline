@@ -4,6 +4,7 @@ import * as React from "react";
 import { Package, Plus, Trash2, X } from "lucide-react";
 import type { ServiceDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
+import { toCents, toInput } from "@/lib/money";
 import {
   createServiceAction,
   deleteServiceAction,
@@ -13,13 +14,6 @@ import {
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-function toCents(v: string): number {
-  const n = Number(v.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
-}
-/** cents → texto no formato pt-BR ("1050" → "10,50") que `toCents` sabe reler. */
-const toInput = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 
 export function ServicesModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const [list, setList] = React.useState<ServiceDTO[] | null>(null);
