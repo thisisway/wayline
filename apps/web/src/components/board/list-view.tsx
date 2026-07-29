@@ -229,11 +229,11 @@ export function ListView({ data }: { data: BoardData }) {
             const open = !collapsed[group.key];
             return (
               <section key={group.key}>
-                <div className="mb-1 flex items-center gap-2">
+                <div className="mb-1.5 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setCollapsed((s) => ({ ...s, [group.key]: open }))}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1.5"
                   >
                     <ChevronDown
                       className={cn(
@@ -241,18 +241,25 @@ export function ListView({ data }: { data: BoardData }) {
                         !open && "-rotate-90",
                       )}
                     />
-                    <span className="size-2.5 rounded-full" style={{ backgroundColor: group.color }} />
-                    <span className="text-dense font-bold uppercase tracking-wide text-foreground">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 h-6 text-[11px] font-bold uppercase tracking-wide"
+                      style={{ backgroundColor: `${group.color}1f`, color: group.color }}
+                    >
                       {group.name}
-                    </span>
-                    <span className="text-[11px] font-semibold text-muted">
-                      {group.tasks.length}
+                      <span className="opacity-70">{group.tasks.length}</span>
                     </span>
                   </button>
                 </div>
 
                 {open && (
                   <div className="overflow-hidden rounded-lg border border-border">
+                    <div className="grid grid-cols-[1fr] items-center gap-2 border-b border-border bg-canvas px-3 h-8 text-[11px] font-semibold uppercase tracking-wide text-subtle md:grid-cols-[1fr_110px_104px_104px_52px]">
+                      <span>Nome</span>
+                      <span className="hidden md:block">Responsável</span>
+                      <span className="hidden md:block">Prazo</span>
+                      <span className="hidden md:block">Prioridade</span>
+                      <span className="hidden text-center md:block">Coment.</span>
+                    </div>
                     {group.tasks.map((dto, i) => (
                       <Row
                         key={dto.id}
@@ -416,77 +423,86 @@ function Row({
   return (
     <div
       className={cn(
-        "group flex w-full items-center gap-2 px-3 h-11 transition-colors",
+        "group grid grid-cols-[1fr] items-center gap-2 px-3 h-11 transition-colors md:grid-cols-[1fr_110px_104px_104px_52px]",
         selected ? "bg-brand/5" : "bg-surface hover:bg-elevated",
         !first && "border-t border-border",
       )}
     >
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggleSelect}
-        aria-label="Selecionar tarefa"
-        className={cn(
-          "size-4 shrink-0 cursor-pointer accent-brand transition-opacity",
-          !selected && "opacity-0 group-hover:opacity-100",
-        )}
-      />
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-      >
-        <span
-          className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: prio.color }}
-          title={prio.label}
-        />
-        <span className="min-w-0 flex-1 truncate text-ui font-medium text-foreground">
-          {card.title}
-        </span>
-
-      {card.client && (
-        <span className="hidden items-center gap-1.5 text-[11px] font-semibold text-muted sm:flex">
-          <span className="size-2 rounded-full" style={{ backgroundColor: card.client.color }} />
-          {card.client.name}
-        </span>
-      )}
-
-      {card.tags.length > 0 && (
-        <span
-          className="hidden shrink-0 rounded-pill px-2 h-5 items-center text-[11px] font-semibold md:inline-flex"
-          style={{ backgroundColor: `${card.tags[0]!.color}22`, color: card.tags[0]!.color }}
-        >
-          {card.tags[0]!.label}
-        </span>
-      )}
-
-      {card.dueLabel && (
-        <span
+      {/* Nome */}
+      <div className="flex min-w-0 items-center gap-2">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          aria-label="Selecionar tarefa"
           className={cn(
-            "hidden shrink-0 items-center gap-1 text-[11px] sm:flex",
-            card.overdue ? "font-semibold text-danger" : "text-muted",
+            "size-4 shrink-0 cursor-pointer accent-brand transition-opacity",
+            !selected && "opacity-0 group-hover:opacity-100",
           )}
-        >
-          <CalendarDays className="size-3.5" />
-          {card.dueLabel}
-        </span>
-      )}
-
-      {card.comments > 0 && (
-        <span className="hidden shrink-0 items-center gap-1 text-[11px] text-muted sm:flex">
-          <MessageSquare className="size-3.5" />
-          {card.comments}
-        </span>
-      )}
-
-        <AvatarGroup
-          people={card.assignees.map((a) => ({ name: a.name, src: a.avatarUrl }))}
-          size="xs"
-          max={3}
-          className="shrink-0"
         />
-      </button>
+        <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: prio.color }} title={prio.label} />
+          <span className="min-w-0 truncate text-ui font-medium text-foreground">{card.title}</span>
+          {card.client && (
+            <span className="hidden shrink-0 items-center gap-1.5 text-[11px] font-semibold text-muted lg:flex">
+              <span className="size-2 rounded-full" style={{ backgroundColor: card.client.color }} />
+              {card.client.name}
+            </span>
+          )}
+          {card.tags[0] && (
+            <span
+              className="hidden h-5 shrink-0 items-center rounded-pill px-2 text-[11px] font-semibold lg:inline-flex"
+              style={{ backgroundColor: `${card.tags[0].color}22`, color: card.tags[0].color }}
+            >
+              {card.tags[0].label}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Responsável */}
+      <div className="hidden items-center md:flex">
+        {card.assignees.length ? (
+          <AvatarGroup people={card.assignees.map((a) => ({ name: a.name, src: a.avatarUrl }))} size="xs" max={3} />
+        ) : (
+          <span className="text-[11px] text-subtle">—</span>
+        )}
+      </div>
+
+      {/* Prazo */}
+      <div className="hidden items-center md:flex">
+        {card.dueLabel ? (
+          <span className={cn("flex items-center gap-1 text-[11px]", card.overdue ? "font-semibold text-danger" : "text-muted")}>
+            <CalendarDays className="size-3.5" />
+            {card.dueLabel}
+          </span>
+        ) : (
+          <span className="text-[11px] text-subtle">—</span>
+        )}
+      </div>
+
+      {/* Prioridade */}
+      <div className="hidden items-center md:flex">
+        <span
+          className="inline-flex h-5 items-center gap-1 rounded-pill px-2 text-[11px] font-semibold"
+          style={{ backgroundColor: `${prio.color}22`, color: prio.color }}
+        >
+          <span className="size-1.5 rounded-full" style={{ backgroundColor: prio.color }} />
+          {prio.label}
+        </span>
+      </div>
+
+      {/* Comentários */}
+      <div className="hidden items-center justify-center md:flex">
+        {card.comments > 0 ? (
+          <span className="flex items-center gap-1 text-[11px] text-muted">
+            <MessageSquare className="size-3.5" />
+            {card.comments}
+          </span>
+        ) : (
+          <span className="text-[11px] text-subtle">·</span>
+        )}
+      </div>
     </div>
   );
 }

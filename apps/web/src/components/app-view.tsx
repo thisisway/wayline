@@ -64,6 +64,9 @@ import { supportAwaitingCountAction } from "@/actions/support";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
 
+/** Views que o usuário alterna nas abas (persistíveis como preferência). */
+const BOARD_VIEWS = new Set(["board", "list", "calendar", "gantt", "chat", "reports", "dashboard", "mindmap", "docs"]);
+
 export function AppView({
   data,
   orgs,
@@ -115,6 +118,25 @@ export function AppView({
 }) {
   const router = useRouter();
   const [view, setView] = React.useState("board");
+
+  // Preferência de visualização: abre na última view de board usada (por navegador).
+  React.useEffect(() => {
+    try {
+      const v = localStorage.getItem("wl_default_view");
+      if (v && BOARD_VIEWS.has(v)) setView(v);
+    } catch {
+      /* sem storage: mantém board */
+    }
+  }, []);
+  React.useEffect(() => {
+    if (BOARD_VIEWS.has(view)) {
+      try {
+        localStorage.setItem("wl_default_view", view);
+      } catch {
+        /* ignora */
+      }
+    }
+  }, [view]);
   const [myTasksOpen, setMyTasksOpen] = React.useState(false);
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const [assignedOpen, setAssignedOpen] = React.useState(false);
