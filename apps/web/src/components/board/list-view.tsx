@@ -12,6 +12,11 @@ import { collectCustomFieldOptions } from "@/lib/board-filter";
 import { bulkDeleteAction, bulkPriorityAction, bulkStatusAction } from "@/actions/board";
 import { pokeList } from "@/actions/live";
 
+/** Colunas alinhadas (Nome/Responsável/Data venc./Prioridade/Status/Coment.).
+ *  Mobile: só Nome; md+: todas. Usado no header e nas linhas (mesma grade). */
+const GRID =
+  "grid grid-cols-[1fr] items-center gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_112px_150px_56px]";
+
 /** "status" | "priority" | "assignee" | "client" | `cf:<nome do campo>` */
 type GroupBy = string;
 type SortBy = "default" | "due" | "priority" | "title";
@@ -190,9 +195,14 @@ export function ListView({ data }: { data: BoardData }) {
       : g.map((grp) => ({ ...grp, tasks: sortTasks(grp.tasks, sortBy) }));
   }, [data, activeGroupBy, sortBy]);
 
+  const statusById = React.useMemo(
+    () => new Map(data.columns.map((c) => [c.id, { name: c.name, color: c.color }])),
+    [data.columns],
+  );
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-      <div className="mx-auto max-w-4xl">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+      <div className="w-full">
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <span className="text-dense text-muted">Agrupar por</span>
@@ -253,11 +263,12 @@ export function ListView({ data }: { data: BoardData }) {
 
                 {open && (
                   <div className="overflow-hidden rounded-lg border border-border">
-                    <div className="grid grid-cols-[1fr] items-center gap-2 border-b border-border bg-canvas px-3 h-8 text-[11px] font-semibold uppercase tracking-wide text-subtle md:grid-cols-[1fr_110px_104px_104px_52px]">
+                    <div className={cn(GRID, "border-b border-border bg-canvas px-3 h-8 text-[11px] font-semibold uppercase tracking-wide text-subtle")}>
                       <span>Nome</span>
                       <span className="hidden md:block">Responsável</span>
-                      <span className="hidden md:block">Prazo</span>
+                      <span className="hidden md:block">Data de venc.</span>
                       <span className="hidden md:block">Prioridade</span>
+                      <span className="hidden md:block">Status</span>
                       <span className="hidden text-center md:block">Coment.</span>
                     </div>
                     {group.tasks.map((dto, i) => (
@@ -265,6 +276,7 @@ export function ListView({ data }: { data: BoardData }) {
                         key={dto.id}
                         dto={dto}
                         first={i === 0}
+                        status={dto.statusId ? statusById.get(dto.statusId) : undefined}
                         selected={selected.has(dto.id)}
                         onToggleSelect={() => toggleSelect(dto.id)}
                         onClick={() => editor.openEdit(dto)}
@@ -408,12 +420,14 @@ function BulkBar({
 function Row({
   dto,
   first,
+  status,
   selected,
   onToggleSelect,
   onClick,
 }: {
   dto: BoardTaskDTO;
   first: boolean;
+  status?: { name: string; color: string };
   selected: boolean;
   onToggleSelect: () => void;
   onClick: () => void;
@@ -423,7 +437,8 @@ function Row({
   return (
     <div
       className={cn(
-        "group grid grid-cols-[1fr] items-center gap-2 px-3 h-11 transition-colors md:grid-cols-[1fr_110px_104px_104px_52px]",
+        GRID,
+        "group px-3 h-11 transition-colors",
         selected ? "bg-brand/5" : "bg-surface hover:bg-elevated",
         !first && "border-t border-border",
       )}
@@ -455,6 +470,15 @@ function Row({
               style={{ backgroundColor: `${card.tags[0].color}22`, color: card.tags[0].color }}
             >
               {card.tags[0].label}
+            </span>
+          )}
+          {/* Mobile: status inline (colunas escondem no mobile) */}
+          {status && (
+            <span
+              className="ml-auto h-5 shrink-0 items-center rounded-pill px-2 text-[10px] font-bold uppercase md:hidden inline-flex"
+              style={{ backgroundColor: `${status.color}1f`, color: status.color }}
+            >
+              {status.name}
             </span>
           )}
         </button>
@@ -490,6 +514,21 @@ function Row({
           <span className="size-1.5 rounded-full" style={{ backgroundColor: prio.color }} />
           {prio.label}
         </span>
+      </div>
+
+      {/* Status */}
+      <div className="hidden min-w-0 items-center md:flex">
+        {status ? (
+          <span
+            className="inline-flex h-6 min-w-0 max-w-full items-center gap-1.5 rounded-md px-2 text-[11px] font-bold uppercase"
+            style={{ backgroundColor: `${status.color}1f`, color: status.color }}
+          >
+            <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
+            <span className="truncate">{status.name}</span>
+          </span>
+        ) : (
+          <span className="text-[11px] text-subtle">—</span>
+        )}
       </div>
 
       {/* Comentários */}
