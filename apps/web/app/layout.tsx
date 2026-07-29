@@ -6,6 +6,7 @@ import { THEME_COOKIE } from "@/lib/constants";
 import { hexToRgbTriple } from "@/lib/color";
 import { Providers } from "@/components/providers";
 import { CookieConsent } from "@/components/legal/cookie-consent";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,7 +42,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: name,
     description: "Sistema operacional de trabalho para agências.",
-    icons: { icon: [{ url: favicon }] },
+    icons: { icon: [{ url: favicon }], apple: [{ url: "/pwa-icon.svg" }] },
+    // App instalável (PWA): comportamento de app no iOS/Android.
+    appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
+    applicationName: name,
   };
 }
 
@@ -72,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body style={brandStyle}>
         <Providers>{children}</Providers>
         <CookieConsent />
+        <PwaRegister />
       </body>
     </html>
   );
