@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock } from "lucide-react";
 import type { PublicInvoice } from "@wayline/db";
+import { PrintButton } from "@/components/public/print-button";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,7 +24,10 @@ export function PublicInvoiceView({ invoice, brandName }: { invoice: PublicInvoi
   return (
     <div className="min-h-dvh bg-canvas px-4 py-10 text-foreground">
       <div className="mx-auto w-full max-w-xl">
-        <p className="mb-4 text-center text-dense font-semibold uppercase tracking-wide text-subtle">{brandName}</p>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-dense font-semibold uppercase tracking-wide text-subtle">{brandName}</p>
+          <PrintButton />
+        </div>
 
         <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
           <div className="h-2 bg-brand" />

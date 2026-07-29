@@ -10,7 +10,7 @@ import {
   MessageCircleWarning,
   type LucideIcon,
 } from "lucide-react";
-import { ImageIcon, MessageSquare, X } from "lucide-react";
+import { ImageIcon, MessageSquare, Wallet, X } from "lucide-react";
 import type { AnnotationDTO, ClientPortal, PublicCommentDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import {
@@ -36,6 +36,9 @@ const PROP_STATUS: Record<string, string> = {
 };
 const CTR_STATUS: Record<string, string> = {
   draft: "Rascunho", sent: "Enviado", signed: "Assinado", canceled: "Cancelado",
+};
+const INV_STATUS: Record<string, string> = {
+  draft: "Rascunho", sent: "Em aberto", paid: "Paga", canceled: "Cancelada",
 };
 
 export function ClientPortalView({
@@ -182,6 +185,23 @@ export function ClientPortalView({
                   title={c.title}
                   tag={CTR_STATUS[c.status] ?? c.status}
                   value={c.valueCents > 0 ? brl(c.valueCents) : undefined}
+                />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Faturas */}
+        {portal.invoices.length > 0 && (
+          <Section icon={Wallet} title="Faturas">
+            <div className="space-y-2">
+              {portal.invoices.map((iv) => (
+                <DocRow
+                  key={iv.id}
+                  href={`/fatura/${iv.token}`}
+                  title={iv.title}
+                  tag={INV_STATUS[iv.status] ?? iv.status}
+                  value={iv.valueCents > 0 ? brl(iv.valueCents) : undefined}
                 />
               ))}
             </div>

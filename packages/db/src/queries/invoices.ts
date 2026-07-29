@@ -26,6 +26,7 @@ export interface InvoiceDTO {
   status: string;
   clientId: string | null;
   paidAt: Date | null;
+  recurrence: string;
   token: string;
 }
 
@@ -75,8 +76,16 @@ function toDTO(iv: typeof invoices.$inferSelect): InvoiceDTO {
     status: iv.status,
     clientId: iv.clientId,
     paidAt: iv.paidAt,
+    recurrence: iv.recurrence,
     token: iv.token,
   };
+}
+
+/** dueDate (ou hoje) + 1 mês — próxima emissão da recorrência. */
+function plusMonth(from: Date): Date {
+  const d = new Date(from);
+  d.setMonth(d.getMonth() + 1);
+  return d;
 }
 
 export async function getInvoice(orgId: string, id: string): Promise<InvoiceDTO | null> {
@@ -143,6 +152,7 @@ export interface InvoicePatch {
   dueDate?: Date | null;
   clientId?: string | null;
   status?: string;
+  recurrence?: string;
 }
 
 export async function updateInvoice(orgId: string, id: string, patch: InvoicePatch): Promise<void> {
@@ -158,7 +168,57 @@ export async function updateInvoice(orgId: string, id: string, patch: InvoicePat
     // Marca/limpa a data de pagamento conforme o status.
     set.paidAt = patch.status === "paid" ? new Date() : null;
   }
+  if (patch.recurrence !== undefined) {
+    const monthly = patch.recurrence === "monthly";
+    set.recurrence = monthly ? "monthly" : "none";
+    // Agenda (ou cancela) a próxima emissão a partir do vencimento atual.
+    const base = patch.dueDate ?? undefined;
+    set.nextIssueAt = monthly ? plusMonth(base instanceof Date ? base : new Date()) : null;
+  }
   await db.update(invoices).set(set).where(and(eq(invoices.id, id), eq(invoices.orgId, orgId)));
+}
+
+/**
+ * Gera a próxima fatura das recorrências vencidas (cron). Cria a cópia como
+ * RASCUNHO (nada é enviado/cobrado automaticamente) e avança o next_issue_at.
+ * Resiliente; retorna quantas gerou.
+ */
+export async function generateRecurringInvoices(): Promise<number> {
+  try {
+    const db = getDb();
+    const now = new Date();
+    const dueRows = await db.query.invoices.findMany({
+      where: and(eq(invoices.recurrence, "monthly"), isNull(invoices.deletedAt)),
+      limit: 500,
+    });
+    let created = 0;
+    for (const src of dueRows) {
+      if (!src.nextIssueAt || src.nextIssueAt.getTime() > now.getTime()) continue;
+      const nextDue = src.nextIssueAt;
+      await db.insert(invoices).values({
+        orgId: src.orgId,
+        createdBy: src.createdBy,
+        token: token(),
+        number: await nextNumber(src.orgId),
+        title: src.title,
+        description: src.description,
+        clientId: src.clientId,
+        contractId: src.contractId,
+        amountCents: src.amountCents,
+        dueDate: nextDue,
+        status: "draft",
+        recurrence: "none", // a cópia não recorre; o modelo continua recorrendo
+      });
+      await db
+        .update(invoices)
+        .set({ nextIssueAt: plusMonth(nextDue), updatedAt: new Date() })
+        .where(eq(invoices.id, src.id));
+      created += 1;
+    }
+    return created;
+  } catch {
+    return 0;
+  }
 }
 
 export async function deleteInvoice(orgId: string, id: string): Promise<void> {

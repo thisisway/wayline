@@ -11,6 +11,7 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@wayline/ui";
 import { BrandLogo, hasBrandLogo } from "@/components/shell/brand-logo";
@@ -70,10 +71,12 @@ export function IconRail({
   onOpenMyTasks,
   onOpenBrain,
   onOpenComercial,
+  onOpenFinance,
   onOpenForms,
   onOpenSupport,
   onOpenSettings,
   showComercial = false,
+  showFinance = false,
   supportBadge = 0,
 }: {
   activeView: string;
@@ -87,10 +90,12 @@ export function IconRail({
   onOpenMyTasks: () => void;
   onOpenBrain: () => void;
   onOpenComercial: () => void;
+  onOpenFinance: () => void;
   onOpenForms: () => void;
   onOpenSupport: () => void;
   onOpenSettings: () => void;
   showComercial?: boolean;
+  showFinance?: boolean;
   supportBadge?: number;
 }) {
   return (
@@ -130,6 +135,14 @@ export function IconRail({
           label="Comercial"
           active={activeView === "comercial"}
           onClick={onOpenComercial}
+        />
+      )}
+      {showFinance && (
+        <RailButton
+          icon={Wallet}
+          label="Financeiro"
+          active={activeView === "finance"}
+          onClick={onOpenFinance}
         />
       )}
       <RailButton

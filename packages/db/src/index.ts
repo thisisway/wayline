@@ -337,6 +337,7 @@ export {
   updateInvoice,
   deleteInvoice,
   getInvoiceByToken,
+  generateRecurringInvoices,
   type InvoiceListItem,
   type InvoiceDTO,
   type PublicInvoice,

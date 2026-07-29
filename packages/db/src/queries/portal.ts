@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, like } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb, withOrg } from "../client";
-import { attachments, clientPortals, clients, contracts, organizations, proposals, tasks } from "../schema";
+import { attachments, clientPortals, clients, contracts, invoices, organizations, proposals, tasks } from "../schema";
 
 export interface PortalDeliverable {
   id: string;
@@ -30,6 +30,7 @@ export interface ClientPortal {
   deliverables: PortalDeliverable[];
   proposals: PortalDoc[];
   contracts: PortalDoc[];
+  invoices: PortalDoc[];
 }
 
 function token(): string {
@@ -157,6 +158,14 @@ export async function getClientPortal(tok: string): Promise<ClientPortal | null>
       ),
       orderBy: [desc(contracts.updatedAt)],
     });
+    const invs = await db.query.invoices.findMany({
+      where: and(
+        eq(invoices.orgId, orgId),
+        eq(invoices.clientId, clientId),
+        isNull(invoices.deletedAt),
+      ),
+      orderBy: [desc(invoices.updatedAt)],
+    });
 
     return {
       clientName: client.name,
@@ -178,6 +187,14 @@ export async function getClientPortal(tok: string): Promise<ClientPortal | null>
         status: x.status,
         token: x.token,
         valueCents: x.valueCents,
+      })),
+      invoices: invs.map((x) => ({
+        id: x.id,
+        number: x.number,
+        title: x.title,
+        status: x.status,
+        token: x.token,
+        valueCents: x.amountCents,
       })),
     };
   } catch {

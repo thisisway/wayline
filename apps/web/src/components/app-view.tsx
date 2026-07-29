@@ -34,6 +34,7 @@ import { CustomFieldsManager } from "@/components/board/custom-fields-manager";
 import { AutomationsManager } from "@/components/board/automations-manager";
 import { ShareModal } from "@/components/shell/share-modal";
 import { CommercialPage } from "@/components/shell/commercial-page";
+import { FinancePage } from "@/components/shell/finance-page";
 import { FormsPage } from "@/components/shell/forms-page";
 import { WelcomeChecklist, type OnboardStep } from "@/components/shell/welcome-checklist";
 import { CheckSquare, ClipboardList as ClipboardIcon, Briefcase as BriefcaseIcon, Settings as SettingsIcon } from "lucide-react";
@@ -163,6 +164,7 @@ export function AppView({
   const [contractsOpen, setContractsOpen] = React.useState(false);
   const [invoicesOpen, setInvoicesOpen] = React.useState(false);
   const salesEnabled = modules.includes("sales");
+  const financeEnabled = modules.includes("finance");
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const orgName = activeOrg?.name ?? "Workspace";
@@ -292,10 +294,12 @@ export function AppView({
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenBrain={() => setBrainOpen(true)}
         onOpenComercial={() => setView("comercial")}
+        onOpenFinance={() => setView("finance")}
         onOpenForms={() => setView("forms")}
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         showComercial={isAdmin}
+        showFinance={isAdmin && financeEnabled}
         supportBadge={supportAwaiting}
       />
       {sidebarOpen && (
@@ -454,7 +458,7 @@ export function AppView({
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
         />
-        {view !== "comercial" && view !== "forms" && (
+        {view !== "comercial" && view !== "finance" && view !== "forms" && (
           <ViewTabs
             value={view}
             onValueChange={setView}
@@ -485,8 +489,9 @@ export function AppView({
             onOpenServices={() => setServicesOpen(true)}
             onOpenPortfolio={() => setPortfolioOpen(true)}
             onOpenContracts={() => setContractsOpen(true)}
-            onOpenInvoices={() => setInvoicesOpen(true)}
           />
+        ) : view === "finance" ? (
+          <FinancePage onOpenInvoices={() => setInvoicesOpen(true)} />
         ) : view === "forms" ? (
           <FormsPage orgId={activeOrgId} isAdmin={isAdmin} />
         ) : view === "board" ? (

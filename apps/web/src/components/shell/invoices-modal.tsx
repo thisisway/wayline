@@ -42,6 +42,7 @@ export function InvoicesModal({ orgId, onClose }: { orgId: string; onClose: () =
   const [amount, setAmount] = React.useState("");
   const [dueDate, setDueDate] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [recurrence, setRecurrence] = React.useState("none");
   const [token, setToken] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -84,6 +85,7 @@ export function InvoicesModal({ orgId, onClose }: { orgId: string; onClose: () =
     setAmount(toInput(iv.amountCents));
     setDueDate(iv.dueDate ? new Date(iv.dueDate).toISOString().slice(0, 10) : "");
     setDescription(iv.description);
+    setRecurrence(iv.recurrence);
     setToken(iv.token);
   }
   async function open(id: string) {
@@ -113,6 +115,7 @@ export function InvoicesModal({ orgId, onClose }: { orgId: string; onClose: () =
       amountCents: toCents(amount),
       clientId: clientId || null,
       status: nextStatus,
+      recurrence,
       dueDateIso: dueDate ? new Date(dueDate).toISOString() : null,
     }).catch(() => {});
     setSaving(false);
@@ -258,6 +261,13 @@ export function InvoicesModal({ orgId, onClose }: { orgId: string; onClose: () =
                     <option value="sent">Em aberto</option>
                     <option value="paid">Paga</option>
                     <option value="canceled">Cancelada</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-dense font-medium text-muted">Recorrência</span>
+                  <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground">
+                    <option value="none">Única</option>
+                    <option value="monthly">Mensal</option>
                   </select>
                 </label>
               </div>

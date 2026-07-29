@@ -654,6 +654,9 @@ export const invoices = pgTable(
     dueDate: timestamp("due_date", { withTimezone: true }),
     status: text("status").notNull().default("draft"), // draft | sent | paid | canceled
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    /** Recorrência: 'none' | 'monthly'. next_issue_at = quando gerar a próxima. */
+    recurrence: text("recurrence").notNull().default("none"),
+    nextIssueAt: timestamp("next_issue_at", { withTimezone: true }),
     token: text("token").notNull().unique(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,

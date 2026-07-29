@@ -50,6 +50,7 @@ export interface InvoicePatchInput {
   dueDateIso?: string | null;
   clientId?: string | null;
   status?: string;
+  recurrence?: string;
 }
 
 export async function updateInvoiceAction(
@@ -66,6 +67,7 @@ export async function updateInvoiceAction(
     status: ["draft", "sent", "paid", "canceled"].includes(patch.status ?? "")
       ? patch.status
       : undefined,
+    recurrence: patch.recurrence === "monthly" ? "monthly" : patch.recurrence === "none" ? "none" : undefined,
   };
   if (patch.dueDateIso !== undefined) {
     clean.dueDate = patch.dueDateIso ? new Date(patch.dueDateIso) : null;

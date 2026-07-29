@@ -14,6 +14,11 @@ export const MODULES: ModuleDef[] = [
     name: "Comercial / Vendas",
     description: "Propostas comerciais para clientes (criar, enviar por link e receber o aceite).",
   },
+  {
+    id: "finance",
+    name: "Financeiro",
+    description: "Faturas, recebíveis, recorrência e link público de cobrança.",
+  },
 ];
 
 export function moduleEnabled(modules: string[] | null | undefined, id: string): boolean {
