@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   Package,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@wayline/ui";
@@ -31,6 +32,7 @@ export function CommercialPage({
   onOpenServices,
   onOpenPortfolio,
   onOpenContracts,
+  onOpenInvoices,
 }: {
   salesEnabled: boolean;
   onOpenOverview: () => void;
@@ -39,6 +41,7 @@ export function CommercialPage({
   onOpenServices: () => void;
   onOpenPortfolio: () => void;
   onOpenContracts: () => void;
+  onOpenInvoices: () => void;
 }) {
   const areas: Area[] = [
     {
@@ -92,6 +95,15 @@ export function CommercialPage({
       icon: FileSignature,
       color: "#F59E0B",
       onOpen: onOpenContracts,
+      salesOnly: true,
+    },
+    {
+      id: "invoices",
+      label: "Financeiro",
+      description: "Faturas, a receber, vencidas e recebíveis.",
+      icon: Wallet,
+      color: "#10B981",
+      onOpen: onOpenInvoices,
       salesOnly: true,
     },
   ];

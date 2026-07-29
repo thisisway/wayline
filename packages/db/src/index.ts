@@ -329,6 +329,19 @@ export {
   type PortalDeliverable,
   type PortalDoc,
 } from "./queries/portal";
+export {
+  listInvoices,
+  getInvoice,
+  createInvoice,
+  createInvoiceFromContract,
+  updateInvoice,
+  deleteInvoice,
+  getInvoiceByToken,
+  type InvoiceListItem,
+  type InvoiceDTO,
+  type PublicInvoice,
+  type InvoicePatch,
+} from "./queries/invoices";
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,

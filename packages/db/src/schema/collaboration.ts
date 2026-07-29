@@ -633,3 +633,36 @@ export const clientPortals = pgTable(
   },
   (t) => [index("client_portals_token_idx").on(t.token)],
 );
+
+/**
+ * FATURAS (financeiro). Sem RLS (token é o segredo p/ o link público; org_id
+ * filtrado no app), no mesmo padrão de contracts.
+ */
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    contractId: uuid("contract_id"),
+    number: integer("number").notNull().default(0),
+    title: text("title").notNull().default("Fatura"),
+    description: text("description").notNull().default(""),
+    amountCents: integer("amount_cents").notNull().default(0),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    status: text("status").notNull().default("draft"), // draft | sent | paid | canceled
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    token: text("token").notNull().unique(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [index("invoices_org_idx").on(t.orgId), index("invoices_token_idx").on(t.token)],
+);
+
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
+  organization: one(organizations, { fields: [invoices.orgId], references: [organizations.id] }),
+}));

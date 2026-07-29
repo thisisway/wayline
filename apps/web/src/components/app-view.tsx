@@ -43,6 +43,7 @@ import { ProposalsModal } from "@/components/shell/proposals-modal";
 import { ServicesModal } from "@/components/shell/services-modal";
 import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ContractsModal } from "@/components/shell/contracts-modal";
+import { InvoicesModal } from "@/components/shell/invoices-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
 import { SupportModal } from "@/components/shell/support-modal";
 import { PlansModal } from "@/components/shell/plans-modal";
@@ -160,6 +161,7 @@ export function AppView({
   const [servicesOpen, setServicesOpen] = React.useState(false);
   const [portfolioOpen, setPortfolioOpen] = React.useState(false);
   const [contractsOpen, setContractsOpen] = React.useState(false);
+  const [invoicesOpen, setInvoicesOpen] = React.useState(false);
   const salesEnabled = modules.includes("sales");
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
@@ -327,6 +329,9 @@ export function AppView({
       {contractsOpen && (
         <ContractsModal orgId={activeOrgId} onClose={() => setContractsOpen(false)} />
       )}
+      {invoicesOpen && (
+        <InvoicesModal orgId={activeOrgId} onClose={() => setInvoicesOpen(false)} />
+      )}
       {myTasksOpen && (
         <MyTasksDrawer myTasks={myTasks} onClose={() => setMyTasksOpen(false)} />
       )}
@@ -480,6 +485,7 @@ export function AppView({
             onOpenServices={() => setServicesOpen(true)}
             onOpenPortfolio={() => setPortfolioOpen(true)}
             onOpenContracts={() => setContractsOpen(true)}
+            onOpenInvoices={() => setInvoicesOpen(true)}
           />
         ) : view === "forms" ? (
           <FormsPage orgId={activeOrgId} isAdmin={isAdmin} />
