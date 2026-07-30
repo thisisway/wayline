@@ -109,6 +109,41 @@ export async function createOrg(userId: string, name: string): Promise<string> {
   return org.id;
 }
 
+export interface TemplateSeed {
+  listName: string;
+  columns: Array<{ name: string; kind: "open" | "active" | "done"; color: string }>;
+  tasks: Array<{ title: string; col: number; description?: string }>;
+}
+
+/** Cria uma Lista num space a partir de um template (colunas + tarefas). */
+export async function createListFromTemplate(
+  orgId: string,
+  spaceId: string,
+  seed: TemplateSeed,
+): Promise<string> {
+  return withOrg(orgId, async (tx) => {
+    const [list] = await tx
+      .insert(lists)
+      .values({ orgId, spaceId, name: seed.listName || "Projeto" })
+      .returning();
+    const cols = await tx
+      .insert(statuses)
+      .values(seed.columns.map((c, i) => ({ orgId, listId: list!.id, name: c.name, kind: c.kind, color: c.color, position: i })))
+      .returning();
+    const colId = (i: number) => cols[Math.max(0, Math.min(cols.length - 1, i))]?.id ?? cols[0]!.id;
+    // posição por coluna (para empilhar as tarefas)
+    const pos: Record<string, number> = {};
+    const rows = seed.tasks.map((t) => {
+      const sid = colId(t.col);
+      const p = pos[sid] ?? 0;
+      pos[sid] = p + 1;
+      return { orgId, listId: list!.id, statusId: sid, title: t.title, description: t.description ?? null, position: p };
+    });
+    if (rows.length) await tx.insert(tasks).values(rows);
+    return list!.id;
+  });
+}
+
 const SPACE_COLORS = ["#1D66FF", "#17C86A", "#FFB800", "#7C5CFF", "#0EA5E9", "#FF3B30"];
 
 /** Cria um space na org. */

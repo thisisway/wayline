@@ -32,7 +32,14 @@ export {
   type AuthUser,
   type UserOrg,
 } from "./queries/auth";
-export { createOrg, createSpace, createList, duplicateListStructure } from "./queries/orgs";
+export {
+  createOrg,
+  createSpace,
+  createList,
+  duplicateListStructure,
+  createListFromTemplate,
+  type TemplateSeed,
+} from "./queries/orgs";
 export {
   createStatus,
   renameStatus,

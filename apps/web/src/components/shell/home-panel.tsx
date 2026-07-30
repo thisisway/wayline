@@ -7,12 +7,14 @@ import {
   Inbox,
   ListChecks,
   MessageSquare,
+  LayoutTemplate,
   MoreHorizontal,
   PanelLeftClose,
   Plus,
   Reply,
   type LucideIcon,
 } from "lucide-react";
+import { TemplatesModal } from "@/components/shell/templates-modal";
 import type { NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
@@ -100,6 +102,7 @@ export function HomePanel({
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
   const [addingSpace, setAddingSpace] = React.useState(false);
   const [addingListIn, setAddingListIn] = React.useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = React.useState(false);
 
   function selectList(id: string) {
     if (id === activeListId) return;
@@ -178,14 +181,25 @@ export function HomePanel({
         <div className="flex items-center justify-between px-2.5 pb-1 pt-4">
           <span className="text-label uppercase text-subtle">Spaces</span>
           {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setAddingSpace(true)}
-              aria-label="Novo space"
-              className="flex size-5 items-center justify-center rounded text-subtle hover:bg-elevated hover:text-foreground"
-            >
-              <Plus className="size-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => setTemplatesOpen(true)}
+                aria-label="Criar de um template"
+                title="Criar projeto de um template"
+                className="flex size-5 items-center justify-center rounded text-subtle hover:bg-elevated hover:text-foreground"
+              >
+                <LayoutTemplate className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddingSpace(true)}
+                aria-label="Novo space"
+                className="flex size-5 items-center justify-center rounded text-subtle hover:bg-elevated hover:text-foreground"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
           )}
         </div>
 
@@ -292,6 +306,14 @@ export function HomePanel({
           />
         )}
       </div>
+
+      {templatesOpen && (
+        <TemplatesModal
+          orgId={activeOrgId}
+          spaces={nav.map((s) => ({ id: s.id, name: s.name }))}
+          onClose={() => setTemplatesOpen(false)}
+        />
+      )}
     </aside>
   );
 }

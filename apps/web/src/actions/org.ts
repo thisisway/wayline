@@ -6,6 +6,7 @@ import {
   addMemberByEmail,
   createInvitation,
   createList,
+  createListFromTemplate,
   createOrg,
   createSpace,
   duplicateListStructure,
@@ -22,6 +23,7 @@ import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
 import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
 import { effectivePlan } from "@/lib/plans";
+import { PROJECT_TEMPLATES } from "@/lib/project-templates";
 
 /** Já atingiu o limite de membros do plano efetivo (considera trial)? */
 async function atMemberLimit(orgId: string): Promise<boolean> {
@@ -82,6 +84,29 @@ export async function createListAction(
   const listId = await createList(orgId, spaceId, name);
   await setActiveListCookie(listId);
   revalidatePath("/app");
+}
+
+/** Cria um projeto a partir de um template (space existente ou novo) e o ativa. */
+export async function createProjectFromTemplateAction(
+  orgId: string,
+  templateId: string,
+  spaceId: string | null,
+  newSpaceName: string | null,
+): Promise<boolean> {
+  if (!(await assertRole(orgId, "admin"))) return false;
+  const tpl = PROJECT_TEMPLATES.find((t) => t.id === templateId);
+  if (!tpl) return false;
+  let sid = spaceId;
+  if (!sid && newSpaceName?.trim()) sid = await createSpace(orgId, newSpaceName.trim());
+  if (!sid) return false;
+  const listId = await createListFromTemplate(orgId, sid, {
+    listName: tpl.listName,
+    columns: tpl.columns,
+    tasks: tpl.tasks,
+  });
+  await setActiveListCookie(listId);
+  revalidatePath("/app");
+  return true;
 }
 
 /** Duplica a estrutura de uma lista (sem tarefas) e ativa a cópia. */
