@@ -1,0 +1,28 @@
+name: Wayline Cron
+
+# Dispara as rotas de cron do app (faturas recorrentes + auto-resolver suporte).
+# Requer 2 secrets no repo (Settings → Secrets and variables → Actions):
+#   CRON_BASE_URL  = https://app.wayline.com.br
+#   CRON_SECRET    = o mesmo valor da env CRON_SECRET no Easypanel
+on:
+  schedule:
+    - cron: "0 */6 * * *" # a cada 6 horas (horário em UTC)
+  workflow_dispatch: {} # permite rodar manualmente pelo botão "Run workflow"
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Faturas recorrentes
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.CRON_BASE_URL }}/api/cron/invoices?token=${{ secrets.CRON_SECRET }}")
+          echo "invoices -> HTTP $code"
+          test "$code" = "200"
+
+      - name: Auto-resolver suporte
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.CRON_BASE_URL }}/api/cron/support?token=${{ secrets.CRON_SECRET }}")
+          echo "support -> HTTP $code"
+          test "$code" = "200"
