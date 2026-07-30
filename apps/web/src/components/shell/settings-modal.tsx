@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, CreditCard, Keyboard, LogOut, Moon, Sparkles, Sun, Upload, X } from "lucide-react";
+import { Check, CreditCard, Keyboard, LogOut, Moon, Plug, Sparkles, Sun, Upload, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
@@ -67,15 +67,19 @@ export function SettingsModal({
   userName,
   orgName,
   orgId,
+  isAdmin,
   onOpenShortcuts,
   onOpenPlans,
+  onOpenIntegrations,
   onClose,
 }: {
   userName: string;
   orgName: string;
   orgId: string;
+  isAdmin: boolean;
   onOpenShortcuts: () => void;
   onOpenPlans: () => void;
+  onOpenIntegrations: () => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -424,6 +428,22 @@ export function SettingsModal({
               </button>
             )}
           </Section>
+
+          {/* Integrações (admin) */}
+          {isAdmin && (
+            <Section title="Integrações">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenIntegrations();
+                }}
+                className="flex w-full items-center gap-2 rounded-md border border-border bg-canvas px-3 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+              >
+                <Plug className="size-4" /> Webhooks, Slack & Discord
+              </button>
+            </Section>
+          )}
 
           {/* Atalhos */}
           <Section title="Ajuda">

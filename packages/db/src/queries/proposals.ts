@@ -4,6 +4,7 @@ import { getDb } from "../client";
 import { clients, proposalItems, proposals } from "../schema";
 import { getPortfolioByIds, type PortfolioItemDTO } from "./portfolio";
 import { notifyCommercial } from "./notifications";
+import { emitEvent } from "./integrations";
 
 export interface SchedulePhase {
   label: string;
@@ -315,6 +316,7 @@ export async function decideProposal(
     byName,
     p.createdBy,
   );
+  if (decision === "accepted") void emitEvent(p.orgId, "proposal.accepted", { title: p.title, by: byName });
   return true;
 }
 

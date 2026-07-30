@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { withOrg } from "../client";
 import { statuses, tasks } from "../schema";
+import { emitEvent } from "./integrations";
 
 export interface StatusDTO {
   id: string;
@@ -67,6 +68,10 @@ export async function syncTaskCompleted(
       .update(tasks)
       .set({ completed: status.kind === "done", updatedAt: new Date() })
       .where(eq(tasks.id, taskId));
+    if (status.kind === "done") {
+      const task = await tx.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
+      if (task) void emitEvent(orgId, "task.completed", { title: task.title, id: taskId });
+    }
   });
 }
 

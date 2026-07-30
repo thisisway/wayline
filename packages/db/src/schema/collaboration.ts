@@ -718,3 +718,32 @@ export const projectTemplates = pgTable(
   },
   (t) => [index("project_templates_org_idx").on(t.orgId)],
 );
+
+/**
+ * Integrações de saída por org: webhook genérico, Slack ou Discord.
+ * Um evento (task.completed, proposal.accepted, …) dispara um POST no `url`.
+ * Sem RLS (filtramos por org na app); guarda o `secret` de assinatura HMAC.
+ */
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** 'webhook' | 'slack' | 'discord' */
+    kind: text("kind").notNull().default("webhook"),
+    name: text("name").notNull().default("Integração"),
+    url: text("url").notNull(),
+    /** Segredo p/ assinar o corpo (X-Wayline-Signature) — só webhook genérico. */
+    secret: text("secret").notNull().default(""),
+    /** Lista de eventos assinados, ex.: ["invoice.paid","proposal.accepted"] */
+    events: jsonb("events").$type<string[]>().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    /** Resultado da última entrega ('200', 'error: …') — só p/ diagnóstico. */
+    lastStatus: text("last_status"),
+    lastFiredAt: timestamp("last_fired_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [index("integrations_org_idx").on(t.orgId)],
+);

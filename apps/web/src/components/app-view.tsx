@@ -45,6 +45,7 @@ import { ServicesModal } from "@/components/shell/services-modal";
 import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ContractsModal } from "@/components/shell/contracts-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
+import { IntegrationsModal } from "@/components/shell/integrations-modal";
 import { SupportModal } from "@/components/shell/support-modal";
 import { PlansModal } from "@/components/shell/plans-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
@@ -149,6 +150,7 @@ export function AppView({
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [brainOpen, setBrainOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [integrationsOpen, setIntegrationsOpen] = React.useState(false);
   const [supportOpen, setSupportOpen] = React.useState(false);
   const [supportInitialTicket, setSupportInitialTicket] = React.useState<string | null>(null);
   const [supportAwaiting, setSupportAwaiting] = React.useState(0);
@@ -364,10 +366,15 @@ export function AppView({
           userName={userName}
           orgName={orgName}
           orgId={activeOrgId}
+          isAdmin={isAdmin}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenPlans={() => setPlansOpen(true)}
+          onOpenIntegrations={() => setIntegrationsOpen(true)}
           onClose={() => setSettingsOpen(false)}
         />
+      )}
+      {integrationsOpen && (
+        <IntegrationsModal orgId={activeOrgId} onClose={() => setIntegrationsOpen(false)} />
       )}
       {plansOpen && (
         <PlansModal

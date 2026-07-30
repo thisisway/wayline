@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb } from "../client";
 import { contracts, proposals } from "../schema";
 import { notifyCommercial } from "./notifications";
+import { emitEvent } from "./integrations";
 
 export interface ContractListItem {
   id: string;
@@ -226,5 +227,6 @@ export async function signContract(tok: string, name: string, doc: string): Prom
     })
     .where(eq(contracts.id, c.id));
   await notifyCommercial(c.orgId, "contract_signed", c.title, name, c.createdBy);
+  void emitEvent(c.orgId, "contract.signed", { title: c.title, by: name });
   return true;
 }

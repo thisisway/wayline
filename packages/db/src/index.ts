@@ -48,6 +48,19 @@ export {
   type OrgTemplateItem,
 } from "./queries/templates";
 export {
+  listIntegrations,
+  createIntegration,
+  updateIntegration,
+  deleteIntegration,
+  emitEvent,
+  testIntegration,
+  INTEGRATION_EVENTS,
+  type IntegrationDTO,
+  type IntegrationInput,
+  type IntegrationKind,
+  type IntegrationEvent,
+} from "./queries/integrations";
+export {
   createStatus,
   renameStatus,
   setStatusColor,

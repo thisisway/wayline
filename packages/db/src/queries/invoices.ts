@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb } from "../client";
 import { contracts, invoices } from "../schema";
+import { emitEvent } from "./integrations";
 
 export interface InvoiceListItem {
   id: string;
@@ -176,6 +177,12 @@ export async function updateInvoice(orgId: string, id: string, patch: InvoicePat
     set.nextIssueAt = monthly ? plusMonth(base instanceof Date ? base : new Date()) : null;
   }
   await db.update(invoices).set(set).where(and(eq(invoices.id, id), eq(invoices.orgId, orgId)));
+  if (patch.status === "paid") {
+    const inv = await db.query.invoices.findFirst({
+      where: and(eq(invoices.id, id), eq(invoices.orgId, orgId)),
+    });
+    if (inv) void emitEvent(orgId, "invoice.paid", { title: inv.title, amountCents: inv.amountCents });
+  }
 }
 
 /**
