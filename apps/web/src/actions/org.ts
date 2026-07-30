@@ -9,7 +9,12 @@ import {
   createListFromTemplate,
   createOrg,
   createSpace,
+  deleteOrgTemplate,
   duplicateListStructure,
+  getOrgTemplateSeed,
+  listOrgTemplates,
+  saveListAsTemplate,
+  type OrgTemplateItem,
   getOrgBilling,
   getUserOrgs,
   getWorkspaceMembers,
@@ -20,7 +25,7 @@ import {
 } from "@wayline/db";
 import { auth } from "@/auth";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
-import { assertMember, assertRole, getSessionUser } from "@/lib/authz";
+import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
 import { effectivePlan } from "@/lib/plans";
 import { PROJECT_TEMPLATES } from "@/lib/project-templates";
@@ -94,19 +99,42 @@ export async function createProjectFromTemplateAction(
   newSpaceName: string | null,
 ): Promise<boolean> {
   if (!(await assertRole(orgId, "admin"))) return false;
-  const tpl = PROJECT_TEMPLATES.find((t) => t.id === templateId);
-  if (!tpl) return false;
+  // Built-in (id conhecido) ou template salvo da org (uuid).
+  const builtin = PROJECT_TEMPLATES.find((t) => t.id === templateId);
+  const seed = builtin
+    ? { listName: builtin.listName, columns: builtin.columns, tasks: builtin.tasks }
+    : await getOrgTemplateSeed(orgId, templateId);
+  if (!seed) return false;
   let sid = spaceId;
   if (!sid && newSpaceName?.trim()) sid = await createSpace(orgId, newSpaceName.trim());
   if (!sid) return false;
-  const listId = await createListFromTemplate(orgId, sid, {
-    listName: tpl.listName,
-    columns: tpl.columns,
-    tasks: tpl.tasks,
-  });
+  const listId = await createListFromTemplate(orgId, sid, seed);
   await setActiveListCookie(listId);
   revalidatePath("/app");
   return true;
+}
+
+/** Salva a estrutura de uma lista como template reutilizável da org. */
+export async function saveBoardAsTemplateAction(
+  orgId: string,
+  listId: string,
+  name: string,
+  description = "",
+): Promise<boolean> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return false;
+  const uid = await getSessionUserId();
+  const id = await saveListAsTemplate(orgId, listId, name, description, uid);
+  return id !== null;
+}
+
+export async function listOrgTemplatesAction(orgId: string): Promise<OrgTemplateItem[]> {
+  if (!(await assertMember(orgId))) return [];
+  return listOrgTemplates(orgId);
+}
+
+export async function deleteOrgTemplateAction(orgId: string, id: string): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await deleteOrgTemplate(orgId, id);
 }
 
 /** Duplica a estrutura de uma lista (sem tarefas) e ativa a cópia. */

@@ -311,6 +311,8 @@ export function HomePanel({
         <TemplatesModal
           orgId={activeOrgId}
           spaces={nav.map((s) => ({ id: s.id, name: s.name }))}
+          activeListId={activeListId}
+          isAdmin={isAdmin}
           onClose={() => setTemplatesOpen(false)}
         />
       )}

@@ -41,6 +41,13 @@ export {
   type TemplateSeed,
 } from "./queries/orgs";
 export {
+  saveListAsTemplate,
+  listOrgTemplates,
+  getOrgTemplateSeed,
+  deleteOrgTemplate,
+  type OrgTemplateItem,
+} from "./queries/templates";
+export {
   createStatus,
   renameStatus,
   setStatusColor,

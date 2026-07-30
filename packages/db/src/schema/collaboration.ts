@@ -699,3 +699,22 @@ export const expenses = pgTable(
 export const expensesRelations = relations(expenses, ({ one }) => ({
   client: one(clients, { fields: [expenses.clientId], references: [clients.id] }),
 }));
+
+/** Templates de projeto salvos pela org (estrutura em jsonb). Sem RLS. */
+export const projectTemplates = pgTable(
+  "project_templates",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default("Template"),
+    description: text("description").notNull().default(""),
+    /** { listName, columns:[{name,kind,color}], tasks:[{title,col,description?}] } */
+    seed: jsonb("seed").notNull().default(sql`'{}'::jsonb`),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("project_templates_org_idx").on(t.orgId)],
+);
