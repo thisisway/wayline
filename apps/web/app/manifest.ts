@@ -6,22 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   let name = "Wayline";
-  let icon = "/pwa-icon.svg";
-  let type: string | undefined = "image/svg+xml";
-
   try {
     const p = await getPlatformSettings();
     if (p.name?.trim()) name = p.name.trim();
-    // Ícone custom (data URL) tem prioridade; detecta o mime pelo prefixo.
-    if (p.iconUrl) {
-      icon = p.iconUrl;
-      const m = /^data:(image\/[a-z+]+)/i.exec(p.iconUrl);
-      type = m?.[1] ?? undefined;
-    }
   } catch {
     /* mantém o padrão */
   }
 
+  // PNGs 192/512 são obrigatórios para o Chrome/Edge oferecerem "Instalar".
+  // (Ícone white-label vira favicon; para o app instalável usamos os PNGs.)
   return {
     name,
     short_name: name,
@@ -33,8 +26,9 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     theme_color: "#0B1023",
     lang: "pt-BR",
     icons: [
-      { src: icon, sizes: "any", ...(type ? { type } : {}), purpose: "any" },
-      { src: icon, sizes: "any", ...(type ? { type } : {}), purpose: "maskable" },
+      { src: "/pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

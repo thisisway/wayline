@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: name,
     description: "Sistema operacional de trabalho para agências.",
-    icons: { icon: [{ url: favicon }], apple: [{ url: "/pwa-icon.svg" }] },
+    icons: { icon: [{ url: favicon }], apple: [{ url: "/pwa-192.png" }] },
     // App instalável (PWA): comportamento de app no iOS/Android.
     appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
     applicationName: name,
