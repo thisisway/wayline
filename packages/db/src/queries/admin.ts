@@ -19,7 +19,19 @@ export interface PlatformBranding {
 export async function getPlatformSettings(): Promise<PlatformBranding> {
   try {
     const db = getDb();
-    const row = await db.query.platformSettings.findFirst();
+    // Seleciona SÓ as colunas de marca — assim uma coluna nova ainda não
+    // migrada (ex.: support_whatsapp_url) NÃO derruba a leitura da marca.
+    const [row] = await db
+      .select({
+        platformName: platformSettings.platformName,
+        logoUrl: platformSettings.logoUrl,
+        logoUrlDark: platformSettings.logoUrlDark,
+        iconUrl: platformSettings.iconUrl,
+        faviconUrl: platformSettings.faviconUrl,
+        brandColor: platformSettings.brandColor,
+      })
+      .from(platformSettings)
+      .limit(1);
     return {
       name: row?.platformName ?? null,
       logoUrl: row?.logoUrl ?? null,
@@ -50,7 +62,10 @@ export async function getBrandName(): Promise<string> {
 export async function getPlatformModules(): Promise<string[]> {
   try {
     const db = getDb();
-    const row = await db.query.platformSettings.findFirst();
+    const [row] = await db
+      .select({ modules: platformSettings.modules })
+      .from(platformSettings)
+      .limit(1);
     return row?.modules ?? [];
   } catch {
     return [];
