@@ -22,6 +22,7 @@ export {
   type NavSpace,
   type NavFolder,
   type NavList,
+  type NavDoc,
 } from "./queries/board";
 export {
   getUserByEmail,

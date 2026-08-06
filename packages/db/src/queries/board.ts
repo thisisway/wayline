@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
 import {
   attachments,
@@ -8,6 +8,7 @@ import {
   customFieldValues,
   folders,
   lists,
+  pages,
   organizations,
   spaces,
   statuses,
@@ -474,20 +475,27 @@ export interface NavList {
   id: string;
   name: string;
 }
+export interface NavDoc {
+  id: string;
+  title: string;
+}
 export interface NavFolder {
   id: string;
   name: string;
   lists: NavList[];
+  docs: NavDoc[];
 }
 export interface NavSpace {
   id: string;
   name: string;
   color: string;
   icon: string | null;
-  /** Pastas do space, cada uma com suas listas. */
+  /** Pastas do space, cada uma com suas listas/documentos. */
   folders: NavFolder[];
   /** Listas soltas (sem pasta) do space. */
   lists: NavList[];
+  /** Documentos soltos (sem pasta) do space. */
+  docs: NavDoc[];
 }
 
 /**
@@ -513,10 +521,23 @@ export async function getWorkspaceNav(
       where: isNull(folders.deletedAt),
       orderBy: [asc(folders.createdAt)],
     });
+    // Documentos ancorados num space (top-level, compartilhados). Guests não veem docs.
+    const ds = allowed
+      ? []
+      : await tx.query.pages.findMany({
+          where: and(
+            isNull(pages.deletedAt),
+            isNotNull(pages.spaceId),
+            isNull(pages.parentId),
+            isNull(pages.ownerId),
+          ),
+          orderBy: [asc(pages.position), asc(pages.createdAt)],
+        });
     const nav = sp.map((s) => {
       const visible = (l: (typeof ls)[number]) =>
         l.spaceId === s.id && (!allowed || allowed.has(l.id));
       const spaceLists = ls.filter(visible);
+      const spaceDocs = ds.filter((d) => d.spaceId === s.id);
       const navFolders = fs
         .filter((f) => f.spaceId === s.id)
         .map((f) => ({
@@ -525,6 +546,9 @@ export async function getWorkspaceNav(
           lists: spaceLists
             .filter((l) => l.folderId === f.id)
             .map((l) => ({ id: l.id, name: l.name })),
+          docs: spaceDocs
+            .filter((d) => d.folderId === f.id)
+            .map((d) => ({ id: d.id, title: d.title })),
         }))
         // Guest: esconde pastas vazias.
         .filter((f) => !allowed || f.lists.length > 0);
@@ -535,8 +559,11 @@ export async function getWorkspaceNav(
         icon: s.icon,
         folders: navFolders,
         lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name })),
+        docs: spaceDocs.filter((d) => !d.folderId).map((d) => ({ id: d.id, title: d.title })),
       };
     });
-    return allowed ? nav.filter((s) => s.lists.length > 0 || s.folders.length > 0) : nav;
+    return allowed
+      ? nav.filter((s) => s.lists.length > 0 || s.folders.length > 0)
+      : nav;
   });
 }

@@ -29,13 +29,37 @@ export async function getPageAction(orgId: string, pageId: string): Promise<Page
 
 export async function createPageAction(
   orgId: string,
-  opts: { parentId?: string | null; personal?: boolean; title?: string },
+  opts: {
+    parentId?: string | null;
+    personal?: boolean;
+    title?: string;
+    spaceId?: string | null;
+    folderId?: string | null;
+  },
 ): Promise<PageNode | null> {
   const uid = await getSessionUserId();
   if (!uid || !(await assertMember(orgId))) return null;
   const page = await createPage(orgId, uid, opts);
   revalidatePath("/app");
   return page;
+}
+
+/** Cria um documento ancorado num space/pasta (compartilhado) e retorna o id. */
+export async function createSpaceDocAction(
+  orgId: string,
+  spaceId: string,
+  folderId: string | null = null,
+): Promise<string | null> {
+  const uid = await getSessionUserId();
+  if (!uid || !(await assertMember(orgId))) return null;
+  const page = await createPage(orgId, uid, {
+    spaceId,
+    folderId,
+    personal: false,
+    title: "Documento",
+  });
+  revalidatePath("/app");
+  return page.id;
 }
 
 export async function renamePageAction(

@@ -41,10 +41,13 @@ type SaveState = "idle" | "saving" | "saved";
 export function DocsView({
   orgId,
   convertStatusId,
+  initialPageId,
 }: {
   orgId: string;
   /** Primeira coluna da lista ativa — destino ao "converter em tarefa". */
   convertStatusId?: string;
+  /** Documento a abrir de imediato (ex.: clicado na árvore do space). */
+  initialPageId?: string | null;
 }) {
   const [tree, setTree] = React.useState<PageNode[] | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -68,6 +71,14 @@ export function DocsView({
   React.useEffect(() => {
     reload();
   }, [reload]);
+
+  // Abre o documento pedido pela árvore do space (recarrega p/ incluí-lo).
+  React.useEffect(() => {
+    if (initialPageId) {
+      setSelectedId(initialPageId);
+      reload();
+    }
+  }, [initialPageId, reload]);
 
   const childrenOf = React.useMemo(() => {
     const map = new Map<string | null, PageNode[]>();

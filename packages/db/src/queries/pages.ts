@@ -86,7 +86,13 @@ export async function getPage(
 export async function createPage(
   orgId: string,
   userId: string,
-  opts: { parentId?: string | null; personal?: boolean; title?: string },
+  opts: {
+    parentId?: string | null;
+    personal?: boolean;
+    title?: string;
+    spaceId?: string | null;
+    folderId?: string | null;
+  },
 ): Promise<PageNode> {
   return withOrg(orgId, async (tx) => {
     const [row] = await tx
@@ -95,6 +101,8 @@ export async function createPage(
         orgId,
         parentId: opts.parentId ?? null,
         ownerId: opts.personal ? userId : null,
+        spaceId: opts.spaceId ?? null,
+        folderId: opts.folderId ?? null,
         title: opts.title?.trim() || "Sem título",
       })
       .returning();

@@ -310,6 +310,9 @@ export const pages = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     parentId: uuid("parent_id"),
     ownerId: uuid("owner_id").references(() => users.id, { onDelete: "cascade" }),
+    /** Ancoragem opcional na árvore do space (documento do ClickUp). */
+    spaceId: uuid("space_id"),
+    folderId: uuid("folder_id"),
     title: text("title").notNull().default("Sem título"),
     content: text("content").notNull().default(""),
     icon: text("icon"),
@@ -321,6 +324,7 @@ export const pages = pgTable(
     index("pages_org_idx").on(t.orgId),
     index("pages_parent_idx").on(t.parentId),
     index("pages_owner_idx").on(t.ownerId),
+    index("pages_space_idx").on(t.spaceId),
   ],
 );
 

@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ChevronDown,
   Copy,
+  FileText,
   Folder,
   FolderPlus,
   Inbox,
@@ -18,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
-import type { NavFolder, NavList, NavSpace } from "@wayline/db";
+import type { NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
   createFolderAction,
@@ -28,6 +29,7 @@ import {
   duplicateListAction,
   switchList,
 } from "@/actions/org";
+import { createSpaceDocAction } from "@/actions/pages";
 import { homeItems } from "@/mock/data";
 import type { HomeItem } from "@/mock/types";
 
@@ -86,6 +88,7 @@ export function HomePanel({
   onOpenInbox,
   onOpenAssigned,
   onOpenReplies,
+  onOpenDoc,
   isAdmin,
   onCollapse,
 }: {
@@ -100,6 +103,7 @@ export function HomePanel({
   onOpenInbox: () => void;
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
+  onOpenDoc?: (pageId: string) => void;
   isAdmin: boolean;
   onCollapse?: () => void;
 }) {
@@ -131,8 +135,29 @@ export function HomePanel({
   function removeFolder(folderId: string) {
     startTransition(() => void deleteFolderAction(activeOrgId, folderId));
   }
+  async function addDoc(spaceId: string, folderId: string | null = null) {
+    const id = await createSpaceDocAction(activeOrgId, spaceId, folderId);
+    if (id) onOpenDoc?.(id);
+  }
   function duplicateList(listId: string) {
     startTransition(() => void duplicateListAction(activeOrgId, listId));
+  }
+
+  /** Linha de um documento do space (abre no editor de docs). */
+  function DocRow({ doc, indent }: { doc: NavDoc; indent: string }) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenDoc?.(doc.id)}
+        className={cn(
+          "group flex h-8 w-full items-center gap-1.5 rounded-md pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground",
+          indent,
+        )}
+      >
+        <FileText className="size-3.5 shrink-0 text-subtle" />
+        <span className="min-w-0 flex-1 truncate text-left">{doc.title}</span>
+      </button>
+    );
   }
 
   /** Linha de uma lista (usada solta no space e dentro de pastas). */
@@ -193,6 +218,18 @@ export function HomePanel({
                 type="button"
                 onClick={() => {
                   setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                  void addDoc(spaceId, folder.id);
+                }}
+                aria-label={`Novo documento em ${folder.name}`}
+                title="Novo documento na pasta"
+                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              >
+                <FileText className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapsed((s) => ({ ...s, [folder.id]: false }));
                   setAddingListInFolder(folder.id);
                 }}
                 aria-label={`Nova lista em ${folder.name}`}
@@ -218,6 +255,9 @@ export function HomePanel({
             {folder.lists.map((list) => (
               <ListRow key={list.id} list={list} indent="pl-12" />
             ))}
+            {folder.docs.map((doc) => (
+              <DocRow key={doc.id} doc={doc} indent="pl-12" />
+            ))}
             {addingListInFolder === folder.id && (
               <div className="pl-12 pr-2 py-0.5">
                 <InlineAdd
@@ -227,9 +267,11 @@ export function HomePanel({
                 />
               </div>
             )}
-            {folder.lists.length === 0 && addingListInFolder !== folder.id && (
-              <p className="pl-12 py-1 text-[12px] text-subtle">Pasta vazia</p>
-            )}
+            {folder.lists.length === 0 &&
+              folder.docs.length === 0 &&
+              addingListInFolder !== folder.id && (
+                <p className="pl-12 py-1 text-[12px] text-subtle">Pasta vazia</p>
+              )}
           </>
         )}
       </div>
@@ -353,6 +395,18 @@ export function HomePanel({
                       type="button"
                       onClick={() => {
                         setCollapsed((s) => ({ ...s, [space.id]: false }));
+                        void addDoc(space.id);
+                      }}
+                      aria-label={`Novo documento em ${space.name}`}
+                      title="Novo documento"
+                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    >
+                      <FileText className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCollapsed((s) => ({ ...s, [space.id]: false }));
                         setAddingFolderIn(space.id);
                       }}
                       aria-label={`Nova pasta em ${space.name}`}
@@ -393,6 +447,9 @@ export function HomePanel({
                   {space.lists.map((list) => (
                     <ListRow key={list.id} list={list} indent="pl-8" />
                   ))}
+                  {space.docs.map((doc) => (
+                    <DocRow key={doc.id} doc={doc} indent="pl-8" />
+                  ))}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent
@@ -403,6 +460,7 @@ export function HomePanel({
                   )}
                   {space.folders.length === 0 &&
                     space.lists.length === 0 &&
+                    space.docs.length === 0 &&
                     addingListIn !== space.id &&
                     addingFolderIn !== space.id && (
                       <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>

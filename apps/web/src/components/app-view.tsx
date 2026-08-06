@@ -120,6 +120,7 @@ export function AppView({
 }) {
   const router = useRouter();
   const [view, setView] = React.useState("board");
+  const [docId, setDocId] = React.useState<string | null>(null);
 
   // Preferência de visualização: abre na última view de board usada (por navegador).
   React.useEffect(() => {
@@ -314,6 +315,10 @@ export function AppView({
           onOpenInbox={() => setInboxOpen(true)}
           onOpenAssigned={() => setAssignedOpen(true)}
           onOpenReplies={() => setRepliesOpen(true)}
+          onOpenDoc={(pageId) => {
+            setDocId(pageId);
+            setView("docs");
+          }}
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
         />
@@ -565,7 +570,7 @@ export function AppView({
             />
           )
         ) : view === "docs" ? (
-          <DocsView orgId={activeOrgId} convertStatusId={data?.columns[0]?.id} />
+          <DocsView orgId={activeOrgId} convertStatusId={data?.columns[0]?.id} initialPageId={docId} />
         ) : view === "reports" ? (
           <ReportsView orgId={activeOrgId} />
         ) : view === "dashboard" ? (

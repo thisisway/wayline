@@ -379,6 +379,13 @@
       "when": 1785975956824,
       "tag": "0053_wealthy_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1786021834725,
+      "tag": "0054_exotic_marauders",
+      "breakpoints": true
     }
   ]
 }
