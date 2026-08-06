@@ -2,11 +2,13 @@
 
 import {
   AlertTriangle,
+  AlignLeft,
   Ban,
   CalendarDays,
   Check,
   CheckSquare,
   Clock,
+  Flag,
   MessageSquare,
   Paperclip,
   Repeat,
@@ -49,25 +51,13 @@ export function TaskCard({ card }: { card: TaskCardType }) {
         </div>
       )}
 
-      {/* Cliente + prioridade */}
-      <div className="flex items-center justify-between">
-        {card.client ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted">
-            <span className="size-2 rounded-full" style={{ backgroundColor: card.client.color }} />
-            {card.client.name}
-          </span>
-        ) : (
-          <span />
-        )}
-        <span
-          className="inline-flex items-center gap-1 text-[11px] font-semibold"
-          style={{ color: prio.color }}
-          title={`Prioridade: ${prio.label}`}
-        >
-          <span className="size-1.5 rounded-full" style={{ backgroundColor: prio.color }} />
-          {prio.label}
+      {/* Cliente */}
+      {card.client && (
+        <span className="inline-flex w-fit items-center gap-1.5 text-[11px] font-semibold text-muted">
+          <span className="size-2 rounded-full" style={{ backgroundColor: card.client.color }} />
+          {card.client.name}
         </span>
-      </div>
+      )}
 
       {/* Aprovação do cliente */}
       {card.approvalStatus === "approved" ? (
@@ -129,9 +119,24 @@ export function TaskCard({ card }: { card: TaskCardType }) {
         </div>
       )}
 
-      {/* Rodapé */}
-      <div className="flex items-center justify-between pt-0.5">
-        <div className="flex items-center gap-3 text-[11px] text-muted">
+      {/* Rodapé — linha de meta estilo ClickUp */}
+      <div className="flex items-center justify-between gap-2 pt-0.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+          {/* Prioridade (bandeirinha colorida) */}
+          <span
+            className="inline-flex items-center gap-1 font-semibold"
+            style={{ color: prio.color }}
+            title={`Prioridade: ${prio.label}`}
+          >
+            <Flag className="size-3.5" fill={prio.color} />
+            {prio.label}
+          </span>
+          {/* Tem descrição */}
+          {card.description && card.description.trim() !== "" && (
+            <span title="Tem descrição">
+              <AlignLeft className="size-3.5" />
+            </span>
+          )}
           {card.dueLabel && (
             <span
               className={cn(
