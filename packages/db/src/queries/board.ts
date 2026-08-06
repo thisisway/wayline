@@ -6,6 +6,7 @@ import {
   comments,
   customFieldDefs,
   customFieldValues,
+  folders,
   lists,
   organizations,
   spaces,
@@ -473,11 +474,19 @@ export interface NavList {
   id: string;
   name: string;
 }
+export interface NavFolder {
+  id: string;
+  name: string;
+  lists: NavList[];
+}
 export interface NavSpace {
   id: string;
   name: string;
   color: string;
   icon: string | null;
+  /** Pastas do space, cada uma com suas listas. */
+  folders: NavFolder[];
+  /** Listas soltas (sem pasta) do space. */
   lists: NavList[];
 }
 
@@ -500,15 +509,34 @@ export async function getWorkspaceNav(
       where: isNull(lists.deletedAt),
       orderBy: [asc(lists.createdAt)],
     });
-    const nav = sp.map((s) => ({
-      id: s.id,
-      name: s.name,
-      color: s.color,
-      icon: s.icon,
-      lists: ls
-        .filter((l) => l.spaceId === s.id && (!allowed || allowed.has(l.id)))
-        .map((l) => ({ id: l.id, name: l.name })),
-    }));
-    return allowed ? nav.filter((s) => s.lists.length > 0) : nav;
+    const fs = await tx.query.folders.findMany({
+      where: isNull(folders.deletedAt),
+      orderBy: [asc(folders.createdAt)],
+    });
+    const nav = sp.map((s) => {
+      const visible = (l: (typeof ls)[number]) =>
+        l.spaceId === s.id && (!allowed || allowed.has(l.id));
+      const spaceLists = ls.filter(visible);
+      const navFolders = fs
+        .filter((f) => f.spaceId === s.id)
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          lists: spaceLists
+            .filter((l) => l.folderId === f.id)
+            .map((l) => ({ id: l.id, name: l.name })),
+        }))
+        // Guest: esconde pastas vazias.
+        .filter((f) => !allowed || f.lists.length > 0);
+      return {
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        icon: s.icon,
+        folders: navFolders,
+        lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name })),
+      };
+    });
+    return allowed ? nav.filter((s) => s.lists.length > 0 || s.folders.length > 0) : nav;
   });
 }

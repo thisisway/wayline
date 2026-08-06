@@ -5,12 +5,16 @@ import { revalidatePath } from "next/cache";
 import {
   addMemberByEmail,
   createInvitation,
+  createFolder,
   createList,
   createListFromTemplate,
   createOrg,
   createSpace,
+  deleteFolder,
   deleteOrgTemplate,
   duplicateListStructure,
+  moveListToFolder,
+  renameFolder,
   getOrgTemplateSeed,
   listOrgTemplates,
   saveListAsTemplate,
@@ -79,15 +83,54 @@ export async function createSpaceAction(orgId: string, name: string): Promise<vo
   revalidatePath("/app");
 }
 
-/** Cria uma lista num space e a torna a lista ativa. */
+/** Cria uma lista num space (opcionalmente dentro de uma pasta) e a torna ativa. */
 export async function createListAction(
+  orgId: string,
+  spaceId: string,
+  name: string,
+  folderId: string | null = null,
+): Promise<void> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
+  const listId = await createList(orgId, spaceId, name, folderId);
+  await setActiveListCookie(listId);
+  revalidatePath("/app");
+}
+
+/** Cria uma pasta num space. */
+export async function createFolderAction(
   orgId: string,
   spaceId: string,
   name: string,
 ): Promise<void> {
   if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
-  const listId = await createList(orgId, spaceId, name);
-  await setActiveListCookie(listId);
+  await createFolder(orgId, spaceId, name);
+  revalidatePath("/app");
+}
+
+export async function renameFolderAction(
+  orgId: string,
+  folderId: string,
+  name: string,
+): Promise<void> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
+  await renameFolder(orgId, folderId, name);
+  revalidatePath("/app");
+}
+
+export async function deleteFolderAction(orgId: string, folderId: string): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await deleteFolder(orgId, folderId);
+  revalidatePath("/app");
+}
+
+/** Move uma lista para uma pasta (folderId) ou a solta no space (null). */
+export async function moveListToFolderAction(
+  orgId: string,
+  listId: string,
+  folderId: string | null,
+): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await moveListToFolder(orgId, listId, folderId);
   revalidatePath("/app");
 }
 

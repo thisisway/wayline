@@ -4,6 +4,8 @@ import * as React from "react";
 import {
   ChevronDown,
   Copy,
+  Folder,
+  FolderPlus,
   Inbox,
   ListChecks,
   MessageSquare,
@@ -12,14 +14,17 @@ import {
   PanelLeftClose,
   Plus,
   Reply,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
-import type { NavSpace } from "@wayline/db";
+import type { NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
+  createFolderAction,
   createListAction,
   createSpaceAction,
+  deleteFolderAction,
   duplicateListAction,
   switchList,
 } from "@/actions/org";
@@ -102,6 +107,8 @@ export function HomePanel({
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
   const [addingSpace, setAddingSpace] = React.useState(false);
   const [addingListIn, setAddingListIn] = React.useState<string | null>(null);
+  const [addingFolderIn, setAddingFolderIn] = React.useState<string | null>(null);
+  const [addingListInFolder, setAddingListInFolder] = React.useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = React.useState(false);
 
   function selectList(id: string) {
@@ -112,12 +119,121 @@ export function HomePanel({
     setAddingSpace(false);
     startTransition(() => void createSpaceAction(activeOrgId, name));
   }
-  function addList(spaceId: string, name: string) {
+  function addList(spaceId: string, name: string, folderId: string | null = null) {
     setAddingListIn(null);
-    startTransition(() => void createListAction(activeOrgId, spaceId, name));
+    setAddingListInFolder(null);
+    startTransition(() => void createListAction(activeOrgId, spaceId, name, folderId));
+  }
+  function addFolder(spaceId: string, name: string) {
+    setAddingFolderIn(null);
+    startTransition(() => void createFolderAction(activeOrgId, spaceId, name));
+  }
+  function removeFolder(folderId: string) {
+    startTransition(() => void deleteFolderAction(activeOrgId, folderId));
   }
   function duplicateList(listId: string) {
     startTransition(() => void duplicateListAction(activeOrgId, listId));
+  }
+
+  /** Linha de uma lista (usada solta no space e dentro de pastas). */
+  function ListRow({ list, indent }: { list: NavList; indent: string }) {
+    const active = list.id === activeListId;
+    return (
+      <div
+        className={cn(
+          "group flex h-8 items-center gap-1 rounded-md pr-1.5 text-dense transition-colors",
+          indent,
+          active
+            ? "bg-brand/10 font-medium text-brand"
+            : "text-muted hover:bg-elevated hover:text-foreground",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => selectList(list.id)}
+          className="min-w-0 flex-1 truncate text-left"
+        >
+          {list.name}
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => duplicateList(list.id)}
+            aria-label={`Duplicar ${list.name}`}
+            title="Duplicar lista (estrutura, sem tarefas)"
+            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+          >
+            <Copy className="size-3.5" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  /** Uma pasta com suas listas (colapsável). */
+  function FolderRow({ folder, spaceId }: { folder: NavFolder; spaceId: string }) {
+    const open = !collapsed[folder.id];
+    return (
+      <div>
+        <div className="group flex h-8 items-center gap-1 rounded-md pl-6 pr-1.5 text-dense text-muted transition-colors hover:bg-elevated">
+          <button
+            type="button"
+            onClick={() => setCollapsed((s) => ({ ...s, [folder.id]: open }))}
+            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+          >
+            <ChevronDown
+              className={cn("size-3 shrink-0 text-subtle transition-transform", !open && "-rotate-90")}
+            />
+            <Folder className="size-3.5 shrink-0 text-subtle" />
+            <span className="truncate">{folder.name}</span>
+          </button>
+          {isAdmin && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                  setAddingListInFolder(folder.id);
+                }}
+                aria-label={`Nova lista em ${folder.name}`}
+                title="Nova lista na pasta"
+                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              >
+                <Plus className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => removeFolder(folder.id)}
+                aria-label={`Excluir pasta ${folder.name}`}
+                title="Excluir pasta (as listas voltam pro space)"
+                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+        {open && (
+          <>
+            {folder.lists.map((list) => (
+              <ListRow key={list.id} list={list} indent="pl-12" />
+            ))}
+            {addingListInFolder === folder.id && (
+              <div className="pl-12 pr-2 py-0.5">
+                <InlineAdd
+                  placeholder="Nome da lista"
+                  onSubmit={(name) => addList(spaceId, name, folder.id)}
+                  onCancel={() => setAddingListInFolder(null)}
+                />
+              </div>
+            )}
+            {folder.lists.length === 0 && addingListInFolder !== folder.id && (
+              <p className="pl-12 py-1 text-[12px] text-subtle">Pasta vazia</p>
+            )}
+          </>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -232,55 +348,51 @@ export function HomePanel({
                   <span className="truncate text-left">{space.name}</span>
                 </button>
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCollapsed((s) => ({ ...s, [space.id]: false }));
-                      setAddingListIn(space.id);
-                    }}
-                    aria-label={`Nova lista em ${space.name}`}
-                    className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCollapsed((s) => ({ ...s, [space.id]: false }));
+                        setAddingFolderIn(space.id);
+                      }}
+                      aria-label={`Nova pasta em ${space.name}`}
+                      title="Nova pasta"
+                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    >
+                      <FolderPlus className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCollapsed((s) => ({ ...s, [space.id]: false }));
+                        setAddingListIn(space.id);
+                      }}
+                      aria-label={`Nova lista em ${space.name}`}
+                      title="Nova lista"
+                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
+                  </>
                 )}
               </div>
 
               {isOpen && (
                 <>
-                  {space.lists.map((list) => {
-                    const active = list.id === activeListId;
-                    return (
-                      <div
-                        key={list.id}
-                        className={cn(
-                          "group flex h-8 items-center gap-1 rounded-md pl-8 pr-1.5 text-dense transition-colors",
-                          active
-                            ? "bg-brand/10 font-medium text-brand"
-                            : "text-muted hover:bg-elevated hover:text-foreground",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => selectList(list.id)}
-                          className="min-w-0 flex-1 truncate text-left"
-                        >
-                          {list.name}
-                        </button>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => duplicateList(list.id)}
-                            aria-label={`Duplicar ${list.name}`}
-                            title="Duplicar lista (estrutura, sem tarefas)"
-                            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                          >
-                            <Copy className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {space.folders.map((folder) => (
+                    <FolderRow key={folder.id} folder={folder} spaceId={space.id} />
+                  ))}
+                  {addingFolderIn === space.id && (
+                    <InlineAdd
+                      indent
+                      placeholder="Nome da pasta"
+                      onSubmit={(name) => addFolder(space.id, name)}
+                      onCancel={() => setAddingFolderIn(null)}
+                    />
+                  )}
+                  {space.lists.map((list) => (
+                    <ListRow key={list.id} list={list} indent="pl-8" />
+                  ))}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent
@@ -289,9 +401,12 @@ export function HomePanel({
                       onCancel={() => setAddingListIn(null)}
                     />
                   )}
-                  {space.lists.length === 0 && addingListIn !== space.id && (
-                    <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>
-                  )}
+                  {space.folders.length === 0 &&
+                    space.lists.length === 0 &&
+                    addingListIn !== space.id &&
+                    addingFolderIn !== space.id && (
+                      <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>
+                    )}
                 </>
               )}
             </div>

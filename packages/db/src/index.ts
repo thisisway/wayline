@@ -20,6 +20,7 @@ export {
   type BoardMemberDTO,
   type DependencyEdge,
   type NavSpace,
+  type NavFolder,
   type NavList,
 } from "./queries/board";
 export {
@@ -36,6 +37,10 @@ export {
   createOrg,
   createSpace,
   createList,
+  createFolder,
+  renameFolder,
+  deleteFolder,
+  moveListToFolder,
   duplicateListStructure,
   createListFromTemplate,
   type TemplateSeed,

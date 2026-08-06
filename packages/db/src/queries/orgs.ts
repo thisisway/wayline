@@ -4,6 +4,7 @@ import {
   automations,
   customFieldDefs,
   documents,
+  folders,
   lists,
   memberships,
   organizations,
@@ -165,7 +166,12 @@ export async function createSpace(orgId: string, name: string): Promise<string> 
 }
 
 /** Cria uma lista dentro de um space da org, com colunas padrão. */
-export async function createList(orgId: string, spaceId: string, name: string): Promise<string> {
+export async function createList(
+  orgId: string,
+  spaceId: string,
+  name: string,
+  folderId: string | null = null,
+): Promise<string> {
   return withOrg(orgId, async (tx) => {
     // Garante que o space é da org corrente (RLS já filtra, mas checa 404).
     const space = await tx.query.spaces.findFirst({
@@ -175,12 +181,56 @@ export async function createList(orgId: string, spaceId: string, name: string): 
 
     const [list] = await tx
       .insert(lists)
-      .values({ orgId, spaceId, name: name.trim() })
+      .values({ orgId, spaceId, name: name.trim(), folderId })
       .returning();
     if (!list) throw new Error("falha ao criar lista");
 
     await tx.insert(statuses).values(defaultStatuses(orgId, list.id));
     return list.id;
+  });
+}
+
+/** Cria uma pasta num space (agrupa listas). */
+export async function createFolder(orgId: string, spaceId: string, name: string): Promise<string> {
+  return withOrg(orgId, async (tx) => {
+    const space = await tx.query.spaces.findFirst({
+      where: and(eq(spaces.id, spaceId), isNull(spaces.deletedAt)),
+    });
+    if (!space) throw new Error("space inválido");
+    const [folder] = await tx
+      .insert(folders)
+      .values({ orgId, spaceId, name: name.trim() || "Pasta" })
+      .returning();
+    if (!folder) throw new Error("falha ao criar pasta");
+    return folder.id;
+  });
+}
+
+export async function renameFolder(orgId: string, folderId: string, name: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx
+      .update(folders)
+      .set({ name: name.trim() || "Pasta" })
+      .where(eq(folders.id, folderId));
+  });
+}
+
+/** Remove a pasta (soft) e solta suas listas de volta pro space. */
+export async function deleteFolder(orgId: string, folderId: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(lists).set({ folderId: null }).where(eq(lists.folderId, folderId));
+    await tx.update(folders).set({ deletedAt: new Date() }).where(eq(folders.id, folderId));
+  });
+}
+
+/** Move uma lista para uma pasta (ou solta no space com null). */
+export async function moveListToFolder(
+  orgId: string,
+  listId: string,
+  folderId: string | null,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(lists).set({ folderId }).where(eq(lists.id, listId));
   });
 }
 
