@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Copy, Plus, Sparkles, Square, Trash2, UserPlus, X } from "lucide-react";
+import { CheckSquare, Copy, ImageIcon, Plus, Sparkles, Square, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type {
   ActivityDTO,
@@ -44,6 +44,36 @@ const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
 const fieldLabel = "text-label uppercase text-subtle";
 const selectClass =
   "h-10 w-full rounded-md border border-border bg-surface px-3 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/**
+ * Redimensiona uma imagem para uma capa larga (máx. 640px) e devolve um data
+ * URL JPEG pequeno — guardado direto na tarefa, sem storage (padrão do avatar).
+ * ponytail: data URL na coluna infla o payload do board; migrar p/ attachment+presign se pesar.
+ */
+function fileToCoverDataUrl(file: File, maxW = 640): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode"));
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("ctx"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function estimateMinutesOf(hours: string): number | null {
   const h = parseFloat(hours.replace(",", "."));
@@ -114,6 +144,18 @@ export function TaskModal({
     setForm((f) => ({ ...f, [key]: value }));
   const [ai, setAi] = React.useState(false);
   const [descBusy, setDescBusy] = React.useState(false);
+  const coverRef = React.useRef<HTMLInputElement>(null);
+
+  async function onPickCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite re-selecionar o mesmo arquivo
+    if (!file || !file.type.startsWith("image/")) return;
+    try {
+      set("cover", await fileToCoverDataUrl(file));
+    } catch {
+      /* imagem inválida — ignora */
+    }
+  }
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -235,6 +277,38 @@ export function TaskModal({
                 onChange={(e) => set("title", e.target.value)}
                 placeholder="O que precisa ser feito?"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={fieldLabel}>Capa</label>
+              <input
+                ref={coverRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickCover}
+              />
+              {form.cover ? (
+                <div className="relative overflow-hidden rounded-lg border border-border">
+                  <img src={form.cover} alt="Capa" className="max-h-40 w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => set("cover", null)}
+                    aria-label="Remover capa"
+                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-md bg-dark/60 text-white transition-colors hover:bg-dark/80"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => coverRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border py-6 text-dense text-muted transition-colors hover:border-brand-40 hover:text-foreground"
+                >
+                  <ImageIcon className="size-4" /> Selecionar capa
+                </button>
+              )}
             </div>
 
             <div className="space-y-1.5">

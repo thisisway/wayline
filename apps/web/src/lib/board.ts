@@ -32,6 +32,7 @@ export function mapTaskDTO(t: BoardTaskDTO): TaskCard {
     id: t.id,
     title: t.title,
     description: t.description,
+    cover: t.cover ?? undefined,
     client: t.client ?? undefined,
     assignees: t.assignees.map((a) => ({
       id: a.id,
@@ -59,6 +60,8 @@ export interface TaskFormInput {
   statusId: string;
   title: string;
   description: string;
+  /** Capa do card (data URL) ou null. */
+  cover: string | null;
   priority: "urgent" | "high" | "normal" | "low";
   clientId: string | null;
   startDate: string | null;
@@ -77,6 +80,7 @@ export function dtoToForm(dto: BoardTaskDTO): TaskFormInput {
     statusId: dto.statusId ?? "",
     title: dto.title,
     description: dto.description ?? "",
+    cover: dto.cover ?? null,
     priority: dto.priority,
     clientId: dto.client?.id ?? null,
     startDate: dto.startDate ? dto.startDate.toISOString().slice(0, 10) : null,

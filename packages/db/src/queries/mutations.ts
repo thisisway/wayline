@@ -14,6 +14,7 @@ export interface CreateTaskInput {
   statusId: string;
   title: string;
   description: string | null;
+  cover?: string | null;
   priority: Priority;
   clientId: string | null;
   startDate: Date | null;
@@ -258,6 +259,7 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
         statusId: input.statusId,
         title: input.title,
         description: input.description,
+        cover: input.cover ?? null,
         priority: input.priority,
         clientId: input.clientId,
         startDate: input.startDate,
@@ -298,6 +300,7 @@ export async function updateTask(orgId: string, input: UpdateTaskInput): Promise
       .set({
         title: input.title,
         description: input.description,
+        cover: input.cover ?? null,
         priority: input.priority,
         clientId: input.clientId,
         startDate: input.startDate,
@@ -341,6 +344,7 @@ export async function duplicateTask(orgId: string, taskId: string): Promise<stri
         statusId: src.statusId,
         title: `${src.title} (cópia)`,
         description: src.description,
+        cover: src.cover,
         priority: src.priority,
         clientId: src.clientId,
         startDate: src.startDate,

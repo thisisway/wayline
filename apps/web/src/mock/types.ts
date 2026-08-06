@@ -24,6 +24,7 @@ export interface TaskCard {
   id: string;
   title: string;
   description?: string | null;
+  cover?: string | null;
   client?: ClientRef;
   assignees: Person[];
   priority: Priority;

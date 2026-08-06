@@ -42,6 +42,13 @@ export function TaskCard({ card }: { card: TaskCardType }) {
       interactive
       className="group flex flex-col gap-3 p-3 animate-fade-in"
     >
+      {/* Capa */}
+      {card.cover && (
+        <div className="-mx-3 -mt-3 overflow-hidden rounded-t-lg">
+          <img src={card.cover} alt="" className="h-28 w-full object-cover" />
+        </div>
+      )}
+
       {/* Cliente + prioridade */}
       <div className="flex items-center justify-between">
         {card.client ? (

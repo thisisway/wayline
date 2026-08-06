@@ -29,6 +29,7 @@ export interface BoardTaskDTO {
   id: string;
   title: string;
   description: string | null;
+  cover: string | null;
   statusId: string | null;
   priority: "urgent" | "high" | "normal" | "low";
   startDate: Date | null;
@@ -95,6 +96,7 @@ type TaskRow = {
   id: string;
   title: string;
   description: string | null;
+  cover: string | null;
   statusId: string | null;
   priority: BoardTaskDTO["priority"];
   startDate: Date | null;
@@ -115,6 +117,7 @@ function toDTO(t: TaskRow): BoardTaskDTO {
     id: t.id,
     title: t.title,
     description: t.description,
+    cover: t.cover,
     statusId: t.statusId,
     priority: t.priority,
     startDate: t.startDate,

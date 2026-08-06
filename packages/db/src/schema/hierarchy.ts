@@ -107,6 +107,8 @@ export const tasks = pgTable(
 
     title: text("title").notNull(),
     description: text("description"),
+    /** Capa do card (imagem redimensionada como data URL, ~padrão avatar). */
+    cover: text("cover"),
     priority: taskPriority("priority").notNull().default("normal"),
     startDate: timestamp("start_date", { withTimezone: true }),
     dueDate: timestamp("due_date", { withTimezone: true }),
