@@ -1,7 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { CheckSquare, Copy, ImageIcon, Plus, Sparkles, Square, Trash2, UserPlus, X } from "lucide-react";
+import {
+  Building2,
+  Calendar,
+  CheckSquare,
+  CircleDot,
+  Clock,
+  Copy,
+  Flag,
+  ImageIcon,
+  Plus,
+  Repeat,
+  Sparkles,
+  Square,
+  Tag,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
 import type {
   ActivityDTO,
@@ -42,8 +61,33 @@ const PRIORITIES: { value: TaskFormInput["priority"]; label: string }[] = [
 ];
 
 const fieldLabel = "text-label uppercase text-subtle";
-const selectClass =
-  "h-10 w-full rounded-md border border-border bg-surface px-3 text-ui text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+// Estilo "propriedade" (ClickUp): rótulo com ícone à esquerda, controle sem
+// caixa que só ganha fundo ao focar/hover — visual mais leve e espaçado.
+const propLabel = "flex h-8 w-32 shrink-0 items-center gap-2 text-dense text-subtle";
+const propIcon = "size-3.5 shrink-0";
+const bareControl =
+  "h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-ui text-foreground transition-colors hover:bg-elevated focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:[color-scheme:dark]";
+
+/** Uma linha de propriedade da tarefa: ícone + rótulo + controle. */
+function PropRow({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className={propLabel}>
+        <Icon className={propIcon} /> {label}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
 
 /**
  * Redimensiona uma imagem para uma capa larga (máx. 640px) e devolve um data
@@ -196,7 +240,7 @@ export function TaskModal({
         aria-modal="true"
         className={cn(
           "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl",
-          mode === "edit" ? "max-w-4xl" : "max-w-lg",
+          mode === "edit" ? "max-w-5xl" : "max-w-lg",
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -266,53 +310,171 @@ export function TaskModal({
             }}
             className="space-y-4 p-5"
           >
-            <div className="space-y-1.5">
-              <label className={fieldLabel} htmlFor="task-title">
-                Título
-              </label>
-              <Input
-                id="task-title"
-                autoFocus
-                value={form.title}
-                onChange={(e) => set("title", e.target.value)}
-                placeholder="O que precisa ser feito?"
-              />
-            </div>
+            {/* Título — grande e sem caixa, como no ClickUp */}
+            <input
+              id="task-title"
+              autoFocus
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              placeholder="Nome da tarefa"
+              className="w-full bg-transparent font-display text-h2 font-bold leading-tight text-foreground placeholder:text-subtle/50 focus-visible:outline-none"
+            />
 
-            <div className="space-y-1.5">
-              <label className={fieldLabel}>Capa</label>
-              <input
-                ref={coverRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onPickCover}
-              />
-              {form.cover ? (
-                <div className="relative overflow-hidden rounded-lg border border-border">
-                  <img src={form.cover} alt="Capa" className="max-h-40 w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => set("cover", null)}
-                    aria-label="Remover capa"
-                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-md bg-dark/60 text-white transition-colors hover:bg-dark/80"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-              ) : (
+            {/* Capa (ação discreta) */}
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickCover}
+            />
+            {form.cover ? (
+              <div className="relative overflow-hidden rounded-lg border border-border">
+                <img src={form.cover} alt="Capa" className="max-h-40 w-full object-cover" />
                 <button
                   type="button"
-                  onClick={() => coverRef.current?.click()}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border py-6 text-dense text-muted transition-colors hover:border-brand-40 hover:text-foreground"
+                  onClick={() => set("cover", null)}
+                  aria-label="Remover capa"
+                  className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-md bg-dark/60 text-white transition-colors hover:bg-dark/80"
                 >
-                  <ImageIcon className="size-4" /> Selecionar capa
+                  <X className="size-4" />
                 </button>
-              )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => coverRef.current?.click()}
+                className="flex w-fit items-center gap-2 rounded-md px-2 h-8 text-dense text-subtle transition-colors hover:bg-elevated hover:text-foreground"
+              >
+                <ImageIcon className="size-3.5" /> Adicionar capa
+              </button>
+            )}
+
+            {/* Propriedades — lista enxuta ícone + rótulo + valor */}
+            <div className="space-y-1">
+              <PropRow icon={CircleDot} label="Status">
+                <select
+                  id="task-status"
+                  className={bareControl}
+                  value={form.statusId}
+                  onChange={(e) => set("statusId", e.target.value)}
+                >
+                  {columns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </PropRow>
+
+              <PropRow icon={Users} label="Responsáveis">
+                <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                  {members.map((m) => {
+                    const active = form.assigneeIds.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => toggleAssignee(m.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-pill border py-1 pl-1 pr-2.5 text-dense transition-colors",
+                          active
+                            ? "border-brand bg-brand/15 text-brand"
+                            : "border-border text-muted hover:bg-elevated",
+                        )}
+                      >
+                        <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
+                        {m.name.split(" ")[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PropRow>
+
+              <PropRow icon={Flag} label="Prioridade">
+                <select
+                  id="task-priority"
+                  className={bareControl}
+                  value={form.priority}
+                  onChange={(e) => set("priority", e.target.value as TaskFormInput["priority"])}
+                >
+                  {PRIORITIES.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </PropRow>
+
+              <PropRow icon={Calendar} label="Datas">
+                <div className="flex items-center gap-1">
+                  <input
+                    id="task-start"
+                    type="date"
+                    className={bareControl}
+                    value={form.startDate ?? ""}
+                    onChange={(e) => set("startDate", e.target.value || null)}
+                  />
+                  <span className="shrink-0 text-subtle">→</span>
+                  <input
+                    id="task-due"
+                    type="date"
+                    className={bareControl}
+                    value={form.dueDate ?? ""}
+                    onChange={(e) => set("dueDate", e.target.value || null)}
+                  />
+                </div>
+              </PropRow>
+
+              <PropRow icon={Clock} label="Estimativa">
+                <input
+                  id="task-estimate"
+                  inputMode="decimal"
+                  placeholder="Sem estimativa (h)"
+                  className={bareControl}
+                  value={form.estimateHours}
+                  onChange={(e) => set("estimateHours", e.target.value)}
+                />
+              </PropRow>
+
+              <PropRow icon={Repeat} label="Recorrência">
+                <select
+                  id="task-recurrence"
+                  className={bareControl}
+                  value={form.recurrence}
+                  onChange={(e) => set("recurrence", e.target.value)}
+                >
+                  <option value="">Nenhuma</option>
+                  <option value="daily">Diária</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="monthly">Mensal</option>
+                </select>
+              </PropRow>
+
+              <PropRow icon={Building2} label="Cliente">
+                <select
+                  id="task-client"
+                  className={bareControl}
+                  value={form.clientId ?? ""}
+                  onChange={(e) => set("clientId", e.target.value || null)}
+                >
+                  <option value="">Sem cliente</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </PropRow>
+
+              <PropRow icon={Tag} label="Etiquetas">
+                <TagsEditor tags={form.tags} onChange={(tags) => set("tags", tags)} />
+              </PropRow>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+            {/* Descrição — área ampla, sem borda até o foco */}
+            <div className="border-t border-border pt-4">
+              <div className="mb-1.5 flex items-center justify-between">
                 <label className={fieldLabel} htmlFor="task-desc">
                   Descrição
                 </label>
@@ -333,149 +495,11 @@ export function TaskModal({
                 id="task-desc"
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                placeholder="Detalhes, contexto, links…"
-                rows={3}
-                className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-ui text-foreground placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-brand"
+                placeholder="Adicione detalhes, contexto, links…"
+                rows={4}
+                className="w-full resize-y rounded-md border border-transparent bg-transparent px-2 py-1.5 text-ui text-foreground placeholder:text-subtle transition-colors hover:bg-elevated/60 focus-visible:border-border focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-status">
-                  Coluna
-                </label>
-                <select
-                  id="task-status"
-                  className={selectClass}
-                  value={form.statusId}
-                  onChange={(e) => set("statusId", e.target.value)}
-                >
-                  {columns.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-priority">
-                  Prioridade
-                </label>
-                <select
-                  id="task-priority"
-                  className={selectClass}
-                  value={form.priority}
-                  onChange={(e) => set("priority", e.target.value as TaskFormInput["priority"])}
-                >
-                  {PRIORITIES.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-client">
-                  Cliente
-                </label>
-                <select
-                  id="task-client"
-                  className={selectClass}
-                  value={form.clientId ?? ""}
-                  onChange={(e) => set("clientId", e.target.value || null)}
-                >
-                  <option value="">Sem cliente</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-start">
-                  Início
-                </label>
-                <Input
-                  id="task-start"
-                  type="date"
-                  value={form.startDate ?? ""}
-                  onChange={(e) => set("startDate", e.target.value || null)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-due">
-                  Prazo
-                </label>
-                <Input
-                  id="task-due"
-                  type="date"
-                  value={form.dueDate ?? ""}
-                  onChange={(e) => set("dueDate", e.target.value || null)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-estimate">
-                  Estimativa (h)
-                </label>
-                <Input
-                  id="task-estimate"
-                  inputMode="decimal"
-                  placeholder="ex.: 4"
-                  value={form.estimateHours}
-                  onChange={(e) => set("estimateHours", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={fieldLabel} htmlFor="task-recurrence">
-                  Recorrência
-                </label>
-                <select
-                  id="task-recurrence"
-                  className={selectClass}
-                  value={form.recurrence}
-                  onChange={(e) => set("recurrence", e.target.value)}
-                >
-                  <option value="">Nenhuma</option>
-                  <option value="daily">Diária</option>
-                  <option value="weekly">Semanal</option>
-                  <option value="monthly">Mensal</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <span className={fieldLabel}>Responsáveis</span>
-              <div className="flex flex-wrap gap-1.5">
-                {members.map((m) => {
-                  const active = form.assigneeIds.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => toggleAssignee(m.id)}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-pill border py-1 pl-1 pr-2.5 text-dense transition-colors",
-                        active
-                          ? "border-brand bg-brand/15 text-brand"
-                          : "border-border text-muted hover:bg-elevated",
-                      )}
-                    >
-                      <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
-                      {m.name.split(" ")[0]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <TagsEditor tags={form.tags} onChange={(tags) => set("tags", tags)} />
           </form>
           </div>
 
@@ -578,8 +602,7 @@ function TagsEditor({
   }
 
   return (
-    <div className="space-y-1.5">
-      <span className={fieldLabel}>Tags</span>
+    <div className="space-y-2 py-0.5">
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((t, i) => (
