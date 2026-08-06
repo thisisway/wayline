@@ -91,6 +91,7 @@ export function HomePanel({
   onOpenAssigned,
   onOpenReplies,
   onOpenDoc,
+  onSelectList,
   isAdmin,
   onCollapse,
 }: {
@@ -106,6 +107,8 @@ export function HomePanel({
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
   onOpenDoc?: (pageId: string) => void;
+  /** Selecionou uma lista — volta pro board (reseta a view de docs/relatórios). */
+  onSelectList?: () => void;
   isAdmin: boolean;
   onCollapse?: () => void;
 }) {
@@ -120,6 +123,7 @@ export function HomePanel({
   const [dropTarget, setDropTarget] = React.useState<string | null>(null);
 
   function selectList(id: string) {
+    onSelectList?.(); // sempre volta pro board (mesmo se a lista já for a ativa)
     if (id === activeListId) return;
     startTransition(() => void switchList(id));
   }

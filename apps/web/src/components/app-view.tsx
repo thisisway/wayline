@@ -319,6 +319,7 @@ export function AppView({
             setDocId(pageId);
             setView("docs");
           }}
+          onSelectList={() => setView((v) => (v === "docs" ? "board" : v))}
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
         />
