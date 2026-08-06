@@ -368,26 +368,33 @@ export function TaskModal({
               </PropRow>
 
               <PropRow icon={Users} label="Responsáveis">
-                <div className="flex flex-wrap items-center gap-1.5 py-0.5">
-                  {members.map((m) => {
-                    const active = form.assigneeIds.includes(m.id);
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => toggleAssignee(m.id)}
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-pill border py-1 pl-1 pr-2.5 text-dense transition-colors",
-                          active
-                            ? "border-brand bg-brand/15 text-brand"
-                            : "border-border text-muted hover:bg-elevated",
-                        )}
-                      >
-                        <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
-                        {m.name.split(" ")[0]}
-                      </button>
-                    );
-                  })}
+                <div className="py-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {members.map((m) => {
+                      const active = form.assigneeIds.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => toggleAssignee(m.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-pill border py-1 pl-1 pr-2.5 text-dense transition-colors",
+                            active
+                              ? "border-brand bg-brand/15 text-brand"
+                              : "border-border text-muted hover:bg-elevated",
+                          )}
+                        >
+                          <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="xs" />
+                          {m.name.split(" ")[0]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {members.length <= 1 && (
+                    <p className="mt-1.5 text-[11px] text-subtle">
+                      Convide pessoas pelo botão <strong className="font-semibold">Membros</strong> (ícone 👥 no topo) para atribuí-las.
+                    </p>
+                  )}
                 </div>
               </PropRow>
 
