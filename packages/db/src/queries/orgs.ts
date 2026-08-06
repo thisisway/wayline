@@ -223,14 +223,17 @@ export async function deleteFolder(orgId: string, folderId: string): Promise<voi
   });
 }
 
-/** Move uma lista para uma pasta (ou solta no space com null). */
+/** Move uma lista para uma pasta (ou solta no space com null), no space dado. */
 export async function moveListToFolder(
   orgId: string,
   listId: string,
   folderId: string | null,
+  spaceId?: string,
 ): Promise<void> {
   await withOrg(orgId, async (tx) => {
-    await tx.update(lists).set({ folderId }).where(eq(lists.id, listId));
+    const set: { folderId: string | null; spaceId?: string } = { folderId };
+    if (spaceId) set.spaceId = spaceId;
+    await tx.update(lists).set(set).where(eq(lists.id, listId));
   });
 }
 

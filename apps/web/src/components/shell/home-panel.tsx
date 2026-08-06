@@ -27,9 +27,11 @@ import {
   createSpaceAction,
   deleteFolderAction,
   duplicateListAction,
+  moveListToFolderAction,
+  renameFolderAction,
   switchList,
 } from "@/actions/org";
-import { createSpaceDocAction } from "@/actions/pages";
+import { createSpaceDocAction, moveDocAction } from "@/actions/pages";
 import { homeItems } from "@/mock/data";
 import type { HomeItem } from "@/mock/types";
 
@@ -114,6 +116,8 @@ export function HomePanel({
   const [addingFolderIn, setAddingFolderIn] = React.useState<string | null>(null);
   const [addingListInFolder, setAddingListInFolder] = React.useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = React.useState(false);
+  const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
+  const [dropTarget, setDropTarget] = React.useState<string | null>(null);
 
   function selectList(id: string) {
     if (id === activeListId) return;
@@ -135,6 +139,44 @@ export function HomePanel({
   function removeFolder(folderId: string) {
     startTransition(() => void deleteFolderAction(activeOrgId, folderId));
   }
+  function renameFolderFn(folderId: string, name: string) {
+    setRenamingFolder(null);
+    const n = name.trim();
+    if (n) startTransition(() => void renameFolderAction(activeOrgId, folderId, n));
+  }
+  /** Drop de uma lista/documento numa pasta (folderId) ou no space (null). */
+  function onDropInto(e: React.DragEvent, spaceId: string, folderId: string | null) {
+    e.preventDefault();
+    setDropTarget(null);
+    const [kind, id] = e.dataTransfer.getData("text/plain").split("|");
+    if (!id) return;
+    if (kind === "list") {
+      startTransition(() => void moveListToFolderAction(activeOrgId, id, folderId, spaceId));
+    } else if (kind === "doc") {
+      startTransition(() => void moveDocAction(activeOrgId, id, spaceId, folderId));
+    }
+  }
+  function dragProps(kind: "list" | "doc", id: string) {
+    if (!isAdmin) return {};
+    return {
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => {
+        e.dataTransfer.setData("text/plain", `${kind}|${id}`);
+        e.dataTransfer.effectAllowed = "move";
+      },
+    };
+  }
+  function dropProps(spaceId: string, folderId: string | null, key: string) {
+    if (!isAdmin) return {};
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        e.preventDefault();
+        if (dropTarget !== key) setDropTarget(key);
+      },
+      onDragLeave: () => setDropTarget((t) => (t === key ? null : t)),
+      onDrop: (e: React.DragEvent) => onDropInto(e, spaceId, folderId),
+    };
+  }
   async function addDoc(spaceId: string, folderId: string | null = null) {
     const id = await createSpaceDocAction(activeOrgId, spaceId, folderId);
     if (id) onOpenDoc?.(id);
@@ -149,6 +191,7 @@ export function HomePanel({
       <button
         type="button"
         onClick={() => onOpenDoc?.(doc.id)}
+        {...dragProps("doc", doc.id)}
         className={cn(
           "group flex h-8 w-full items-center gap-1.5 rounded-md pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground",
           indent,
@@ -165,6 +208,7 @@ export function HomePanel({
     const active = list.id === activeListId;
     return (
       <div
+        {...dragProps("list", list.id)}
         className={cn(
           "group flex h-8 items-center gap-1 rounded-md pr-1.5 text-dense transition-colors",
           indent,
@@ -200,19 +244,40 @@ export function HomePanel({
     const open = !collapsed[folder.id];
     return (
       <div>
-        <div className="group flex h-8 items-center gap-1 rounded-md pl-6 pr-1.5 text-dense text-muted transition-colors hover:bg-elevated">
-          <button
-            type="button"
-            onClick={() => setCollapsed((s) => ({ ...s, [folder.id]: open }))}
-            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
-          >
-            <ChevronDown
-              className={cn("size-3 shrink-0 text-subtle transition-transform", !open && "-rotate-90")}
+        <div
+          {...dropProps(spaceId, folder.id, `folder:${folder.id}`)}
+          className={cn(
+            "group flex h-8 items-center gap-1 rounded-md pl-6 pr-1.5 text-dense text-muted transition-colors hover:bg-elevated",
+            dropTarget === `folder:${folder.id}` && "bg-brand/10 ring-1 ring-brand",
+          )}
+        >
+          {renamingFolder === folder.id ? (
+            <input
+              autoFocus
+              defaultValue={folder.name}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") renameFolderFn(folder.id, e.currentTarget.value);
+                else if (e.key === "Escape") setRenamingFolder(null);
+              }}
+              onBlur={(e) => renameFolderFn(folder.id, e.currentTarget.value)}
+              className="h-6 min-w-0 flex-1 rounded border border-brand bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none"
             />
-            <Folder className="size-3.5 shrink-0 text-subtle" />
-            <span className="truncate">{folder.name}</span>
-          </button>
-          {isAdmin && (
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCollapsed((s) => ({ ...s, [folder.id]: open }))}
+              onDoubleClick={() => isAdmin && setRenamingFolder(folder.id)}
+              title={isAdmin ? "Duplo-clique para renomear" : undefined}
+              className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+            >
+              <ChevronDown
+                className={cn("size-3 shrink-0 text-subtle transition-transform", !open && "-rotate-90")}
+              />
+              <Folder className="size-3.5 shrink-0 text-subtle" />
+              <span className="truncate">{folder.name}</span>
+            </button>
+          )}
+          {isAdmin && renamingFolder !== folder.id && (
             <>
               <button
                 type="button"
@@ -369,7 +434,13 @@ export function HomePanel({
           const isOpen = !collapsed[space.id];
           return (
             <div key={space.id}>
-              <div className="group flex w-full items-center gap-2 rounded-md px-2.5 h-8 text-dense font-semibold text-foreground transition-colors hover:bg-elevated">
+              <div
+                {...dropProps(space.id, null, `space:${space.id}`)}
+                className={cn(
+                  "group flex w-full items-center gap-2 rounded-md px-2.5 h-8 text-dense font-semibold text-foreground transition-colors hover:bg-elevated",
+                  dropTarget === `space:${space.id}` && "bg-brand/10 ring-1 ring-brand",
+                )}
+              >
                 <button
                   type="button"
                   onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}

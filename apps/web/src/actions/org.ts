@@ -128,9 +128,10 @@ export async function moveListToFolderAction(
   orgId: string,
   listId: string,
   folderId: string | null,
+  spaceId?: string,
 ): Promise<void> {
   if (!(await assertRole(orgId, "admin"))) return;
-  await moveListToFolder(orgId, listId, folderId);
+  await moveListToFolder(orgId, listId, folderId, spaceId);
   revalidatePath("/app");
 }
 

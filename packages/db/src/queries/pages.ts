@@ -166,6 +166,23 @@ export async function movePage(
   });
 }
 
+/** Move um documento do space para uma pasta (ou solta no space com null). */
+export async function moveDocToFolder(
+  orgId: string,
+  userId: string,
+  pageId: string,
+  spaceId: string,
+  folderId: string | null,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    if (!(await ownsScope(tx, pageId, userId))) return;
+    await tx
+      .update(pages)
+      .set({ spaceId, folderId, updatedAt: new Date() })
+      .where(eq(pages.id, pageId));
+  });
+}
+
 /** Exclui uma página e todas as subpáginas (soft delete recursivo). */
 export async function deletePage(orgId: string, userId: string, pageId: string): Promise<void> {
   await withOrg(orgId, async (tx) => {

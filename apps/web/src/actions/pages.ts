@@ -6,6 +6,7 @@ import {
   deletePage,
   getPage,
   listPages,
+  moveDocToFolder,
   movePage,
   renamePage,
   savePageContent,
@@ -42,6 +43,19 @@ export async function createPageAction(
   const page = await createPage(orgId, uid, opts);
   revalidatePath("/app");
   return page;
+}
+
+/** Move um documento do space para uma pasta (ou solta no space com null). */
+export async function moveDocAction(
+  orgId: string,
+  pageId: string,
+  spaceId: string,
+  folderId: string | null,
+): Promise<void> {
+  const uid = await getSessionUserId();
+  if (!uid || !(await assertMember(orgId))) return;
+  await moveDocToFolder(orgId, uid, pageId, spaceId, folderId);
+  revalidatePath("/app");
 }
 
 /** Cria um documento ancorado num space/pasta (compartilhado) e retorna o id. */

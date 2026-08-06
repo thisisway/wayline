@@ -229,6 +229,7 @@ export {
   renamePage,
   savePageContent,
   movePage,
+  moveDocToFolder,
   deletePage,
   type PageNode,
   type PageDoc,
