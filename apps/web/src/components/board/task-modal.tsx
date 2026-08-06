@@ -239,8 +239,8 @@ export function TaskModal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl",
-          mode === "edit" ? "max-w-5xl" : "max-w-lg",
+          "flex w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl",
+          mode === "edit" ? "h-[90vh] w-[90vw] max-w-[1600px]" : "max-h-[92vh] max-w-lg",
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -267,7 +267,7 @@ export function TaskModal({
           <div
             className={cn(
               mode === "edit" &&
-                "lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-border",
+                "lg:w-[58%] lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-border",
             )}
           >
           {mode === "edit" && (approvalStatus === "approved" || approvalStatus === "changes") && (
@@ -308,7 +308,7 @@ export function TaskModal({
               e.preventDefault();
               if (canSave) onSubmit({ ...form, title: form.title.trim() });
             }}
-            className="space-y-4 p-5"
+            className="space-y-5 p-6 lg:p-8"
           >
             {/* Título — grande e sem caixa, como no ClickUp */}
             <input
@@ -317,7 +317,7 @@ export function TaskModal({
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="Nome da tarefa"
-              className="w-full bg-transparent font-display text-h2 font-bold leading-tight text-foreground placeholder:text-subtle/50 focus-visible:outline-none"
+              className="w-full bg-transparent font-display text-[26px] font-bold leading-tight text-foreground placeholder:text-subtle/50 focus-visible:outline-none"
             />
 
             {/* Capa (ação discreta) */}
@@ -504,7 +504,7 @@ export function TaskModal({
           </div>
 
           {mode === "edit" && taskId && (
-            <div className="lg:w-1/2 lg:min-h-0 lg:overflow-y-auto">
+            <div className="lg:w-[42%] lg:min-h-0 lg:overflow-y-auto">
               <CustomFieldsSection orgId={orgId} taskId={taskId} />
 
           {mode === "edit" && taskId && (
