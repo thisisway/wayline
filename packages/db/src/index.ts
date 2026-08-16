@@ -54,6 +54,14 @@ export {
   type OrgTemplateItem,
 } from "./queries/templates";
 export {
+  listAccessEntries,
+  createAccessEntry,
+  updateAccessEntry,
+  deleteAccessEntry,
+  type AccessEntryDTO,
+  type AccessEntryInput,
+} from "./queries/access";
+export {
   listIntegrations,
   createIntegration,
   updateIntegration,

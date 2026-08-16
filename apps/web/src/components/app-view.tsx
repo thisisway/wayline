@@ -46,6 +46,7 @@ import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ContractsModal } from "@/components/shell/contracts-modal";
 import { SettingsModal } from "@/components/shell/settings-modal";
 import { IntegrationsModal } from "@/components/shell/integrations-modal";
+import { AccessVault } from "@/components/shell/access-vault";
 import { SupportModal } from "@/components/shell/support-modal";
 import { PlansModal } from "@/components/shell/plans-modal";
 import { CommandPalette } from "@/components/shell/command-palette";
@@ -121,6 +122,7 @@ export function AppView({
   const router = useRouter();
   const [view, setView] = React.useState("board");
   const [docId, setDocId] = React.useState<string | null>(null);
+  const [accessSpace, setAccessSpace] = React.useState<{ id: string; name: string } | null>(null);
 
   // Preferência de visualização: abre na última view de board usada (por navegador).
   React.useEffect(() => {
@@ -319,7 +321,11 @@ export function AppView({
             setDocId(pageId);
             setView("docs");
           }}
-          onSelectList={() => setView((v) => (v === "docs" ? "board" : v))}
+          onOpenAccess={(id, name) => {
+            setAccessSpace({ id, name });
+            setView("access");
+          }}
+          onSelectList={() => setView((v) => (v === "docs" || v === "access" ? "board" : v))}
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
         />
@@ -570,6 +576,13 @@ export function AppView({
               }}
             />
           )
+        ) : view === "access" ? (
+          <AccessVault
+            orgId={activeOrgId}
+            spaceId={accessSpace?.id ?? ""}
+            spaceName={accessSpace?.name ?? ""}
+            isAdmin={isAdmin}
+          />
         ) : view === "docs" ? (
           <DocsView orgId={activeOrgId} convertStatusId={data?.columns[0]?.id} initialPageId={docId} />
         ) : view === "reports" ? (

@@ -751,3 +751,34 @@ export const integrations = pgTable(
   },
   (t) => [index("integrations_org_idx").on(t.orgId)],
 );
+
+/**
+ * Central de Acessos por space: credenciais de redes/serviços (estilo Notion).
+ * COM RLS (dado sensível — senha em `secret`). Ancorada num space.
+ * ponytail: senha em texto plano no banco (como no Notion do usuário); mascarada na UI.
+ * Cifrar em repouso se virar requisito.
+ */
+export const accessEntries = pgTable(
+  "access_entries",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    spaceId: uuid("space_id").notNull(),
+    name: text("name").notNull().default("Acesso"),
+    url: text("url").notNull().default(""),
+    login: text("login").notNull().default(""),
+    secret: text("secret").notNull().default(""),
+    /** 'active' | 'inactive' */
+    status: text("status").notNull().default("active"),
+    note: text("note").notNull().default(""),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [
+    index("access_entries_org_idx").on(t.orgId),
+    index("access_entries_space_idx").on(t.spaceId),
+  ],
+);

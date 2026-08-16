@@ -8,6 +8,7 @@ import {
   Folder,
   FolderPlus,
   Inbox,
+  KeyRound,
   ListChecks,
   MessageSquare,
   LayoutTemplate,
@@ -91,6 +92,7 @@ export function HomePanel({
   onOpenAssigned,
   onOpenReplies,
   onOpenDoc,
+  onOpenAccess,
   onSelectList,
   isAdmin,
   onCollapse,
@@ -107,6 +109,7 @@ export function HomePanel({
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
   onOpenDoc?: (pageId: string) => void;
+  onOpenAccess?: (spaceId: string, spaceName: string) => void;
   /** Selecionou uma lista — volta pro board (reseta a view de docs/relatórios). */
   onSelectList?: () => void;
   isAdmin: boolean;
@@ -525,6 +528,16 @@ export function HomePanel({
                   {space.docs.map((doc) => (
                     <DocRow key={doc.id} doc={doc} indent="pl-8" />
                   ))}
+                  {(isAdmin || space.hasAccess) && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenAccess?.(space.id, space.name)}
+                      className="group flex h-8 w-full items-center gap-1.5 rounded-md pl-8 pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground"
+                    >
+                      <KeyRound className="size-3.5 shrink-0 text-subtle" />
+                      <span className="min-w-0 flex-1 truncate text-left">Acessos</span>
+                    </button>
+                  )}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent

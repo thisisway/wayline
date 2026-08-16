@@ -1,6 +1,7 @@
 import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
 import {
+  accessEntries,
   attachments,
   clients,
   comments,
@@ -496,6 +497,8 @@ export interface NavSpace {
   lists: NavList[];
   /** Documentos soltos (sem pasta) do space. */
   docs: NavDoc[];
+  /** Tem ao menos uma credencial na Central de Acessos deste space. */
+  hasAccess: boolean;
 }
 
 /**
@@ -521,6 +524,14 @@ export async function getWorkspaceNav(
       where: isNull(folders.deletedAt),
       orderBy: [asc(folders.createdAt)],
     });
+    // Spaces com credenciais na Central de Acessos (guests não veem).
+    const accessRows = allowed
+      ? []
+      : await tx.query.accessEntries.findMany({
+          columns: { spaceId: true },
+          where: isNull(accessEntries.deletedAt),
+        });
+    const spacesWithAccess = new Set(accessRows.map((r) => r.spaceId));
     // Documentos ancorados num space (top-level, compartilhados). Guests não veem docs.
     const ds = allowed
       ? []
@@ -560,6 +571,7 @@ export async function getWorkspaceNav(
         folders: navFolders,
         lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name })),
         docs: spaceDocs.filter((d) => !d.folderId).map((d) => ({ id: d.id, title: d.title })),
+        hasAccess: spacesWithAccess.has(s.id),
       };
     });
     return allowed
