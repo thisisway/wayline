@@ -4,6 +4,7 @@ import {
   createAccessEntry,
   deleteAccessEntry,
   listAccessEntries,
+  reorderAccessEntries,
   updateAccessEntry,
   type AccessEntryDTO,
   type AccessEntryInput,
@@ -39,4 +40,9 @@ export async function updateAccessEntryAction(
 export async function deleteAccessEntryAction(orgId: string, id: string): Promise<void> {
   if (!(await assertRole(orgId, "admin"))) return;
   await deleteAccessEntry(orgId, id);
+}
+
+export async function reorderAccessEntriesAction(orgId: string, ids: string[]): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await reorderAccessEntries(orgId, ids);
 }

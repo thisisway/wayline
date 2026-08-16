@@ -58,6 +58,7 @@ export {
   createAccessEntry,
   updateAccessEntry,
   deleteAccessEntry,
+  reorderAccessEntries,
   type AccessEntryDTO,
   type AccessEntryInput,
 } from "./queries/access";
