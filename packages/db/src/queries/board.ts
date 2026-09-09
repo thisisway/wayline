@@ -479,6 +479,7 @@ export interface NavList {
 export interface NavDoc {
   id: string;
   title: string;
+  icon: string | null;
 }
 export interface NavFolder {
   id: string;
@@ -559,7 +560,7 @@ export async function getWorkspaceNav(
             .map((l) => ({ id: l.id, name: l.name })),
           docs: spaceDocs
             .filter((d) => d.folderId === f.id)
-            .map((d) => ({ id: d.id, title: d.title })),
+            .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),
         }))
         // Guest: esconde pastas vazias.
         .filter((f) => !allowed || f.lists.length > 0);
@@ -570,7 +571,9 @@ export async function getWorkspaceNav(
         icon: s.icon,
         folders: navFolders,
         lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name })),
-        docs: spaceDocs.filter((d) => !d.folderId).map((d) => ({ id: d.id, title: d.title })),
+        docs: spaceDocs
+          .filter((d) => !d.folderId)
+          .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),
         hasAccess: spacesWithAccess.has(s.id),
       };
     });

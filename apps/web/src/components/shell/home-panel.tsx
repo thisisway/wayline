@@ -204,7 +204,11 @@ export function HomePanel({
           indent,
         )}
       >
-        <FileText className="size-3.5 shrink-0 text-subtle" />
+        {doc.icon ? (
+          <span className="shrink-0 text-[13px] leading-none">{doc.icon}</span>
+        ) : (
+          <FileText className="size-3.5 shrink-0 text-subtle" />
+        )}
         <span className="min-w-0 flex-1 truncate text-left">{doc.title}</span>
       </button>
     );
