@@ -74,7 +74,7 @@ function LogoSlot({
       <div
         className={cn(
           "mb-2 flex h-16 items-center justify-center rounded-md border",
-          dark ? "border-white/10 bg-[#0B1023]" : "border-black/10 bg-[#F7F9FC]",
+          dark ? "border-white/10 bg-[#181818]" : "border-black/10 bg-[#F7F9FC]",
         )}
       >
         {value ? (
@@ -249,7 +249,7 @@ export function BrandingPanel({ initial }: { initial: PlatformBranding }) {
             logo.
           </p>
           <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0B1023]">
+            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#181818]">
               {icon ? (
                 <img src={icon} alt="Ícone" className="size-full object-contain" />
               ) : (

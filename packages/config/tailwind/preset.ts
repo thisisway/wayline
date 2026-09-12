@@ -21,8 +21,8 @@ const preset: Omit<Config, "content"> = {
           40: "#7FABFF",
           80: "#1349C0",
         },
-        // Dark Way
-        dark: "#0B1023",
+        // Overlay/scrim neutro (backdrop de modais) — sem azul.
+        dark: "#0D0D0D",
         // Semânticas
         success: "#17C86A",
         warning: "#FFB800",

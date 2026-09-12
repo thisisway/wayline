@@ -23,13 +23,13 @@
 }
 
 .dark {
-  /* Dark Way */
-  --wc-canvas: 11 16 35; /* #0B1023 */
-  --wc-surface: 17 24 45; /* #11182D */
-  --wc-elevated: 24 32 56; /* #182038 */
-  --wc-border: 39 48 74; /* #27304A */
-  --wc-ring: 127 171 255; /* brand-40 */
-  --wc-foreground: 237 241 249; /* #EDF1F9 */
-  --wc-muted: 148 163 184; /* #94A3B8 */
-  --wc-subtle: 100 116 139; /* #64748B */
+  /* Dark neutro (charcoal, estilo Photoshop) — sem tom azulado. */
+  --wc-canvas: 24 24 24; /* #181818 */
+  --wc-surface: 31 31 31; /* #1F1F1F */
+  --wc-elevated: 43 43 43; /* #2B2B2B */
+  --wc-border: 58 58 58; /* #3A3A3A */
+  --wc-ring: 127 171 255; /* brand-40 (acento azul no foco) */
+  --wc-foreground: 226 226 226; /* #E2E2E2 */
+  --wc-muted: 156 156 156; /* #9C9C9C */
+  --wc-subtle: 112 112 112; /* #707070 */
 }
