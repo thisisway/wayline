@@ -160,7 +160,7 @@ export function RichTextEditor({
         onKeyDown={onKeyDown}
         onBlur={() => setTimeout(() => setMenu(null), 120)}
         className={cn(
-          "min-h-[7rem] w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-ui text-foreground transition-colors hover:bg-elevated/60 focus-visible:border-border focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "min-h-[7rem] w-full rounded-md bg-transparent px-2 py-1.5 text-ui text-foreground transition-colors hover:bg-elevated/40 focus:outline-none focus-visible:outline-none",
           "[&:empty]:before:pointer-events-none [&:empty]:before:text-subtle [&:empty]:before:content-[attr(data-ph)]",
           "[&_h1]:mb-1 [&_h1]:text-h3 [&_h1]:font-bold [&_h2]:mb-1 [&_h2]:text-ui [&_h2]:font-bold [&_h3]:font-semibold",
           "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
