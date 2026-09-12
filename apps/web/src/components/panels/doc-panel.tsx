@@ -26,12 +26,14 @@ export function DocPanel({
   listId: string;
   listName: string;
 }) {
-  const [open, setOpen] = React.useState(true);
+  // Começa minimizado; o usuário abre com o clique no pill "Brief".
+  const [open, setOpen] = React.useState(false);
   const [doc, setDoc] = React.useState<DocDTO | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [editing, setEditing] = React.useState(false);
 
   React.useEffect(() => {
+    if (!open) return; // carrega o brief só ao abrir
     let alive = true;
     setLoading(true);
     getDocAction(orgId, listId).then((d) => {
@@ -42,7 +44,7 @@ export function DocPanel({
     return () => {
       alive = false;
     };
-  }, [orgId, listId]);
+  }, [open, orgId, listId]);
 
   if (!open) {
     return (

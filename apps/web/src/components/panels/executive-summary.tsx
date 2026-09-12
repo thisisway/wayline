@@ -12,7 +12,8 @@ function startOfToday(): number {
 }
 
 export function ExecutiveSummaryPanel({ data }: { data: BoardData }) {
-  const [open, setOpen] = React.useState(true);
+  // Começa minimizado; o usuário abre com o clique no pill.
+  const [open, setOpen] = React.useState(false);
   const [bullets, setBullets] = React.useState<string[] | null>(null);
 
   const metrics = React.useMemo(() => {
@@ -31,13 +32,14 @@ export function ExecutiveSummaryPanel({ data }: { data: BoardData }) {
   }, [data]);
 
   React.useEffect(() => {
+    if (!open) return; // só gera insights quando o usuário abre o painel
     let alive = true;
     setBullets(null);
     boardInsightsAction(data.orgId, data.listId).then((b) => alive && setBullets(b));
     return () => {
       alive = false;
     };
-  }, [data.orgId, data.listId]);
+  }, [open, data.orgId, data.listId]);
 
   // Fallback (IA desligada/sem retorno): insights simples calculados.
   const fallback = React.useMemo(() => {
