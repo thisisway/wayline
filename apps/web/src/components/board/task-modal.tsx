@@ -195,6 +195,7 @@ export function TaskModal({
   const [descBusy, setDescBusy] = React.useState(false);
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle");
   const firstRender = React.useRef(true);
+  const dirtyRef = React.useRef(false); // mudança pendente ainda não persistida
   const coverRef = React.useRef<HTMLInputElement>(null);
 
   // Salvamento automático (edição): debounce das mudanças do form, sem fechar.
@@ -205,13 +206,26 @@ export function TaskModal({
       return;
     }
     if (!form.title.trim() || !form.statusId) return; // não persiste estado inválido
+    dirtyRef.current = true;
     setSaveState("saving");
     const t = setTimeout(() => {
       onAutosave({ ...form, title: form.title.trim() });
+      dirtyRef.current = false;
       setSaveState("saved");
     }, 600);
     return () => clearTimeout(t);
   }, [form, mode, onAutosave]);
+
+  /** Fecha descarregando (flush) qualquer alteração pendente do autosave. */
+  function flushAndClose() {
+    if (mode === "edit" && onAutosave && dirtyRef.current && form.title.trim() && form.statusId) {
+      onAutosave({ ...form, title: form.title.trim() });
+      dirtyRef.current = false;
+    }
+    onClose();
+  }
+  const closeRef = React.useRef(flushAndClose);
+  closeRef.current = flushAndClose;
 
   async function onPickCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -225,11 +239,11 @@ export function TaskModal({
   }
 
   React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     window.addEventListener("keydown", onKey);
     aiEnabledAction().then(setAi);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   async function writeDesc() {
     if (descBusy || !form.title.trim()) return;
@@ -256,7 +270,7 @@ export function TaskModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 p-4 animate-fade-in"
-      onClick={onClose}
+      onClick={flushAndClose}
     >
       <div
         role="dialog"
@@ -273,7 +287,7 @@ export function TaskModal({
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={flushAndClose}
             aria-label="Fechar"
             className="flex size-7 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
           >
