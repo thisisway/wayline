@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Download, FileText, Send, X } from "lucide-react"
 import type { AttachmentDTO, PublicCommentDTO } from "@wayline/db";
 import { Button, Input, cn } from "@wayline/ui";
 import type { TaskCard as TaskCardType } from "@/mock/types";
+import { stripHtml } from "@/lib/html";
 import {
   addPublicCommentAction,
   listPublicAttachmentsAction,
@@ -121,8 +122,8 @@ export function PublicTaskPanel({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
-          {card.description && (
-            <p className="whitespace-pre-wrap text-ui text-muted">{card.description}</p>
+          {stripHtml(card.description) && (
+            <p className="whitespace-pre-wrap text-ui text-muted">{stripHtml(card.description)}</p>
           )}
           {(card.dueLabel || card.tags.length > 0) && (
             <div className="flex flex-wrap items-center gap-2">

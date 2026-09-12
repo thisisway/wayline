@@ -36,6 +36,7 @@ import { DependenciesSection } from "@/components/board/dependencies-section";
 import { TimeTrackingSection } from "@/components/board/time-tracking-section";
 import { MentionComposer, renderWithMentions } from "@/components/board/mention-composer";
 import { CustomFieldsSection } from "@/components/board/custom-fields-section";
+import { RichTextEditor } from "@/components/board/rich-text-editor";
 import {
   addCommentAction,
   addSubtaskAction,
@@ -535,13 +536,10 @@ export function TaskModal({
                   </button>
                 )}
               </div>
-              <textarea
-                id="task-desc"
+              <RichTextEditor
                 value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="Adicione detalhes, contexto, links…"
-                rows={4}
-                className="w-full resize-y rounded-md border border-transparent bg-transparent px-2 py-1.5 text-ui text-foreground placeholder:text-subtle transition-colors hover:bg-elevated/60 focus-visible:border-border focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onChange={(html) => set("description", html)}
+                placeholder="Digite / para blocos, ou escreva detalhes, contexto, links…"
               />
             </div>
           </form>
