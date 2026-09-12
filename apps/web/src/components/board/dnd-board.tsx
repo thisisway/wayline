@@ -535,6 +535,7 @@ const COLUMN_COLORS = [
   "#1D66FF",
   "#17C86A",
   "#FFB800",
+  "#F97316",
   "#FF3B30",
   "#7C5CFF",
   "#0EA5E9",
@@ -593,8 +594,14 @@ function Column({
   }
 
   return (
-    <section className="flex w-80 shrink-0 flex-col">
-      <div className="mb-3 flex items-center gap-2">
+    <section
+      className="flex w-80 shrink-0 flex-col rounded-xl p-2"
+      style={{ backgroundColor: `${column.color}0d` }}
+    >
+      <div
+        className="mb-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+        style={{ backgroundColor: `${column.color}26` }}
+      >
         <span className="size-2.5 rounded-full" style={{ backgroundColor: column.color }} />
         {editing ? (
           <Input
