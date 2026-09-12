@@ -46,6 +46,15 @@ export function useTaskEditor(data: BoardData | null) {
     }
   }
 
+  const handleAutosave = React.useCallback(
+    async (input: TaskFormInput) => {
+      if (!state || state.mode !== "edit" || !data) return;
+      await updateTaskAction(data.orgId, state.task.id, input).catch(() => {});
+      void pokeList(data.listId);
+    },
+    [state, data?.orgId, data?.listId],
+  );
+
   async function handleDelete() {
     if (!data || state?.mode !== "edit") return;
     setSubmitting(true);
@@ -108,6 +117,7 @@ export function useTaskEditor(data: BoardData | null) {
         submitting={submitting}
         onClose={() => setState(null)}
         onSubmit={handleSubmit}
+        onAutosave={handleAutosave}
         onDelete={handleDelete}
         onDuplicate={state.mode === "edit" ? handleDuplicate : undefined}
         onSubtaskCountChange={() => {

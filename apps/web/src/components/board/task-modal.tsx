@@ -10,6 +10,7 @@ import {
   Copy,
   Flag,
   ImageIcon,
+  Pencil,
   Plus,
   Repeat,
   Sparkles,
@@ -41,6 +42,7 @@ import {
   assignCommentAction,
   deleteCommentAction,
   deleteSubtaskAction,
+  renameSubtaskAction,
   listActivityAction,
   listCommentsAction,
   listSubtasksAction,
@@ -146,6 +148,8 @@ export interface TaskModalProps {
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (input: TaskFormInput) => void;
+  /** Salvamento automático (edição) — persiste sem fechar o modal. */
+  onAutosave?: (input: TaskFormInput) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onCommentCountChange?: (count: number) => void;
@@ -171,6 +175,7 @@ export function TaskModal({
   submitting,
   onClose,
   onSubmit,
+  onAutosave,
   onDelete,
   onDuplicate,
   onCommentCountChange,
@@ -188,7 +193,25 @@ export function TaskModal({
     setForm((f) => ({ ...f, [key]: value }));
   const [ai, setAi] = React.useState(false);
   const [descBusy, setDescBusy] = React.useState(false);
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle");
+  const firstRender = React.useRef(true);
   const coverRef = React.useRef<HTMLInputElement>(null);
+
+  // Salvamento automático (edição): debounce das mudanças do form, sem fechar.
+  React.useEffect(() => {
+    if (mode !== "edit" || !onAutosave) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (!form.title.trim() || !form.statusId) return; // não persiste estado inválido
+    setSaveState("saving");
+    const t = setTimeout(() => {
+      onAutosave({ ...form, title: form.title.trim() });
+      setSaveState("saved");
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form, mode, onAutosave]);
 
   async function onPickCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -508,14 +531,23 @@ export function TaskModal({
               />
             </div>
           </form>
+          {/* Subtarefas — abaixo da Descrição (coluna de conteúdo). */}
+          {mode === "edit" && taskId && (
+            <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />
+          )}
           </div>
 
           {mode === "edit" && taskId && (
             <div className="lg:w-[42%] lg:min-h-0 lg:overflow-y-auto">
               <CustomFieldsSection orgId={orgId} taskId={taskId} />
 
+          {/* Anexos — no topo da coluna lateral (lugar das antigas Subtarefas). */}
           {mode === "edit" && taskId && (
-            <SubtasksSection orgId={orgId} taskId={taskId} onCountsChange={onSubtaskCountChange} />
+            <AttachmentsSection
+              orgId={orgId}
+              taskId={taskId}
+              onCountChange={onAttachmentCountChange}
+            />
           )}
 
           {mode === "edit" && taskId && (
@@ -528,14 +560,6 @@ export function TaskModal({
               taskId={taskId}
               estimateMinutes={estimateMinutesOf(form.estimateHours)}
               onTrackedChange={onTrackedChange}
-            />
-          )}
-
-          {mode === "edit" && taskId && (
-            <AttachmentsSection
-              orgId={orgId}
-              taskId={taskId}
-              onCountChange={onAttachmentCountChange}
             />
           )}
 
@@ -573,13 +597,26 @@ export function TaskModal({
           ) : (
             <span />
           )}
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button type="submit" form="task-form" disabled={!canSave}>
-              {submitting ? "Salvando…" : mode === "create" ? "Criar" : "Salvar"}
-            </Button>
+          <div className="flex items-center gap-3">
+            {mode === "edit" && saveState !== "idle" && (
+              <span className="text-dense text-subtle">
+                {saveState === "saving" ? "Salvando…" : "Salvo"}
+              </span>
+            )}
+            {mode === "edit" ? (
+              <Button type="submit" form="task-form" disabled={!canSave}>
+                {submitting ? "Salvando…" : "Concluído"}
+              </Button>
+            ) : (
+              <>
+                <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+                  Cancelar
+                </Button>
+                <Button type="submit" form="task-form" disabled={!canSave}>
+                  {submitting ? "Criando…" : "Criar"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -688,6 +725,15 @@ function SubtasksSection({
   const [busy, setBusy] = React.useState(false);
   const [ai, setAi] = React.useState(false);
   const [aiBusy, setAiBusy] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+
+  async function rename(id: string, text: string) {
+    const t = text.trim();
+    setEditingId(null);
+    if (!t) return;
+    setSubs((cur) => (cur ?? []).map((x) => (x.id === id ? { ...x, title: t } : x)));
+    await renameSubtaskAction(orgId, id, t).catch(() => {});
+  }
 
   React.useEffect(() => {
     let alive = true;
@@ -792,14 +838,37 @@ function SubtasksSection({
               >
                 {s.completed ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
               </button>
-              <span
-                className={cn(
-                  "flex-1 text-ui",
-                  s.completed ? "text-subtle line-through" : "text-foreground",
-                )}
+              {editingId === s.id ? (
+                <input
+                  autoFocus
+                  defaultValue={s.title}
+                  onBlur={(e) => rename(s.id, e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") rename(s.id, e.currentTarget.value);
+                    else if (e.key === "Escape") setEditingId(null);
+                  }}
+                  className="flex-1 rounded border border-brand bg-surface px-1.5 py-0.5 text-ui text-foreground focus-visible:outline-none"
+                />
+              ) : (
+                <span
+                  onDoubleClick={() => setEditingId(s.id)}
+                  title="Duplo clique para editar"
+                  className={cn(
+                    "flex-1 cursor-text text-ui",
+                    s.completed ? "text-subtle line-through" : "text-foreground",
+                  )}
+                >
+                  {s.title}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setEditingId(s.id)}
+                aria-label="Editar subtarefa"
+                className="text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
               >
-                {s.title}
-              </span>
+                <Pencil className="size-3.5" />
+              </button>
               <button
                 type="button"
                 onClick={() => remove(s.id)}

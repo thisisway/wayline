@@ -19,3 +19,6 @@ out/
 npm-debug.log*
 pnpm-debug.log*
 coverage/
+
+# graphify knowledge graph outputs
+graphify-out/

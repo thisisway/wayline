@@ -176,6 +176,7 @@ export {
   getSubtasks,
   createSubtask,
   setSubtaskDone,
+  renameSubtask,
   deleteSubtask,
   type Subtask,
 } from "./queries/subtasks";

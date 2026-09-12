@@ -33,6 +33,7 @@ import {
   saveBoardOrder,
   saveBoardOrderLogged,
   setSubtaskDone,
+  renameSubtask,
   setTaskApproval,
   spawnRecurrence,
   updateTask,
@@ -392,5 +393,11 @@ export async function toggleSubtaskAction(
 export async function deleteSubtaskAction(orgId: string, id: string): Promise<void> {
   if (!(await assertMember(orgId))) return;
   await deleteSubtask(orgId, id);
+  revalidatePath("/app");
+}
+
+export async function renameSubtaskAction(orgId: string, id: string, title: string): Promise<void> {
+  if (!title.trim() || !(await assertMember(orgId))) return;
+  await renameSubtask(orgId, id, title);
   revalidatePath("/app");
 }

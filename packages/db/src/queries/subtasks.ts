@@ -49,6 +49,14 @@ export async function setSubtaskDone(
   });
 }
 
+export async function renameSubtask(orgId: string, id: string, title: string): Promise<void> {
+  const t = title.trim();
+  if (!t) return;
+  await withOrg(orgId, async (tx) => {
+    await tx.update(tasks).set({ title: t, updatedAt: new Date() }).where(eq(tasks.id, id));
+  });
+}
+
 export async function deleteSubtask(orgId: string, id: string): Promise<void> {
   await withOrg(orgId, async (tx) => {
     await tx

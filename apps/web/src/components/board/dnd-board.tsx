@@ -280,6 +280,19 @@ export function DndBoard({
     }
   }
 
+  /** Autosave (edição): persiste no board sem fechar o modal. */
+  const handleAutosave = React.useCallback(
+    async (input: TaskFormInput) => {
+      if (!modal || modal.mode !== "edit") return;
+      const dto = await updateTaskAction(orgId, modal.task.id, input).catch(() => null);
+      if (dto) {
+        upsertCard(dto);
+        poke();
+      }
+    },
+    [orgId, modal],
+  );
+
   function updateCommentCount(taskId: string, commentCount: number) {
     commit(
       columnsRef.current.map((c) => ({
@@ -442,6 +455,7 @@ export function DndBoard({
           submitting={submitting}
           onClose={() => setModal(null)}
           onSubmit={handleSubmit}
+          onAutosave={handleAutosave}
           onDelete={handleDelete}
           onDuplicate={modal.mode === "edit" ? handleDuplicate : undefined}
           onCommentCountChange={
