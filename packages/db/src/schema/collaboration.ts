@@ -772,6 +772,8 @@ export const accessEntries = pgTable(
     secret: text("secret").notNull().default(""),
     /** 'active' | 'inactive' */
     status: text("status").notNull().default("active"),
+    /** Alteração de senha feita? (coluna Done/Not started do Notion) */
+    pwdChanged: boolean("pwd_changed").notNull().default(false),
     note: text("note").notNull().default(""),
     position: integer("position").notNull().default(0),
     ...timestamps,

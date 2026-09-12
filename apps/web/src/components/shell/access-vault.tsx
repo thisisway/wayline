@@ -77,6 +77,12 @@ export function AccessVault({
     patch(r.id, "status", next);
     save(r.id, "status", next);
   }
+  function togglePwd(r: AccessEntryDTO) {
+    if (!isAdmin) return;
+    const next = !r.pwdChanged;
+    setRows((rs) => rs?.map((x) => (x.id === r.id ? { ...x, pwdChanged: next } : x)) ?? rs);
+    void updateAccessEntryAction(orgId, r.id, { pwdChanged: next }).catch(() => {});
+  }
   function copy(text: string, key: string) {
     if (!text) return;
     navigator.clipboard?.writeText(text).then(() => {
@@ -97,7 +103,7 @@ export function AccessVault({
     void reorderAccessEntriesAction(orgId, next.map((r) => r.id)).catch(() => {});
   }
 
-  const cols = isAdmin ? 7 : 5;
+  const cols = isAdmin ? 8 : 6;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -125,6 +131,7 @@ export function AccessVault({
                   <th className="px-3 py-2.5 font-medium">E-mail / Acesso</th>
                   <th className="px-3 py-2.5 font-medium">Senha</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
+                  <th className="px-3 py-2.5 font-medium">Alteração de senha</th>
                   {isAdmin && <th className="w-20 px-2 py-2.5 text-right font-medium">Ações</th>}
                 </tr>
               </thead>
@@ -296,6 +303,30 @@ export function AccessVault({
                             )}
                           />
                           {r.status === "active" ? "Ativa" : "Inativa"}
+                        </button>
+                      </td>
+
+                      {/* Alteração de senha */}
+                      <td className="px-3 py-2 align-middle">
+                        <button
+                          type="button"
+                          onClick={() => togglePwd(r)}
+                          disabled={!isAdmin}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold",
+                            r.pwdChanged
+                              ? "bg-success/15 text-success"
+                              : "bg-warning/15 text-warning",
+                            isAdmin && "cursor-pointer",
+                          )}
+                          title={r.pwdChanged ? "Senha já alterada" : "Alteração pendente"}
+                        >
+                          {r.pwdChanged ? (
+                            <Check className="size-3" />
+                          ) : (
+                            <span className="size-1.5 rounded-full bg-warning" />
+                          )}
+                          {r.pwdChanged ? "Feita" : "Pendente"}
                         </button>
                       </td>
 

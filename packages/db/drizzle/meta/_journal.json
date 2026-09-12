@@ -393,6 +393,13 @@
       "when": 1786895760884,
       "tag": "0055_flimsy_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1789239209091,
+      "tag": "0056_striped_wild_pack",
+      "breakpoints": true
     }
   ]
 }

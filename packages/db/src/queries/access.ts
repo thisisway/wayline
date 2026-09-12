@@ -45,6 +45,7 @@ export interface AccessEntryDTO {
   login: string;
   secret: string;
   status: string;
+  pwdChanged: boolean;
   note: string;
 }
 
@@ -54,6 +55,7 @@ export interface AccessEntryInput {
   login?: string;
   secret?: string;
   status?: string;
+  pwdChanged?: boolean;
   note?: string;
 }
 
@@ -65,6 +67,7 @@ function toDTO(r: typeof accessEntries.$inferSelect): AccessEntryDTO {
     login: r.login,
     secret: decryptSecret(r.secret),
     status: r.status,
+    pwdChanged: r.pwdChanged,
     note: r.note,
   };
 }
@@ -114,6 +117,7 @@ export async function createAccessEntry(
         login: input.login ?? "",
         secret: encryptSecret(input.secret ?? ""),
         status: input.status === "inactive" ? "inactive" : "active",
+        pwdChanged: input.pwdChanged ?? false,
         note: input.note ?? "",
       })
       .returning();
@@ -132,6 +136,7 @@ export async function updateAccessEntry(
   if (input.login !== undefined) set.login = input.login;
   if (input.secret !== undefined) set.secret = encryptSecret(input.secret);
   if (input.status !== undefined) set.status = input.status === "inactive" ? "inactive" : "active";
+  if (input.pwdChanged !== undefined) set.pwdChanged = input.pwdChanged;
   if (input.note !== undefined) set.note = input.note;
   await withOrg(orgId, async (tx) => {
     await tx.update(accessEntries).set(set).where(eq(accessEntries.id, id));

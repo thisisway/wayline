@@ -1,0 +1,1 @@
+ALTER TABLE "access_entries" ADD COLUMN IF NOT EXISTS "pwd_changed" boolean DEFAULT false NOT NULL;
