@@ -509,7 +509,7 @@ export function AppView({
           <FormsPage orgId={activeOrgId} isAdmin={isAdmin} />
         ) : view === "board" ? (
           !data || data.columns.length === 0 ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
               <WelcomeChecklist orgId={activeOrgId} steps={onboardingSteps} />
@@ -532,13 +532,13 @@ export function AppView({
           )
         ) : view === "list" ? (
           !data || data.columns.length === 0 ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <ListView data={filtered!} />
           )
         ) : view === "calendar" ? (
           !data || data.columns.length === 0 ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <CalendarView data={filtered!} />
           )
@@ -546,13 +546,13 @@ export function AppView({
           viewLocked("gantt") ? (
             <UpgradeLock feature="Gráfico de Gantt" plan="Pro" onUpgrade={() => setPlansOpen(true)} />
           ) : !data || data.columns.length === 0 ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <GanttView data={filtered!} />
           )
         ) : view === "chat" ? (
           !data ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <ChatView
               orgId={data.orgId}
@@ -564,7 +564,7 @@ export function AppView({
           viewLocked("mindmap") ? (
             <UpgradeLock feature="Mind Map" plan="Business" onUpgrade={() => setPlansOpen(true)} />
           ) : !data ? (
-            <EmptyBoard />
+            <EmptyBoard canCreate={isAdmin} />
           ) : (
             <MindMapView
               orgId={data.orgId}
@@ -637,17 +637,20 @@ function UpgradeLock({
   );
 }
 
-function EmptyBoard() {
+function EmptyBoard({ canCreate = true }: { canCreate?: boolean }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
       <span className="flex size-12 items-center justify-center rounded-xl bg-elevated text-muted">
         <Database className="size-6" />
       </span>
       <div>
-        <p className="font-display text-h3 font-bold">Seu board está pronto</p>
+        <p className="font-display text-h3 font-bold">
+          {canCreate ? "Seu board está pronto" : "Nada por aqui ainda"}
+        </p>
         <p className="mt-1 max-w-sm text-ui text-muted">
-          Ainda não há uma lista por aqui. Crie um Space e uma lista na barra lateral para começar a
-          adicionar tarefas.
+          {canCreate
+            ? "Ainda não há uma lista por aqui. Crie um Space e uma lista na barra lateral para começar a adicionar tarefas."
+            : "Você ainda não tem listas visíveis neste workspace. Peça a um administrador para te dar acesso a uma lista ou te atribuir a uma tarefa."}
         </p>
       </div>
     </div>
