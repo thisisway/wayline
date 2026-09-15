@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
 import { IconPicker, IconContent } from "@/components/shell/icon-picker";
-import type { NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
+import type { NavAccess, NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
   createFolderAction,
@@ -41,6 +41,12 @@ import {
   switchList,
 } from "@/actions/org";
 import { createSpaceDocAction, moveDocAction } from "@/actions/pages";
+import {
+  createAccessTableAction,
+  deleteAccessTableAction,
+  moveAccessTableAction,
+  renameAccessTableAction,
+} from "@/actions/access";
 import { homeItems } from "@/mock/data";
 import type { HomeItem } from "@/mock/types";
 
@@ -117,7 +123,7 @@ export function HomePanel({
   onOpenAssigned: () => void;
   onOpenReplies: () => void;
   onOpenDoc?: (pageId: string) => void;
-  onOpenAccess?: (spaceId: string, spaceName: string) => void;
+  onOpenAccess?: (tableId: string, name: string) => void;
   /** Selecionou uma lista — volta pro board (reseta a view de docs/relatórios). */
   onSelectList?: () => void;
   isAdmin: boolean;
@@ -133,6 +139,7 @@ export function HomePanel({
   const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
   const [renamingSpace, setRenamingSpace] = React.useState<string | null>(null);
   const [renamingList, setRenamingList] = React.useState<string | null>(null);
+  const [renamingAccess, setRenamingAccess] = React.useState<string | null>(null);
   const [dropTarget, setDropTarget] = React.useState<string | null>(null);
   const [iconPicker, setIconPicker] = React.useState<{
     kind: "space" | "list";
@@ -211,6 +218,19 @@ export function HomePanel({
     if (!window.confirm(`Excluir a lista "${name}" e suas tarefas?`)) return;
     startTransition(() => void deleteListAction(activeOrgId, listId));
   }
+  async function addAccess(spaceId: string, folderId: string | null = null) {
+    const id = await createAccessTableAction(activeOrgId, spaceId, folderId);
+    if (id) onOpenAccess?.(id, "Acessos");
+  }
+  function renameAccessFn(id: string, name: string) {
+    setRenamingAccess(null);
+    const n = name.trim();
+    if (n) startTransition(() => void renameAccessTableAction(activeOrgId, id, n));
+  }
+  function removeAccess(id: string, name: string) {
+    if (!window.confirm(`Excluir o cofre de acessos "${name}" e suas credenciais?`)) return;
+    startTransition(() => void deleteAccessTableAction(activeOrgId, id));
+  }
   /** Drop de uma lista/documento numa pasta (folderId) ou no space (null). */
   function onDropInto(e: React.DragEvent, spaceId: string, folderId: string | null) {
     e.preventDefault();
@@ -221,9 +241,11 @@ export function HomePanel({
       startTransition(() => void moveListToFolderAction(activeOrgId, id, folderId, spaceId));
     } else if (kind === "doc") {
       startTransition(() => void moveDocAction(activeOrgId, id, spaceId, folderId));
+    } else if (kind === "access") {
+      startTransition(() => void moveAccessTableAction(activeOrgId, id, spaceId, folderId));
     }
   }
-  function dragProps(kind: "list" | "doc", id: string) {
+  function dragProps(kind: "list" | "doc" | "access", id: string) {
     if (!isAdmin) return {};
     return {
       draggable: true,
@@ -250,6 +272,53 @@ export function HomePanel({
   }
   function duplicateList(listId: string) {
     startTransition(() => void duplicateListAction(activeOrgId, listId));
+  }
+
+  /** Linha de um cofre de acessos (abre a tabela de credenciais). */
+  function AccessRow({ access, indent }: { access: NavAccess; indent: string }) {
+    return (
+      <div
+        {...dragProps("access", access.id)}
+        className={cn(
+          "group flex h-8 items-center gap-1 rounded-md pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground",
+          indent,
+        )}
+      >
+        {renamingAccess === access.id ? (
+          <input
+            autoFocus
+            defaultValue={access.name}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") renameAccessFn(access.id, e.currentTarget.value);
+              else if (e.key === "Escape") setRenamingAccess(null);
+            }}
+            onBlur={(e) => renameAccessFn(access.id, e.currentTarget.value)}
+            className="h-6 min-w-0 flex-1 rounded border border-brand bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpenAccess?.(access.id, access.name)}
+            onDoubleClick={() => isAdmin && setRenamingAccess(access.id)}
+            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+          >
+            <KeyRound className="size-3.5 shrink-0 text-subtle" />
+            <span className="truncate">{access.name}</span>
+          </button>
+        )}
+        {isAdmin && renamingAccess !== access.id && (
+          <button
+            type="button"
+            onClick={() => removeAccess(access.id, access.name)}
+            aria-label={`Excluir ${access.name}`}
+            title="Excluir cofre de acessos"
+            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
+      </div>
+    );
   }
 
   /** Linha de um documento do space (abre no editor de docs). */
@@ -421,6 +490,18 @@ export function HomePanel({
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                  void addAccess(spaceId, folder.id);
+                }}
+                aria-label={`Novo acesso em ${folder.name}`}
+                title="Novo cofre de acessos na pasta"
+                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              >
+                <KeyRound className="size-3.5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => removeFolder(folder.id)}
                 aria-label={`Excluir pasta ${folder.name}`}
                 title="Excluir pasta (as listas voltam pro space)"
@@ -439,6 +520,9 @@ export function HomePanel({
             {folder.docs.map((doc) => (
               <DocRow key={doc.id} doc={doc} indent="pl-12" />
             ))}
+            {folder.accessTables.map((a) => (
+              <AccessRow key={a.id} access={a} indent="pl-12" />
+            ))}
             {addingListInFolder === folder.id && (
               <div className="pl-12 pr-2 py-0.5">
                 <InlineAdd
@@ -450,6 +534,7 @@ export function HomePanel({
             )}
             {folder.lists.length === 0 &&
               folder.docs.length === 0 &&
+              folder.accessTables.length === 0 &&
               addingListInFolder !== folder.id && (
                 <p className="pl-12 py-1 text-[12px] text-subtle">Pasta vazia</p>
               )}
@@ -650,6 +735,18 @@ export function HomePanel({
                     </button>
                     <button
                       type="button"
+                      onClick={() => {
+                        setCollapsed((s) => ({ ...s, [space.id]: false }));
+                        void addAccess(space.id);
+                      }}
+                      aria-label={`Novo acesso em ${space.name}`}
+                      title="Novo cofre de acessos"
+                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    >
+                      <KeyRound className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => removeSpace(space.id, space.name)}
                       aria-label={`Excluir ${space.name}`}
                       title="Excluir space"
@@ -680,16 +777,9 @@ export function HomePanel({
                   {space.docs.map((doc) => (
                     <DocRow key={doc.id} doc={doc} indent="pl-8" />
                   ))}
-                  {(isAdmin || space.hasAccess) && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenAccess?.(space.id, space.name)}
-                      className="group flex h-8 w-full items-center gap-1.5 rounded-md pl-8 pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground"
-                    >
-                      <KeyRound className="size-3.5 shrink-0 text-subtle" />
-                      <span className="min-w-0 flex-1 truncate text-left">Acessos</span>
-                    </button>
-                  )}
+                  {space.accessTables.map((a) => (
+                    <AccessRow key={a.id} access={a} indent="pl-8" />
+                  ))}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent
@@ -701,6 +791,7 @@ export function HomePanel({
                   {space.folders.length === 0 &&
                     space.lists.length === 0 &&
                     space.docs.length === 0 &&
+                    space.accessTables.length === 0 &&
                     addingListIn !== space.id &&
                     addingFolderIn !== space.id && (
                       <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>

@@ -27,13 +27,13 @@ const editInput =
 
 export function AccessVault({
   orgId,
-  spaceId,
-  spaceName,
+  tableId,
+  name,
   isAdmin,
 }: {
   orgId: string;
-  spaceId: string;
-  spaceName: string;
+  tableId: string;
+  name: string;
   isAdmin: boolean;
 }) {
   const [rows, setRows] = React.useState<AccessEntryDTO[] | null>(null);
@@ -44,10 +44,10 @@ export function AccessVault({
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    listAccessEntriesAction(orgId, spaceId)
+    listAccessEntriesAction(orgId, tableId)
       .then(setRows)
       .catch(() => setRows([]));
-  }, [orgId, spaceId]);
+  }, [orgId, tableId]);
 
   function patch(id: string, field: keyof AccessEntryDTO, value: string) {
     setRows((rs) => rs?.map((r) => (r.id === id ? { ...r, [field]: value } : r)) ?? rs);
@@ -59,7 +59,7 @@ export function AccessVault({
   async function addRow() {
     if (busy) return;
     setBusy(true);
-    const dto = await createAccessEntryAction(orgId, spaceId, {}).catch(() => null);
+    const dto = await createAccessEntryAction(orgId, tableId, {}).catch(() => null);
     setBusy(false);
     if (dto) {
       setRows((rs) => [...(rs ?? []), dto]);
@@ -114,7 +114,7 @@ export function AccessVault({
           </span>
           <div>
             <h1 className="font-display text-h2 font-bold text-foreground">Central de Acessos</h1>
-            <p className="text-dense text-muted">{spaceName}</p>
+            <p className="text-dense text-muted">{name}</p>
           </div>
         </div>
 

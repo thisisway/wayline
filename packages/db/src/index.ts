@@ -23,6 +23,7 @@ export {
   type NavFolder,
   type NavList,
   type NavDoc,
+  type NavAccess,
 } from "./queries/board";
 export {
   getUserByEmail,
@@ -68,8 +69,14 @@ export {
   updateAccessEntry,
   deleteAccessEntry,
   reorderAccessEntries,
+  listAccessTables,
+  createAccessTable,
+  renameAccessTable,
+  moveAccessTable,
+  deleteAccessTable,
   type AccessEntryDTO,
   type AccessEntryInput,
+  type AccessTableDTO,
 } from "./queries/access";
 export {
   listIntegrations,

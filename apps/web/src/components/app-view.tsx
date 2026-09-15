@@ -128,7 +128,7 @@ export function AppView({
   const [, startTransition] = React.useTransition();
   const [view, setView] = React.useState("board");
   const [docId, setDocId] = React.useState<string | null>(null);
-  const [accessSpace, setAccessSpace] = React.useState<{ id: string; name: string } | null>(null);
+  const [accessTable, setAccessTable] = React.useState<{ id: string; name: string } | null>(null);
   const [recents, setRecents] = React.useState<RecentTask[]>([]);
   React.useEffect(() => {
     if (view === "home") setRecents(getRecentTasks());
@@ -343,7 +343,7 @@ export function AppView({
             setView("docs");
           }}
           onOpenAccess={(id, name) => {
-            setAccessSpace({ id, name });
+            setAccessTable({ id, name });
             setView("access");
           }}
           onSelectList={() => {
@@ -627,8 +627,8 @@ export function AppView({
         ) : view === "access" ? (
           <AccessVault
             orgId={activeOrgId}
-            spaceId={accessSpace?.id ?? ""}
-            spaceName={accessSpace?.name ?? ""}
+            tableId={accessTable?.id ?? ""}
+            name={accessTable?.name ?? ""}
             isAdmin={isAdmin}
           />
         ) : view === "docs" ? (

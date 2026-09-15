@@ -758,6 +758,30 @@ export const integrations = pgTable(
  * ponytail: senha em texto plano no banco (como no Notion do usuário); mascarada na UI.
  * Cifrar em repouso se virar requisito.
  */
+/**
+ * Tabela de acessos (o "cofre") — um nó criável/movível na árvore, como um
+ * documento. Ancorada num space e opcionalmente numa pasta. COM RLS.
+ */
+export const accessTables = pgTable(
+  "access_tables",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    spaceId: uuid("space_id").notNull(),
+    folderId: uuid("folder_id"),
+    name: text("name").notNull().default("Acessos"),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+    ...softDelete,
+  },
+  (t) => [
+    index("access_tables_org_idx").on(t.orgId),
+    index("access_tables_space_idx").on(t.spaceId),
+  ],
+);
+
 export const accessEntries = pgTable(
   "access_entries",
   {
@@ -766,6 +790,8 @@ export const accessEntries = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     spaceId: uuid("space_id").notNull(),
+    /** Cofre (access_tables) ao qual a credencial pertence. */
+    tableId: uuid("table_id"),
     name: text("name").notNull().default("Acesso"),
     url: text("url").notNull().default(""),
     login: text("login").notNull().default(""),

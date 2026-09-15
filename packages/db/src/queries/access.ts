@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { withOrg } from "../client";
-import { accessEntries } from "../schema";
+import { accessEntries, accessTables } from "../schema";
 
 /**
  * Criptografia em repouso das senhas (AES-256-GCM), habilitada pela env
@@ -72,11 +72,11 @@ function toDTO(r: typeof accessEntries.$inferSelect): AccessEntryDTO {
   };
 }
 
-export async function listAccessEntries(orgId: string, spaceId: string): Promise<AccessEntryDTO[]> {
+export async function listAccessEntries(orgId: string, tableId: string): Promise<AccessEntryDTO[]> {
   try {
     return await withOrg(orgId, async (tx) => {
       const rows = await tx.query.accessEntries.findMany({
-        where: and(eq(accessEntries.spaceId, spaceId), isNull(accessEntries.deletedAt)),
+        where: and(eq(accessEntries.tableId, tableId), isNull(accessEntries.deletedAt)),
         orderBy: [asc(accessEntries.position), asc(accessEntries.createdAt)],
       });
       return rows.map(toDTO);
@@ -86,32 +86,86 @@ export async function listAccessEntries(orgId: string, spaceId: string): Promise
   }
 }
 
-/** Spaces (da org) que têm ao menos um acesso — para exibir o nó na árvore. */
-export async function spacesWithAccess(orgId: string): Promise<Set<string>> {
+// --- Cofres (access_tables) ------------------------------------------------
+
+export interface AccessTableDTO {
+  id: string;
+  name: string;
+  spaceId: string;
+  folderId: string | null;
+}
+
+/** Todos os cofres da org (para montar a árvore da sidebar). */
+export async function listAccessTables(orgId: string): Promise<AccessTableDTO[]> {
   try {
     return await withOrg(orgId, async (tx) => {
-      const rows = await tx.query.accessEntries.findMany({
-        columns: { spaceId: true },
-        where: isNull(accessEntries.deletedAt),
+      const rows = await tx.query.accessTables.findMany({
+        where: isNull(accessTables.deletedAt),
+        orderBy: [asc(accessTables.position), asc(accessTables.createdAt)],
       });
-      return new Set(rows.map((r) => r.spaceId));
+      return rows.map((r) => ({ id: r.id, name: r.name, spaceId: r.spaceId, folderId: r.folderId }));
     });
   } catch {
-    return new Set();
+    return [];
   }
+}
+
+export async function createAccessTable(
+  orgId: string,
+  spaceId: string,
+  folderId: string | null = null,
+  name = "Acessos",
+): Promise<string | null> {
+  return withOrg(orgId, async (tx) => {
+    const [row] = await tx
+      .insert(accessTables)
+      .values({ orgId, spaceId, folderId, name: name.trim() || "Acessos" })
+      .returning({ id: accessTables.id });
+    return row?.id ?? null;
+  });
+}
+
+export async function renameAccessTable(orgId: string, id: string, name: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(accessTables).set({ name: name.trim() || "Acessos" }).where(eq(accessTables.id, id));
+  });
+}
+
+/** Move o cofre para outra pasta/space. */
+export async function moveAccessTable(
+  orgId: string,
+  id: string,
+  spaceId: string,
+  folderId: string | null,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(accessTables).set({ spaceId, folderId }).where(eq(accessTables.id, id));
+  });
+}
+
+/** Exclui (soft) o cofre e suas credenciais. */
+export async function deleteAccessTable(orgId: string, id: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const now = new Date();
+    await tx.update(accessEntries).set({ deletedAt: now }).where(eq(accessEntries.tableId, id));
+    await tx.update(accessTables).set({ deletedAt: now }).where(eq(accessTables.id, id));
+  });
 }
 
 export async function createAccessEntry(
   orgId: string,
-  spaceId: string,
+  tableId: string,
   input: AccessEntryInput,
 ): Promise<AccessEntryDTO | null> {
   return withOrg(orgId, async (tx) => {
+    const table = await tx.query.accessTables.findFirst({ where: eq(accessTables.id, tableId) });
+    if (!table) return null;
     const [row] = await tx
       .insert(accessEntries)
       .values({
         orgId,
-        spaceId,
+        spaceId: table.spaceId,
+        tableId,
         name: input.name?.trim() || "Acesso",
         url: input.url ?? "",
         login: input.login ?? "",

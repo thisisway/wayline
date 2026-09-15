@@ -1,7 +1,7 @@
 import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg, type Tx } from "../client";
 import {
-  accessEntries,
+  accessTables,
   attachments,
   clients,
   comments,
@@ -484,11 +484,16 @@ export interface NavDoc {
   title: string;
   icon: string | null;
 }
+export interface NavAccess {
+  id: string;
+  name: string;
+}
 export interface NavFolder {
   id: string;
   name: string;
   lists: NavList[];
   docs: NavDoc[];
+  accessTables: NavAccess[];
 }
 export interface NavSpace {
   id: string;
@@ -501,8 +506,8 @@ export interface NavSpace {
   lists: NavList[];
   /** Documentos soltos (sem pasta) do space. */
   docs: NavDoc[];
-  /** Tem ao menos uma credencial na Central de Acessos deste space. */
-  hasAccess: boolean;
+  /** Cofres de acesso soltos (sem pasta) do space. */
+  accessTables: NavAccess[];
 }
 
 /**
@@ -528,14 +533,13 @@ export async function getWorkspaceNav(
       where: isNull(folders.deletedAt),
       orderBy: [asc(folders.createdAt)],
     });
-    // Spaces com credenciais na Central de Acessos (guests não veem).
-    const accessRows = allowed
+    // Cofres de acesso (nós na árvore) — guests não veem.
+    const ats = allowed
       ? []
-      : await tx.query.accessEntries.findMany({
-          columns: { spaceId: true },
-          where: isNull(accessEntries.deletedAt),
+      : await tx.query.accessTables.findMany({
+          where: isNull(accessTables.deletedAt),
+          orderBy: [asc(accessTables.position), asc(accessTables.createdAt)],
         });
-    const spacesWithAccess = new Set(accessRows.map((r) => r.spaceId));
     // Documentos ancorados num space (top-level, compartilhados). Guests não veem docs.
     const ds = allowed
       ? []
@@ -553,6 +557,7 @@ export async function getWorkspaceNav(
         l.spaceId === s.id && (!allowed || allowed.has(l.id));
       const spaceLists = ls.filter(visible);
       const spaceDocs = ds.filter((d) => d.spaceId === s.id);
+      const spaceAccess = ats.filter((a) => a.spaceId === s.id);
       const navFolders = fs
         .filter((f) => f.spaceId === s.id)
         .map((f) => ({
@@ -564,6 +569,9 @@ export async function getWorkspaceNav(
           docs: spaceDocs
             .filter((d) => d.folderId === f.id)
             .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),
+          accessTables: spaceAccess
+            .filter((a) => a.folderId === f.id)
+            .map((a) => ({ id: a.id, name: a.name })),
         }))
         // Guest: esconde pastas vazias.
         .filter((f) => !allowed || f.lists.length > 0);
@@ -577,7 +585,9 @@ export async function getWorkspaceNav(
         docs: spaceDocs
           .filter((d) => !d.folderId)
           .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),
-        hasAccess: spacesWithAccess.has(s.id),
+        accessTables: spaceAccess
+          .filter((a) => !a.folderId)
+          .map((a) => ({ id: a.id, name: a.name })),
       };
     });
     return allowed
