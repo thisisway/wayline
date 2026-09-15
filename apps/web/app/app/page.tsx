@@ -86,6 +86,7 @@ export default async function AppPage({
       assignedComments={assignedComments}
       replies={replies}
       listName={data?.listName ?? "Tarefas"}
+      listIcon={data?.listIcon ?? null}
       userName={session.user.name ?? "Usuário"}
       userAvatar={profile?.avatarUrl ?? undefined}
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}

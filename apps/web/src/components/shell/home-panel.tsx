@@ -16,10 +16,12 @@ import {
   PanelLeftClose,
   Plus,
   Reply,
+  Smile,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
+import { IconPicker } from "@/components/shell/icon-picker";
 import type { NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
@@ -30,6 +32,8 @@ import {
   duplicateListAction,
   moveListToFolderAction,
   renameFolderAction,
+  setListIconAction,
+  setSpaceAppearanceAction,
   switchList,
 } from "@/actions/org";
 import { createSpaceDocAction, moveDocAction } from "@/actions/pages";
@@ -124,6 +128,38 @@ export function HomePanel({
   const [templatesOpen, setTemplatesOpen] = React.useState(false);
   const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
   const [dropTarget, setDropTarget] = React.useState<string | null>(null);
+  const [iconPicker, setIconPicker] = React.useState<{
+    kind: "space" | "list";
+    id: string;
+    color?: string;
+    anchor: { x: number; y: number };
+  } | null>(null);
+
+  function openIconPicker(
+    e: React.MouseEvent,
+    kind: "space" | "list",
+    id: string,
+    color?: string,
+  ) {
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setIconPicker({ kind, id, color, anchor: { x: r.left, y: r.bottom + 4 } });
+  }
+  function applyIcon(icon: string | null) {
+    if (!iconPicker) return;
+    const { kind, id } = iconPicker;
+    setIconPicker(null);
+    if (kind === "space") {
+      startTransition(() => void setSpaceAppearanceAction(activeOrgId, id, { icon }));
+    } else {
+      startTransition(() => void setListIconAction(activeOrgId, id, icon));
+    }
+  }
+  function applySpaceColor(color: string) {
+    if (!iconPicker || iconPicker.kind !== "space") return;
+    setIconPicker((p) => (p ? { ...p, color } : p));
+    startTransition(() => void setSpaceAppearanceAction(activeOrgId, iconPicker.id, { color }));
+  }
 
   function selectList(id: string) {
     onSelectList?.(); // sempre volta pro board (mesmo se a lista já for a ativa)
@@ -228,6 +264,21 @@ export function HomePanel({
             : "text-muted hover:bg-elevated hover:text-foreground",
         )}
       >
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={(e) => openIconPicker(e, "list", list.id)}
+            title="Ícone da lista"
+            className={cn(
+              "flex size-5 shrink-0 items-center justify-center rounded text-[13px] leading-none hover:bg-elevated",
+              !list.icon && "text-subtle opacity-0 group-hover:opacity-100",
+            )}
+          >
+            {list.icon ?? <Smile className="size-3.5" />}
+          </button>
+        ) : (
+          list.icon && <span className="shrink-0 text-[13px] leading-none">{list.icon}</span>
+        )}
         <button
           type="button"
           onClick={() => selectList(list.id)}
@@ -455,21 +506,40 @@ export function HomePanel({
                 <button
                   type="button"
                   onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}
-                  className="flex flex-1 items-center gap-2 truncate"
+                  aria-label={isOpen ? "Recolher" : "Expandir"}
+                  className="flex shrink-0 items-center"
                 >
                   <ChevronDown
                     className={cn(
-                      "size-3.5 shrink-0 text-subtle transition-transform",
+                      "size-3.5 text-subtle transition-transform",
                       !isOpen && "-rotate-90",
                     )}
                   />
+                </button>
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={(e) => openIconPicker(e, "space", space.id, space.color)}
+                    title="Ícone e cor do space"
+                    className="flex size-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                    style={{ backgroundColor: space.color }}
+                  >
+                    {space.icon ?? space.name[0]}
+                  </button>
+                ) : (
                   <span
                     className="flex size-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
                     style={{ backgroundColor: space.color }}
                   >
                     {space.icon ?? space.name[0]}
                   </span>
-                  <span className="truncate text-left">{space.name}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}
+                  className="min-w-0 flex-1 truncate text-left"
+                >
+                  {space.name}
                 </button>
                 {isAdmin && (
                   <>
@@ -579,6 +649,18 @@ export function HomePanel({
           activeListId={activeListId}
           isAdmin={isAdmin}
           onClose={() => setTemplatesOpen(false)}
+        />
+      )}
+
+      {iconPicker && (
+        <IconPicker
+          anchor={iconPicker.anchor}
+          color={iconPicker.color}
+          withColors={iconPicker.kind === "space"}
+          onPickEmoji={(e) => applyIcon(e)}
+          onPickColor={applySpaceColor}
+          onRemove={() => applyIcon(null)}
+          onClose={() => setIconPicker(null)}
         />
       )}
     </aside>

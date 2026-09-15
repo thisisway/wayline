@@ -81,6 +81,7 @@ export function AppView({
   assignedComments,
   replies,
   listName,
+  listIcon,
   userName,
   userAvatar,
   isAdmin,
@@ -105,6 +106,7 @@ export function AppView({
   assignedComments: AssignedComment[];
   replies: ReplyDTO[];
   listName: string;
+  listIcon?: string | null;
   userName: string;
   userAvatar?: string;
   isAdmin: boolean;
@@ -476,6 +478,7 @@ export function AppView({
             value={view}
             onValueChange={setView}
             listName={listName}
+            listIcon={listIcon}
             viewers={viewers}
             filters={filters}
             onFiltersChange={setFilters}

@@ -190,6 +190,36 @@ export async function createList(
   });
 }
 
+/** Ícone/cor de um space (personalização). */
+export async function setSpaceAppearance(
+  orgId: string,
+  spaceId: string,
+  patch: { icon?: string | null; color?: string },
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const set: { icon?: string | null; color?: string } = {};
+    if (patch.icon !== undefined) set.icon = patch.icon;
+    if (patch.color !== undefined) set.color = patch.color;
+    if (Object.keys(set).length) await tx.update(spaces).set(set).where(eq(spaces.id, spaceId));
+  });
+}
+
+/** Emoji/ícone de uma lista. */
+export async function setListIcon(orgId: string, listId: string, icon: string | null): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(lists).set({ icon }).where(eq(lists.id, listId));
+  });
+}
+
+/** Emoji/ícone do workspace (org). */
+export async function setOrgIcon(orgId: string, icon: string | null): Promise<void> {
+  const db = getDb();
+  await db
+    .update(organizations)
+    .set({ icon, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId));
+}
+
 /** Renomeia o workspace (org). */
 export async function renameOrg(orgId: string, name: string): Promise<void> {
   const db = getDb();

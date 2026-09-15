@@ -87,6 +87,7 @@ export interface BoardData {
   orgId: string;
   listId: string;
   listName: string;
+  listIcon: string | null;
   columns: BoardColumnDTO[];
   clients: BoardClientDTO[];
   members: BoardMemberDTO[];
@@ -201,7 +202,7 @@ async function resolveList(
 async function buildBoard(
   tx: Tx,
   orgId: string,
-  list: { id: string; name: string },
+  list: { id: string; name: string; icon?: string | null },
   guestUserId: string | null = null,
 ): Promise<Omit<BoardData, "currentUserId">> {
   // Sequencial: uma única conexão na transação.
@@ -361,6 +362,7 @@ async function buildBoard(
     orgId,
     listId: list.id,
     listName: list.name,
+    listIcon: list.icon ?? null,
     columns,
     clients: clientRows.map((c) => ({ id: c.id, name: c.name, color: c.color })),
     members: memberRows.map((m) => ({
@@ -475,6 +477,7 @@ export async function getTaskCard(orgId: string, id: string): Promise<BoardTaskD
 export interface NavList {
   id: string;
   name: string;
+  icon: string | null;
 }
 export interface NavDoc {
   id: string;
@@ -557,7 +560,7 @@ export async function getWorkspaceNav(
           name: f.name,
           lists: spaceLists
             .filter((l) => l.folderId === f.id)
-            .map((l) => ({ id: l.id, name: l.name })),
+            .map((l) => ({ id: l.id, name: l.name, icon: l.icon })),
           docs: spaceDocs
             .filter((d) => d.folderId === f.id)
             .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),
@@ -570,7 +573,7 @@ export async function getWorkspaceNav(
         color: s.color,
         icon: s.icon,
         folders: navFolders,
-        lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name })),
+        lists: spaceLists.filter((l) => !l.folderId).map((l) => ({ id: l.id, name: l.name, icon: l.icon })),
         docs: spaceDocs
           .filter((d) => !d.folderId)
           .map((d) => ({ id: d.id, title: d.title, icon: d.icon })),

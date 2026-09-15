@@ -25,8 +25,10 @@ import {
   createWorkspace,
   deleteWorkspaceAction,
   renameWorkspaceAction,
+  setWorkspaceIconAction,
   switchOrg,
 } from "@/actions/org";
+import { IconPicker } from "@/components/shell/icon-picker";
 import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -178,7 +180,7 @@ function WorkspaceSwitcher({
         className="flex items-center gap-2 rounded-md px-2 h-9 transition-colors hover:bg-elevated"
       >
         <span className="flex size-6 items-center justify-center rounded-md bg-brand font-display text-dense font-bold text-white">
-          {active.name[0]}
+          {active.icon ?? active.name[0]}
         </span>
         <span className="text-ui font-semibold">{active.name}</span>
         <Badge variant="brand" size="sm">
@@ -203,7 +205,7 @@ function WorkspaceSwitcher({
                 )}
               >
                 <span className="flex size-6 items-center justify-center rounded-md bg-brand font-display text-dense font-bold text-white">
-                  {o.name[0]}
+                  {o.icon ?? o.name[0]}
                 </span>
                 <span className="flex-1 truncate text-left font-medium">{o.name}</span>
                 <span className="text-[11px] capitalize text-subtle">{o.role}</span>
@@ -278,6 +280,7 @@ function WorkspaceSwitcher({
         <WorkspaceSettingsModal
           orgId={active.id}
           orgName={active.name}
+          orgIcon={active.icon}
           isOwner={active.role === "owner"}
           canDelete={orgs.length > 1}
           onClose={() => setSettingsOpen(false)}
@@ -290,18 +293,31 @@ function WorkspaceSwitcher({
 function WorkspaceSettingsModal({
   orgId,
   orgName,
+  orgIcon,
   isOwner,
   canDelete,
   onClose,
 }: {
   orgId: string;
   orgName: string;
+  orgIcon: string | null;
   isOwner: boolean;
   canDelete: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [name, setName] = React.useState(orgName);
+  const [icon, setIcon] = React.useState<string | null>(orgIcon);
+  const [pickerAt, setPickerAt] = React.useState<{ x: number; y: number } | null>(null);
+
+  function chooseIcon(next: string | null) {
+    setIcon(next);
+    setPickerAt(null);
+    startWsIcon(next);
+  }
+  function startWsIcon(next: string | null) {
+    void setWorkspaceIconAction(orgId, next).then(() => router.refresh());
+  }
   const [savedMsg, setSavedMsg] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -377,9 +393,20 @@ function WorkspaceSettingsModal({
         <div className="space-y-5 p-5">
           <div className="space-y-1.5">
             <label className="text-label uppercase text-subtle" htmlFor="ws-name">
-              Nome
+              Ícone e nome
             </label>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setPickerAt({ x: r.left, y: r.bottom + 4 });
+                }}
+                title="Escolher ícone"
+                className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand font-display text-ui font-bold text-white"
+              >
+                {icon ?? orgName[0]}
+              </button>
               <Input id="ws-name" value={name} onChange={(e) => setName(e.target.value)} />
               <Button onClick={rename} disabled={busy || !name.trim() || name.trim() === orgName}>
                 Salvar
@@ -387,6 +414,15 @@ function WorkspaceSettingsModal({
             </div>
             {savedMsg && <p className="text-dense text-success">{savedMsg}</p>}
           </div>
+
+          {pickerAt && (
+            <IconPicker
+              anchor={pickerAt}
+              onPickEmoji={(e) => chooseIcon(e)}
+              onRemove={() => chooseIcon(null)}
+              onClose={() => setPickerAt(null)}
+            />
+          )}
 
           {isOwner && (
             <div className="rounded-lg border border-danger/30 bg-danger/5 p-3.5">

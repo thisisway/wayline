@@ -64,6 +64,8 @@ export const lists = pgTable(
     // Cliente opcional na lista (ex.: lista dedicada a um cliente/campanha).
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     name: text("name").notNull(),
+    /** Emoji/ícone opcional da lista (personalização). */
+    icon: text("icon"),
     ...timestamps,
     ...softDelete,
   },

@@ -11,6 +11,9 @@ import {
   createOrg,
   renameOrg,
   softDeleteOrg,
+  setSpaceAppearance,
+  setListIcon,
+  setOrgIcon,
   createSpace,
   deleteFolder,
   deleteOrgTemplate,
@@ -82,6 +85,35 @@ export async function switchList(listId: string): Promise<void> {
 export async function createSpaceAction(orgId: string, name: string): Promise<void> {
   if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   await createSpace(orgId, name);
+  revalidatePath("/app");
+}
+
+/** Personaliza o ícone/cor de um space. */
+export async function setSpaceAppearanceAction(
+  orgId: string,
+  spaceId: string,
+  patch: { icon?: string | null; color?: string },
+): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await setSpaceAppearance(orgId, spaceId, patch);
+  revalidatePath("/app");
+}
+
+/** Personaliza o emoji/ícone de uma lista. */
+export async function setListIconAction(
+  orgId: string,
+  listId: string,
+  icon: string | null,
+): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await setListIcon(orgId, listId, icon);
+  revalidatePath("/app");
+}
+
+/** Personaliza o emoji/ícone do workspace. */
+export async function setWorkspaceIconAction(orgId: string, icon: string | null): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await setOrgIcon(orgId, icon);
   revalidatePath("/app");
 }
 

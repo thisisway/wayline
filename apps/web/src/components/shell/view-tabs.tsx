@@ -64,6 +64,7 @@ export function ViewTabs({
   value,
   onValueChange,
   listName,
+  listIcon,
   viewers,
   filters,
   onFiltersChange,
@@ -82,6 +83,7 @@ export function ViewTabs({
   value: string;
   onValueChange: (v: string) => void;
   listName: string;
+  listIcon?: string | null;
   viewers: Viewer[];
   filters: BoardFilters;
   onFiltersChange: (f: BoardFilters) => void;
@@ -100,12 +102,18 @@ export function ViewTabs({
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       <div className="flex shrink-0 items-center gap-2">
-        <span
-          className="flex size-5 items-center justify-center rounded text-[10px] font-bold text-white"
-          style={{ backgroundColor: mockClients.acme.color }}
-        >
-          {listName[0]?.toUpperCase() ?? "L"}
-        </span>
+        {listIcon ? (
+          <span className="flex size-5 items-center justify-center text-[15px] leading-none">
+            {listIcon}
+          </span>
+        ) : (
+          <span
+            className="flex size-5 items-center justify-center rounded text-[10px] font-bold text-white"
+            style={{ backgroundColor: mockClients.acme.color }}
+          >
+            {listName[0]?.toUpperCase() ?? "L"}
+          </span>
+        )}
         <span className="max-w-[10rem] truncate text-ui font-semibold">{listName}</span>
       </div>
 
