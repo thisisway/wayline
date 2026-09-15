@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { BoardClientDTO, BoardMemberDTO } from "@wayline/db";
+import { IconContent } from "@/components/shell/icon-picker";
 import { Avatar, AvatarGroup, Button, Tabs, TabsList, TabsTrigger, cn } from "@wayline/ui";
 import type { PlanFlags } from "@/lib/plans";
 
@@ -103,8 +104,8 @@ export function ViewTabs({
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
       <div className="flex shrink-0 items-center gap-2">
         {listIcon ? (
-          <span className="flex size-5 items-center justify-center text-[15px] leading-none">
-            {listIcon}
+          <span className="flex size-5 items-center justify-center overflow-hidden rounded text-[15px] leading-none">
+            <IconContent icon={listIcon} fallback="" />
           </span>
         ) : (
           <span

@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
-import { IconPicker } from "@/components/shell/icon-picker";
+import { IconPicker, IconContent } from "@/components/shell/icon-picker";
 import type { NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
@@ -270,14 +270,18 @@ export function HomePanel({
             onClick={(e) => openIconPicker(e, "list", list.id)}
             title="Ícone da lista"
             className={cn(
-              "flex size-5 shrink-0 items-center justify-center rounded text-[13px] leading-none hover:bg-elevated",
+              "flex size-5 shrink-0 items-center justify-center overflow-hidden rounded text-[13px] leading-none hover:bg-elevated",
               !list.icon && "text-subtle opacity-0 group-hover:opacity-100",
             )}
           >
-            {list.icon ?? <Smile className="size-3.5" />}
+            {list.icon ? <IconContent icon={list.icon} fallback="" /> : <Smile className="size-3.5" />}
           </button>
         ) : (
-          list.icon && <span className="shrink-0 text-[13px] leading-none">{list.icon}</span>
+          list.icon && (
+            <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden text-[13px] leading-none">
+              <IconContent icon={list.icon} fallback="" />
+            </span>
+          )
         )}
         <button
           type="button"
@@ -521,17 +525,17 @@ export function HomePanel({
                     type="button"
                     onClick={(e) => openIconPicker(e, "space", space.id, space.color)}
                     title="Ícone e cor do space"
-                    className="flex size-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                    className="flex size-4 shrink-0 items-center justify-center overflow-hidden rounded text-[10px] font-bold text-white"
                     style={{ backgroundColor: space.color }}
                   >
-                    {space.icon ?? space.name[0]}
+                    <IconContent icon={space.icon} fallback={space.name[0] ?? "S"} />
                   </button>
                 ) : (
                   <span
-                    className="flex size-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white"
+                    className="flex size-4 shrink-0 items-center justify-center overflow-hidden rounded text-[10px] font-bold text-white"
                     style={{ backgroundColor: space.color }}
                   >
-                    {space.icon ?? space.name[0]}
+                    <IconContent icon={space.icon} fallback={space.name[0] ?? "S"} />
                   </span>
                 )}
                 <button

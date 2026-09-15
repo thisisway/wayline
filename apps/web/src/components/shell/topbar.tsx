@@ -28,7 +28,7 @@ import {
   setWorkspaceIconAction,
   switchOrg,
 } from "@/actions/org";
-import { IconPicker } from "@/components/shell/icon-picker";
+import { IconPicker, IconContent } from "@/components/shell/icon-picker";
 import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -179,8 +179,8 @@ function WorkspaceSwitcher({
         disabled={pending}
         className="flex items-center gap-2 rounded-md px-2 h-9 transition-colors hover:bg-elevated"
       >
-        <span className="flex size-6 items-center justify-center rounded-md bg-brand font-display text-dense font-bold text-white">
-          {active.icon ?? active.name[0]}
+        <span className="flex size-6 items-center justify-center overflow-hidden rounded-md bg-brand font-display text-dense font-bold text-white">
+          <IconContent icon={active.icon} fallback={active.name[0] ?? "W"} />
         </span>
         <span className="text-ui font-semibold">{active.name}</span>
         <Badge variant="brand" size="sm">
@@ -204,8 +204,8 @@ function WorkspaceSwitcher({
                   isActive && "bg-elevated",
                 )}
               >
-                <span className="flex size-6 items-center justify-center rounded-md bg-brand font-display text-dense font-bold text-white">
-                  {o.icon ?? o.name[0]}
+                <span className="flex size-6 items-center justify-center overflow-hidden rounded-md bg-brand font-display text-dense font-bold text-white">
+                  <IconContent icon={o.icon} fallback={o.name[0] ?? "W"} />
                 </span>
                 <span className="flex-1 truncate text-left font-medium">{o.name}</span>
                 <span className="text-[11px] capitalize text-subtle">{o.role}</span>
@@ -403,9 +403,9 @@ function WorkspaceSettingsModal({
                   setPickerAt({ x: r.left, y: r.bottom + 4 });
                 }}
                 title="Escolher ícone"
-                className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand font-display text-ui font-bold text-white"
+                className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand font-display text-ui font-bold text-white"
               >
-                {icon ?? orgName[0]}
+                <IconContent icon={icon} fallback={orgName[0] ?? "W"} />
               </button>
               <Input id="ws-name" value={name} onChange={(e) => setName(e.target.value)} />
               <Button onClick={rename} disabled={busy || !name.trim() || name.trim() === orgName}>
