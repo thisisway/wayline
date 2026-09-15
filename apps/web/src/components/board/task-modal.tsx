@@ -195,6 +195,7 @@ export function TaskModal({
   const [ai, setAi] = React.useState(false);
   const [descBusy, setDescBusy] = React.useState(false);
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle");
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const firstRender = React.useRef(true);
   const dirtyRef = React.useRef(false); // mudança pendente ainda não persistida
   const coverRef = React.useRef<HTMLInputElement>(null);
@@ -594,7 +595,12 @@ export function TaskModal({
           {mode === "edit" ? (
             <div className="flex gap-1">
               {onDelete && (
-                <Button type="button" variant="ghost" onClick={onDelete} disabled={submitting}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={submitting}
+                >
                   <Trash2 className="size-4 text-danger" />
                   Excluir
                 </Button>
@@ -632,6 +638,50 @@ export function TaskModal({
           </div>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/70 p-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirmDelete(false);
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-danger/10 text-danger">
+                <Trash2 className="size-4" />
+              </span>
+              <div>
+                <p className="text-ui font-bold text-foreground">Excluir tarefa?</p>
+                <p className="mt-1 text-dense text-muted">
+                  A tarefa e suas subtarefas serão removidas. Esta ação não pode ser desfeita pela interface.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setConfirmDelete(false)}>
+                Cancelar
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  onDelete?.();
+                }}
+                className="flex items-center gap-1.5 rounded-md bg-danger px-3 h-9 text-ui font-medium text-white transition-colors hover:bg-danger/90"
+              >
+                <Trash2 className="size-4" /> Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

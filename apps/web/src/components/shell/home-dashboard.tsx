@@ -21,8 +21,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { MyTask, NavSpace } from "@wayline/db";
+import { Clock } from "lucide-react";
 import { cn } from "@wayline/ui";
 import { IconContent } from "@/components/shell/icon-picker";
+import type { RecentTask } from "@/lib/recents";
 
 const PRIO: Record<MyTask["priority"], { label: string; color: string }> = {
   urgent: { label: "Urgente", color: "#FF3B30" },
@@ -50,8 +52,10 @@ export function HomeDashboard({
   userName,
   myTasks,
   nav,
+  recents,
   isAdmin,
   onGoToList,
+  onOpenTask,
   onSearch,
   onOpenBrain,
   onOpenComercial,
@@ -62,8 +66,10 @@ export function HomeDashboard({
   userName: string;
   myTasks: MyTask[];
   nav: NavSpace[];
+  recents: RecentTask[];
   isAdmin: boolean;
   onGoToList: (listId: string) => void;
+  onOpenTask: (listId: string, taskId: string) => void;
   onSearch?: () => void;
   onOpenBrain?: () => void;
   onOpenComercial?: () => void;
@@ -153,7 +159,7 @@ export function HomeDashboard({
     return (
       <button
         type="button"
-        onClick={() => onGoToList(t.listId)}
+        onClick={() => onOpenTask(t.listId, t.id)}
         className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-elevated"
       >
         <span
@@ -295,6 +301,31 @@ export function HomeDashboard({
 
           {/* Lateral */}
           <div className="space-y-6">
+            {recents.length > 0 && (
+              <div>
+                <SectionTitle icon={Clock}>Recentes</SectionTitle>
+                <div className="overflow-hidden rounded-xl border border-border bg-surface p-1.5">
+                  {recents.slice(0, 6).map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => onOpenTask(r.listId, r.id)}
+                      className="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-elevated"
+                    >
+                      <Clock className="size-3.5 shrink-0 text-subtle" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-ui text-foreground">{r.title}</span>
+                        {r.listName && (
+                          <span className="block truncate text-[11px] text-subtle">{r.listName}</span>
+                        )}
+                      </span>
+                      <ChevronRight className="size-4 text-subtle opacity-0 transition-opacity group-hover:opacity-100" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <SectionTitle icon={Zap}>Ações rápidas</SectionTitle>
               <div className="grid grid-cols-2 gap-2.5">

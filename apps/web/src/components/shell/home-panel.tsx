@@ -460,7 +460,7 @@ export function HomePanel({
   }
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
+    <aside className="fixed inset-y-0 left-14 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface shadow-2xl lg:static lg:left-auto lg:z-auto lg:shadow-none">
       <div className="flex items-center justify-between px-4 py-3">
         <h1 className="font-display text-h3 font-bold">Home</h1>
         <div className="flex items-center gap-0.5">

@@ -51,6 +51,7 @@ import {
 } from "@/actions/board";
 import { dtoToForm, mapTaskDTO, type TaskFormInput } from "@/lib/board";
 import { pokeList } from "@/actions/live";
+import { pushRecentTask } from "@/lib/recents";
 
 interface UIColumn {
   id: string;
@@ -422,7 +423,15 @@ export function DndBoard({
               canMoveLeft={i > 0}
               canMoveRight={i < columns.length - 1}
               onCreate={() => setModal({ mode: "create", statusId: column.id })}
-              onEdit={(task) => setModal({ mode: "edit", task })}
+              onEdit={(task) => {
+                pushRecentTask({
+                  id: task.id,
+                  title: task.title,
+                  listId: data.listId,
+                  listName: data.listName,
+                });
+                setModal({ mode: "edit", task });
+              }}
               onRename={(name) => renameColumn(column.id, name)}
               onRecolor={(color) => recolorColumn(column.id, color)}
               onSetKind={(kind) => setColumnKind(column.id, kind)}

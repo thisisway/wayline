@@ -66,6 +66,7 @@ import {
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 import { supportAwaitingCountAction } from "@/actions/support";
 import { switchList } from "@/actions/org";
+import { pushRecentTask, getRecentTasks, type RecentTask } from "@/lib/recents";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
 
@@ -128,6 +129,10 @@ export function AppView({
   const [view, setView] = React.useState("board");
   const [docId, setDocId] = React.useState<string | null>(null);
   const [accessSpace, setAccessSpace] = React.useState<{ id: string; name: string } | null>(null);
+  const [recents, setRecents] = React.useState<RecentTask[]>([]);
+  React.useEffect(() => {
+    if (view === "home") setRecents(getRecentTasks());
+  }, [view]);
 
   // Preferência de visualização: abre na última view de board usada (por navegador).
   React.useEffect(() => {
@@ -163,6 +168,10 @@ export function AppView({
   const [supportInitialTicket, setSupportInitialTicket] = React.useState<string | null>(null);
   const [supportAwaiting, setSupportAwaiting] = React.useState(0);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  // No mobile, começa recolhida (a sidebar vira overlay).
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) setSidebarOpen(false);
+  }, []);
   const [plansOpen, setPlansOpen] = React.useState(false);
   const [trialHidden, setTrialHidden] = React.useState(false);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
@@ -183,6 +192,7 @@ export function AppView({
     if (!focusTaskId || !data) return;
     const task = data.columns.flatMap((c) => c.tasks).find((t) => t.id === focusTaskId);
     if (task) {
+      pushRecentTask({ id: task.id, title: task.title, listId: data.listId, listName: data.listName });
       focusEditor.openEdit(task);
       router.replace("/app");
     }
@@ -310,6 +320,12 @@ export function AppView({
         supportBadge={supportAwaiting}
       />
       {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-dark/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      {sidebarOpen && (
         <HomePanel
           nav={nav}
           activeListId={activeListId}
@@ -330,9 +346,10 @@ export function AppView({
             setAccessSpace({ id, name });
             setView("access");
           }}
-          onSelectList={() =>
-            setView((v) => (v === "docs" || v === "access" || v === "home" ? "board" : v))
-          }
+          onSelectList={() => {
+            setView((v) => (v === "docs" || v === "access" || v === "home" ? "board" : v));
+            if (typeof window !== "undefined" && window.innerWidth < 1024) setSidebarOpen(false);
+          }}
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
         />
@@ -507,9 +524,15 @@ export function AppView({
             myTasks={myTasks}
             nav={nav}
             isAdmin={isAdmin}
+            recents={recents}
             onGoToList={(listId) => {
               setView("board");
               startTransition(() => void switchList(listId));
+            }}
+            onOpenTask={async (listId, taskId) => {
+              setView("board");
+              await switchList(listId);
+              router.push(`/app?task=${taskId}`);
             }}
             onSearch={() => setSearchOpen(true)}
             onOpenBrain={() => setBrainOpen(true)}
