@@ -29,9 +29,13 @@ import {
   createListAction,
   createSpaceAction,
   deleteFolderAction,
+  deleteListAction,
+  deleteSpaceAction,
   duplicateListAction,
   moveListToFolderAction,
   renameFolderAction,
+  renameListAction,
+  renameSpaceAction,
   setListIconAction,
   setSpaceAppearanceAction,
   switchList,
@@ -127,6 +131,8 @@ export function HomePanel({
   const [addingListInFolder, setAddingListInFolder] = React.useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = React.useState(false);
   const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
+  const [renamingSpace, setRenamingSpace] = React.useState<string | null>(null);
+  const [renamingList, setRenamingList] = React.useState<string | null>(null);
   const [dropTarget, setDropTarget] = React.useState<string | null>(null);
   const [iconPicker, setIconPicker] = React.useState<{
     kind: "space" | "list";
@@ -186,6 +192,24 @@ export function HomePanel({
     setRenamingFolder(null);
     const n = name.trim();
     if (n) startTransition(() => void renameFolderAction(activeOrgId, folderId, n));
+  }
+  function renameSpaceFn(spaceId: string, name: string) {
+    setRenamingSpace(null);
+    const n = name.trim();
+    if (n) startTransition(() => void renameSpaceAction(activeOrgId, spaceId, n));
+  }
+  function removeSpace(spaceId: string, name: string) {
+    if (!window.confirm(`Excluir o space "${name}" e todas as suas listas?`)) return;
+    startTransition(() => void deleteSpaceAction(activeOrgId, spaceId));
+  }
+  function renameListFn(listId: string, name: string) {
+    setRenamingList(null);
+    const n = name.trim();
+    if (n) startTransition(() => void renameListAction(activeOrgId, listId, n));
+  }
+  function removeList(listId: string, name: string) {
+    if (!window.confirm(`Excluir a lista "${name}" e suas tarefas?`)) return;
+    startTransition(() => void deleteListAction(activeOrgId, listId));
   }
   /** Drop de uma lista/documento numa pasta (folderId) ou no space (null). */
   function onDropInto(e: React.DragEvent, spaceId: string, folderId: string | null) {
@@ -283,23 +307,49 @@ export function HomePanel({
             </span>
           )
         )}
-        <button
-          type="button"
-          onClick={() => selectList(list.id)}
-          className="min-w-0 flex-1 truncate text-left"
-        >
-          {list.name}
-        </button>
-        {isAdmin && (
+        {renamingList === list.id ? (
+          <input
+            autoFocus
+            defaultValue={list.name}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") renameListFn(list.id, e.currentTarget.value);
+              else if (e.key === "Escape") setRenamingList(null);
+            }}
+            onBlur={(e) => renameListFn(list.id, e.currentTarget.value)}
+            className="h-6 min-w-0 flex-1 rounded border border-brand bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none"
+          />
+        ) : (
           <button
             type="button"
-            onClick={() => duplicateList(list.id)}
-            aria-label={`Duplicar ${list.name}`}
-            title="Duplicar lista (estrutura, sem tarefas)"
-            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            onClick={() => selectList(list.id)}
+            onDoubleClick={() => isAdmin && setRenamingList(list.id)}
+            title={isAdmin ? "Duplo clique para renomear" : undefined}
+            className="min-w-0 flex-1 truncate text-left"
           >
-            <Copy className="size-3.5" />
+            {list.name}
           </button>
+        )}
+        {isAdmin && renamingList !== list.id && (
+          <>
+            <button
+              type="button"
+              onClick={() => duplicateList(list.id)}
+              aria-label={`Duplicar ${list.name}`}
+              title="Duplicar lista (estrutura, sem tarefas)"
+              className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            >
+              <Copy className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => removeList(list.id, list.name)}
+              aria-label={`Excluir ${list.name}`}
+              title="Excluir lista"
+              className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </>
         )}
       </div>
     );
@@ -538,14 +588,29 @@ export function HomePanel({
                     <IconContent icon={space.icon} fallback={space.name[0] ?? "S"} />
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}
-                  className="min-w-0 flex-1 truncate text-left"
-                >
-                  {space.name}
-                </button>
-                {isAdmin && (
+                {renamingSpace === space.id ? (
+                  <input
+                    autoFocus
+                    defaultValue={space.name}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") renameSpaceFn(space.id, e.currentTarget.value);
+                      else if (e.key === "Escape") setRenamingSpace(null);
+                    }}
+                    onBlur={(e) => renameSpaceFn(space.id, e.currentTarget.value)}
+                    className="h-6 min-w-0 flex-1 rounded border border-brand bg-surface px-1.5 text-dense font-semibold text-foreground focus-visible:outline-none"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCollapsed((s) => ({ ...s, [space.id]: isOpen }))}
+                    onDoubleClick={() => isAdmin && setRenamingSpace(space.id)}
+                    title={isAdmin ? "Duplo clique para renomear" : undefined}
+                    className="min-w-0 flex-1 truncate text-left"
+                  >
+                    {space.name}
+                  </button>
+                )}
+                {isAdmin && renamingSpace !== space.id && (
                   <>
                     <button
                       type="button"
@@ -582,6 +647,15 @@ export function HomePanel({
                       className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
                     >
                       <Plus className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeSpace(space.id, space.name)}
+                      aria-label={`Excluir ${space.name}`}
+                      title="Excluir space"
+                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
                     </button>
                   </>
                 )}

@@ -14,6 +14,10 @@ import {
   setSpaceAppearance,
   setListIcon,
   setOrgIcon,
+  renameSpace,
+  deleteSpace,
+  renameList,
+  deleteList,
   createSpace,
   deleteFolder,
   deleteOrgTemplate,
@@ -85,6 +89,34 @@ export async function switchList(listId: string): Promise<void> {
 export async function createSpaceAction(orgId: string, name: string): Promise<void> {
   if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
   await createSpace(orgId, name);
+  revalidatePath("/app");
+}
+
+/** Renomeia um space. */
+export async function renameSpaceAction(orgId: string, spaceId: string, name: string): Promise<void> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
+  await renameSpace(orgId, spaceId, name);
+  revalidatePath("/app");
+}
+
+/** Exclui (soft) um space e suas listas. */
+export async function deleteSpaceAction(orgId: string, spaceId: string): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await deleteSpace(orgId, spaceId);
+  revalidatePath("/app");
+}
+
+/** Renomeia uma lista. */
+export async function renameListAction(orgId: string, listId: string, name: string): Promise<void> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return;
+  await renameList(orgId, listId, name);
+  revalidatePath("/app");
+}
+
+/** Exclui (soft) uma lista. */
+export async function deleteListAction(orgId: string, listId: string): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await deleteList(orgId, listId);
   revalidatePath("/app");
 }
 

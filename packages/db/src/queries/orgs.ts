@@ -190,6 +190,36 @@ export async function createList(
   });
 }
 
+/** Renomeia um space. */
+export async function renameSpace(orgId: string, spaceId: string, name: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(spaces).set({ name: name.trim() || "Space" }).where(eq(spaces.id, spaceId));
+  });
+}
+
+/** Exclui (soft) um space e suas listas. */
+export async function deleteSpace(orgId: string, spaceId: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    const now = new Date();
+    await tx.update(lists).set({ deletedAt: now }).where(eq(lists.spaceId, spaceId));
+    await tx.update(spaces).set({ deletedAt: now }).where(eq(spaces.id, spaceId));
+  });
+}
+
+/** Renomeia uma lista. */
+export async function renameList(orgId: string, listId: string, name: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(lists).set({ name: name.trim() || "Lista" }).where(eq(lists.id, listId));
+  });
+}
+
+/** Exclui (soft) uma lista. */
+export async function deleteList(orgId: string, listId: string): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await tx.update(lists).set({ deletedAt: new Date() }).where(eq(lists.id, listId));
+  });
+}
+
 /** Ícone/cor de um space (personalização). */
 export async function setSpaceAppearance(
   orgId: string,
