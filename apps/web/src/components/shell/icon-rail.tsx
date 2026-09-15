@@ -107,26 +107,28 @@ export function IconRail({
         onClick={onToggleSidebar}
       />
 
-      {/* Marca: ícone (símbolo) > logo > badge "W" de fallback */}
-      {icon ? (
-        <div className="mb-1 flex size-9 items-center justify-center overflow-hidden">
-          <img src={icon} alt="Ícone" className="size-full object-contain" />
-        </div>
-      ) : hasBrandLogo(logoLight, logoDark) ? (
-        <div className="mb-1 flex h-9 w-12 items-center justify-center overflow-hidden">
-          <BrandLogo light={logoLight} dark={logoDark} className="max-h-9 max-w-full" />
-        </div>
-      ) : (
-        <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
-          W
-        </div>
-      )}
+      {/* Marca: ícone (símbolo) > logo > badge "W" de fallback — clica p/ Início */}
+      <button type="button" onClick={onHome} title="Início" aria-label="Início" className="mb-1">
+        {icon ? (
+          <span className="flex size-9 items-center justify-center overflow-hidden">
+            <img src={icon} alt="Ícone" className="size-full object-contain" />
+          </span>
+        ) : hasBrandLogo(logoLight, logoDark) ? (
+          <span className="flex h-9 w-12 items-center justify-center overflow-hidden">
+            <BrandLogo light={logoLight} dark={logoDark} className="max-h-9 max-w-full" />
+          </span>
+        ) : (
+          <span className="flex size-9 items-center justify-center rounded-lg bg-brand font-display text-h3 font-extrabold text-white shadow-xl">
+            W
+          </span>
+        )}
+      </button>
 
       <RailButton icon={Plus} label="Criar tarefa" accent onClick={onCreate} />
 
       <div className="my-1 h-px w-6 bg-white/10" />
 
-      <RailButton icon={Home} label="Board" active={activeView === "board"} onClick={onHome} />
+      <RailButton icon={Home} label="Início" active={activeView === "home"} onClick={onHome} />
       <RailButton icon={CheckSquare} label="Minhas tarefas" onClick={onOpenMyTasks} />
       <RailButton icon={Sparkles} label="Wayline Brain" onClick={onOpenBrain} />
       {showComercial && (

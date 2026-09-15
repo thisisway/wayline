@@ -15,6 +15,7 @@ import type {
 import { useTaskEditor } from "@/lib/use-task-editor";
 import { IconRail } from "@/components/shell/icon-rail";
 import { HomePanel } from "@/components/shell/home-panel";
+import { HomeDashboard } from "@/components/shell/home-dashboard";
 import { MyTasksDrawer } from "@/components/shell/my-tasks-drawer";
 import { InboxDrawer } from "@/components/shell/inbox-drawer";
 import { CommentRefDrawer } from "@/components/shell/comment-ref-drawer";
@@ -64,6 +65,7 @@ import {
 } from "@/lib/board-filter";
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 import { supportAwaitingCountAction } from "@/actions/support";
+import { switchList } from "@/actions/org";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
 
@@ -122,6 +124,7 @@ export function AppView({
   focusTicketId?: string;
 }) {
   const router = useRouter();
+  const [, startTransition] = React.useTransition();
   const [view, setView] = React.useState("board");
   const [docId, setDocId] = React.useState<string | null>(null);
   const [accessSpace, setAccessSpace] = React.useState<{ id: string; name: string } | null>(null);
@@ -293,7 +296,7 @@ export function AppView({
         activeView={view}
         sidebarOpen={sidebarOpen}
         onCreate={() => data && focusEditor.openCreate(data.columns[0]?.id ?? "")}
-        onHome={() => setView("board")}
+        onHome={() => setView("home")}
         onToggleSidebar={() => setSidebarOpen((s) => !s)}
         onOpenMyTasks={() => setMyTasksOpen(true)}
         onOpenBrain={() => setBrainOpen(true)}
@@ -327,7 +330,9 @@ export function AppView({
             setAccessSpace({ id, name });
             setView("access");
           }}
-          onSelectList={() => setView((v) => (v === "docs" || v === "access" ? "board" : v))}
+          onSelectList={() =>
+            setView((v) => (v === "docs" || v === "access" || v === "home" ? "board" : v))
+          }
           isAdmin={isAdmin}
           onCollapse={() => setSidebarOpen(false)}
         />
@@ -473,7 +478,7 @@ export function AppView({
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
         />
-        {view !== "comercial" && view !== "finance" && view !== "forms" && (
+        {view !== "comercial" && view !== "finance" && view !== "forms" && view !== "home" && (
           <ViewTabs
             value={view}
             onValueChange={setView}
@@ -496,7 +501,17 @@ export function AppView({
           />
         )}
 
-        {view === "comercial" ? (
+        {view === "home" ? (
+          <HomeDashboard
+            userName={userName}
+            myTasks={myTasks}
+            nav={nav}
+            onGoToList={(listId) => {
+              setView("board");
+              startTransition(() => void switchList(listId));
+            }}
+          />
+        ) : view === "comercial" ? (
           <CommercialPage
             salesEnabled={salesEnabled}
             onOpenOverview={() => setOverviewOpen(true)}
