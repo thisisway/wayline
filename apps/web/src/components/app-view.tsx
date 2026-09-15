@@ -506,10 +506,17 @@ export function AppView({
             userName={userName}
             myTasks={myTasks}
             nav={nav}
+            isAdmin={isAdmin}
             onGoToList={(listId) => {
               setView("board");
               startTransition(() => void switchList(listId));
             }}
+            onSearch={() => setSearchOpen(true)}
+            onOpenBrain={() => setBrainOpen(true)}
+            onOpenComercial={() => setView("comercial")}
+            onOpenFinance={() => setView("finance")}
+            onOpenForms={() => setView("forms")}
+            onOpenSupport={() => setSupportOpen(true)}
           />
         ) : view === "comercial" ? (
           <CommercialPage
