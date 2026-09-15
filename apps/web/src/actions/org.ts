@@ -9,6 +9,8 @@ import {
   createList,
   createListFromTemplate,
   createOrg,
+  renameOrg,
+  softDeleteOrg,
   createSpace,
   deleteFolder,
   deleteOrgTemplate,
@@ -272,4 +274,37 @@ export async function createWorkspace(name: string): Promise<void> {
   const orgId = await createOrg(session.user.id, trimmed);
   await setActiveOrgCookie(orgId);
   revalidatePath("/app");
+}
+
+/** Renomeia o workspace (owner/admin). */
+export async function renameWorkspaceAction(orgId: string, name: string): Promise<boolean> {
+  if (!name.trim() || !(await assertRole(orgId, "admin"))) return false;
+  await renameOrg(orgId, name);
+  revalidatePath("/app");
+  return true;
+}
+
+export type DeleteWorkspaceResult =
+  | { ok: true }
+  | { ok: false; error: "nosession" | "forbidden" | "last" | "notfound" | "name" };
+
+/** Exclui o workspace (soft) — só owner, confirmando o nome, e nunca o último. */
+export async function deleteWorkspaceAction(
+  orgId: string,
+  confirmName: string,
+): Promise<DeleteWorkspaceResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "nosession" };
+  if (!(await assertRole(orgId, "owner"))) return { ok: false, error: "forbidden" };
+  const orgs = await getUserOrgs(session.user.id);
+  if (orgs.length <= 1) return { ok: false, error: "last" };
+  const target = orgs.find((o) => o.id === orgId);
+  if (!target) return { ok: false, error: "notfound" };
+  if (confirmName.trim() !== target.name) return { ok: false, error: "name" };
+
+  await softDeleteOrg(orgId);
+  const other = orgs.find((o) => o.id !== orgId);
+  if (other) await setActiveOrgCookie(other.id); // troca a org ativa
+  revalidatePath("/app");
+  return { ok: true };
 }

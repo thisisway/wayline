@@ -190,6 +190,24 @@ export async function createList(
   });
 }
 
+/** Renomeia o workspace (org). */
+export async function renameOrg(orgId: string, name: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(organizations)
+    .set({ name: name.trim() || "Workspace", updatedAt: new Date() })
+    .where(eq(organizations.id, orgId));
+}
+
+/** Exclui (soft) o workspace — some das listagens (getUserOrgs filtra deletedAt). */
+export async function softDeleteOrg(orgId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(organizations)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(eq(organizations.id, orgId));
+}
+
 /** Cria uma pasta num space (agrupa listas). */
 export async function createFolder(orgId: string, spaceId: string, name: string): Promise<string> {
   return withOrg(orgId, async (tx) => {

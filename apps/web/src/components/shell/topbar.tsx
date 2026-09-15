@@ -9,15 +9,24 @@ import {
   LogOut,
   Plus,
   Search,
+  Settings,
   Sparkles,
+  Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import type { UserOrg } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
-import { createWorkspace, switchOrg } from "@/actions/org";
+import {
+  createWorkspace,
+  deleteWorkspaceAction,
+  renameWorkspaceAction,
+  switchOrg,
+} from "@/actions/org";
 import { effectivePlan } from "@/lib/plans";
 import { MembersModal } from "@/components/shell/members-modal";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -136,6 +145,7 @@ function WorkspaceSwitcher({
 }) {
   const [open, setOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const active = orgs.find((o) => o.id === activeOrgId) ?? orgs[0];
   const ref = React.useRef<HTMLDivElement>(null);
@@ -202,6 +212,25 @@ function WorkspaceSwitcher({
             );
           })}
 
+          {(active.role === "owner" || active.role === "admin") && (
+            <>
+              <div className="my-1 h-px bg-border" />
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setSettingsOpen(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+              >
+                <span className="flex size-6 items-center justify-center rounded-md border border-dashed border-border">
+                  <Settings className="size-3.5" />
+                </span>
+                Configurações do workspace
+              </button>
+            </>
+          )}
+
           <div className="my-1 h-px bg-border" />
           <button
             type="button"
@@ -245,6 +274,156 @@ function WorkspaceSwitcher({
       )}
 
       {creating && <CreateWorkspaceModal onClose={() => setCreating(false)} />}
+      {settingsOpen && (
+        <WorkspaceSettingsModal
+          orgId={active.id}
+          orgName={active.name}
+          isOwner={active.role === "owner"}
+          canDelete={orgs.length > 1}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function WorkspaceSettingsModal({
+  orgId,
+  orgName,
+  isOwner,
+  canDelete,
+  onClose,
+}: {
+  orgId: string;
+  orgName: string;
+  isOwner: boolean;
+  canDelete: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [name, setName] = React.useState(orgName);
+  const [savedMsg, setSavedMsg] = React.useState<string | null>(null);
+  const [confirm, setConfirm] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [delErr, setDelErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function rename() {
+    const n = name.trim();
+    if (!n || n === orgName || busy) return;
+    setBusy(true);
+    const ok = await renameWorkspaceAction(orgId, n).catch(() => false);
+    setBusy(false);
+    if (ok) {
+      setSavedMsg("Nome salvo.");
+      router.refresh();
+    } else {
+      setSavedMsg("Não foi possível salvar.");
+    }
+  }
+
+  async function remove() {
+    if (busy) return;
+    setDelErr(null);
+    setBusy(true);
+    const res = await deleteWorkspaceAction(orgId, confirm).catch(() => ({
+      ok: false as const,
+      error: "notfound" as const,
+    }));
+    setBusy(false);
+    if (res.ok) {
+      onClose();
+      window.location.href = "/app"; // recarrega já no outro workspace ativo
+    } else {
+      const map: Record<string, string> = {
+        name: "O nome não confere.",
+        last: "Não é possível excluir seu único workspace.",
+        forbidden: "Apenas o owner pode excluir.",
+        nosession: "Sessão expirada.",
+        notfound: "Workspace não encontrado.",
+      };
+      setDelErr(map[res.error] ?? "Falha ao excluir.");
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-md overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <h2 className="font-display text-h3 font-bold">Configurações do workspace</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="flex size-7 items-center justify-center rounded-md text-subtle hover:bg-elevated hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div className="space-y-1.5">
+            <label className="text-label uppercase text-subtle" htmlFor="ws-name">
+              Nome
+            </label>
+            <div className="flex items-center gap-2">
+              <Input id="ws-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Button onClick={rename} disabled={busy || !name.trim() || name.trim() === orgName}>
+                Salvar
+              </Button>
+            </div>
+            {savedMsg && <p className="text-dense text-success">{savedMsg}</p>}
+          </div>
+
+          {isOwner && (
+            <div className="rounded-lg border border-danger/30 bg-danger/5 p-3.5">
+              <p className="flex items-center gap-1.5 text-ui font-semibold text-danger">
+                <Trash2 className="size-4" /> Excluir workspace
+              </p>
+              {canDelete ? (
+                <>
+                  <p className="mt-1 text-dense text-muted">
+                    Isso remove o workspace e todo o conteúdo (spaces, listas, tarefas, acessos…).
+                    Digite <strong className="text-foreground">{orgName}</strong> para confirmar.
+                  </p>
+                  <Input
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder={orgName}
+                    className="mt-2"
+                  />
+                  {delErr && <p className="mt-1 text-dense text-danger">{delErr}</p>}
+                  <button
+                    type="button"
+                    onClick={remove}
+                    disabled={busy || confirm.trim() !== orgName}
+                    className="mt-2 flex items-center justify-center gap-2 rounded-md bg-danger px-3 h-9 text-ui font-medium text-white transition-colors hover:bg-danger/90 disabled:opacity-50"
+                  >
+                    {busy ? "Excluindo…" : "Excluir permanentemente"}
+                  </button>
+                </>
+              ) : (
+                <p className="mt-1 text-dense text-muted">
+                  Não é possível excluir seu único workspace. Crie outro antes.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

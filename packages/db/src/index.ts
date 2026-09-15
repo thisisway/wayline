@@ -36,6 +36,8 @@ export {
 } from "./queries/auth";
 export {
   createOrg,
+  renameOrg,
+  softDeleteOrg,
   createSpace,
   createList,
   createFolder,
