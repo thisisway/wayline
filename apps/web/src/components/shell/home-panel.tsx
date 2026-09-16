@@ -14,6 +14,7 @@ import {
   LayoutTemplate,
   MoreHorizontal,
   PanelLeftClose,
+  Pencil,
   Plus,
   Reply,
   Smile,
@@ -90,6 +91,85 @@ function InlineAdd({
         }}
       />
     </div>
+  );
+}
+
+type RowMenuItem = {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  danger?: boolean;
+};
+
+/** Botão "..." que abre um menu de ações (estilo ClickUp). Posicionado fixo pra
+ *  não ser cortado pelo overflow da sidebar. */
+function RowMenu({ items, ariaLabel }: { items: RowMenuItem[]; ariaLabel: string }) {
+  const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!pos) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPos(null);
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setPos(null);
+    };
+    window.addEventListener("keydown", onKey);
+    const t = setTimeout(() => window.addEventListener("mousedown", onClick), 0);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+      clearTimeout(t);
+    };
+  }, [pos]);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        title={ariaLabel}
+        onClick={(e) => {
+          e.stopPropagation();
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          setPos({ x: r.right, y: r.bottom + 4 });
+        }}
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded text-subtle transition-opacity hover:bg-elevated hover:text-foreground",
+          pos ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}
+      >
+        <MoreHorizontal className="size-3.5" />
+      </button>
+      {pos && (
+        <div
+          ref={menuRef}
+          style={{
+            left: Math.max(8, Math.min(pos.x - 184, (typeof window !== "undefined" ? window.innerWidth : 1000) - 192)),
+            top: Math.min(pos.y, (typeof window !== "undefined" ? window.innerHeight : 800) - items.length * 34 - 16),
+          }}
+          className="fixed z-[70] w-44 rounded-lg border border-border bg-surface p-1 shadow-xl"
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPos(null);
+                item.onClick();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 rounded px-2 h-8 text-dense transition-colors hover:bg-elevated",
+                item.danger ? "text-danger hover:text-danger" : "text-muted hover:text-foreground",
+              )}
+            >
+              <item.icon className="size-3.5 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -307,15 +387,18 @@ export function HomePanel({
           </button>
         )}
         {isAdmin && renamingAccess !== access.id && (
-          <button
-            type="button"
-            onClick={() => removeAccess(access.id, access.name)}
-            aria-label={`Excluir ${access.name}`}
-            title="Excluir cofre de acessos"
-            className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          <RowMenu
+            ariaLabel={`Ações de ${access.name}`}
+            items={[
+              { label: "Renomear", icon: Pencil, onClick: () => setRenamingAccess(access.id) },
+              {
+                label: "Excluir",
+                icon: Trash2,
+                danger: true,
+                onClick: () => removeAccess(access.id, access.name),
+              },
+            ]}
+          />
         )}
       </div>
     );
@@ -399,26 +482,19 @@ export function HomePanel({
           </button>
         )}
         {isAdmin && renamingList !== list.id && (
-          <>
-            <button
-              type="button"
-              onClick={() => duplicateList(list.id)}
-              aria-label={`Duplicar ${list.name}`}
-              title="Duplicar lista (estrutura, sem tarefas)"
-              className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-            >
-              <Copy className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => removeList(list.id, list.name)}
-              aria-label={`Excluir ${list.name}`}
-              title="Excluir lista"
-              className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          </>
+          <RowMenu
+            ariaLabel={`Ações de ${list.name}`}
+            items={[
+              { label: "Renomear", icon: Pencil, onClick: () => setRenamingList(list.id) },
+              { label: "Duplicar", icon: Copy, onClick: () => duplicateList(list.id) },
+              {
+                label: "Excluir",
+                icon: Trash2,
+                danger: true,
+                onClick: () => removeList(list.id, list.name),
+              },
+            ]}
+          />
         )}
       </div>
     );
@@ -468,18 +544,6 @@ export function HomePanel({
                 type="button"
                 onClick={() => {
                   setCollapsed((s) => ({ ...s, [folder.id]: false }));
-                  void addDoc(spaceId, folder.id);
-                }}
-                aria-label={`Novo documento em ${folder.name}`}
-                title="Novo documento na pasta"
-                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-              >
-                <FileText className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCollapsed((s) => ({ ...s, [folder.id]: false }));
                   setAddingListInFolder(folder.id);
                 }}
                 aria-label={`Nova lista em ${folder.name}`}
@@ -488,27 +552,42 @@ export function HomePanel({
               >
                 <Plus className="size-3.5" />
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCollapsed((s) => ({ ...s, [folder.id]: false }));
-                  void addAccess(spaceId, folder.id);
-                }}
-                aria-label={`Novo acesso em ${folder.name}`}
-                title="Novo cofre de acessos na pasta"
-                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-              >
-                <KeyRound className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => removeFolder(folder.id)}
-                aria-label={`Excluir pasta ${folder.name}`}
-                title="Excluir pasta (as listas voltam pro space)"
-                className="flex size-5 shrink-0 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
+              <RowMenu
+                ariaLabel={`Ações da pasta ${folder.name}`}
+                items={[
+                  { label: "Renomear", icon: Pencil, onClick: () => setRenamingFolder(folder.id) },
+                  {
+                    label: "Novo documento",
+                    icon: FileText,
+                    onClick: () => {
+                      setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                      void addDoc(spaceId, folder.id);
+                    },
+                  },
+                  {
+                    label: "Nova lista",
+                    icon: Plus,
+                    onClick: () => {
+                      setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                      setAddingListInFolder(folder.id);
+                    },
+                  },
+                  {
+                    label: "Cofre de acessos",
+                    icon: KeyRound,
+                    onClick: () => {
+                      setCollapsed((s) => ({ ...s, [folder.id]: false }));
+                      void addAccess(spaceId, folder.id);
+                    },
+                  },
+                  {
+                    label: "Excluir pasta",
+                    icon: Trash2,
+                    danger: true,
+                    onClick: () => removeFolder(folder.id),
+                  },
+                ]}
+              />
             </>
           )}
         </div>
@@ -701,30 +780,6 @@ export function HomePanel({
                       type="button"
                       onClick={() => {
                         setCollapsed((s) => ({ ...s, [space.id]: false }));
-                        void addDoc(space.id);
-                      }}
-                      aria-label={`Novo documento em ${space.name}`}
-                      title="Novo documento"
-                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                    >
-                      <FileText className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCollapsed((s) => ({ ...s, [space.id]: false }));
-                        setAddingFolderIn(space.id);
-                      }}
-                      aria-label={`Nova pasta em ${space.name}`}
-                      title="Nova pasta"
-                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                    >
-                      <FolderPlus className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCollapsed((s) => ({ ...s, [space.id]: false }));
                         setAddingListIn(space.id);
                       }}
                       aria-label={`Nova lista em ${space.name}`}
@@ -733,27 +788,50 @@ export function HomePanel({
                     >
                       <Plus className="size-3.5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCollapsed((s) => ({ ...s, [space.id]: false }));
-                        void addAccess(space.id);
-                      }}
-                      aria-label={`Novo acesso em ${space.name}`}
-                      title="Novo cofre de acessos"
-                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                    >
-                      <KeyRound className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeSpace(space.id, space.name)}
-                      aria-label={`Excluir ${space.name}`}
-                      title="Excluir space"
-                      className="flex size-5 items-center justify-center rounded text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    <RowMenu
+                      ariaLabel={`Ações do space ${space.name}`}
+                      items={[
+                        { label: "Renomear", icon: Pencil, onClick: () => setRenamingSpace(space.id) },
+                        {
+                          label: "Nova lista",
+                          icon: Plus,
+                          onClick: () => {
+                            setCollapsed((s) => ({ ...s, [space.id]: false }));
+                            setAddingListIn(space.id);
+                          },
+                        },
+                        {
+                          label: "Nova pasta",
+                          icon: FolderPlus,
+                          onClick: () => {
+                            setCollapsed((s) => ({ ...s, [space.id]: false }));
+                            setAddingFolderIn(space.id);
+                          },
+                        },
+                        {
+                          label: "Novo documento",
+                          icon: FileText,
+                          onClick: () => {
+                            setCollapsed((s) => ({ ...s, [space.id]: false }));
+                            void addDoc(space.id);
+                          },
+                        },
+                        {
+                          label: "Cofre de acessos",
+                          icon: KeyRound,
+                          onClick: () => {
+                            setCollapsed((s) => ({ ...s, [space.id]: false }));
+                            void addAccess(space.id);
+                          },
+                        },
+                        {
+                          label: "Excluir space",
+                          icon: Trash2,
+                          danger: true,
+                          onClick: () => removeSpace(space.id, space.name),
+                        },
+                      ]}
+                    />
                   </>
                 )}
               </div>
