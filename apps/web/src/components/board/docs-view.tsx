@@ -23,11 +23,11 @@ import {
   Trash2,
   Type,
   Underline,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import type { PageDoc, PageNode } from "@wayline/db";
 import { cn } from "@wayline/ui";
+import { IconPicker, IconContent } from "@/components/shell/icon-picker";
 import {
   convertPageToTaskAction,
   createPageAction,
@@ -39,12 +39,6 @@ import {
 } from "@/actions/pages";
 
 type SaveState = "idle" | "saving" | "saved";
-
-/** Emojis comuns para ícone de documento (sem lib de picker). */
-const DOC_EMOJIS = [
-  "📄", "📁", "🔑", "🔗", "📌", "⭐", "🚀", "💡", "📊", "📝", "✅", "🎯",
-  "🔒", "🌐", "📅", "💰", "🎨", "📢", "🧩", "⚙️", "📦", "🏷️", "💬", "🔥",
-];
 
 export function DocsView({
   orgId,
@@ -300,7 +294,9 @@ function PageRow({
           onClick={() => onSelect(node.id)}
           className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
         >
-          <span className="shrink-0 text-subtle">{node.icon ?? "📄"}</span>
+          <span className="flex size-4 shrink-0 items-center justify-center overflow-hidden text-subtle leading-none">
+            <IconContent icon={node.icon ?? "📄"} fallback="📄" />
+          </span>
           <span className="truncate">{node.title}</span>
         </button>
         <button
@@ -418,7 +414,7 @@ function Editor({
   const [title, setTitle] = React.useState("");
   const [save, setSave] = React.useState<SaveState>("idle");
   const [converted, setConverted] = React.useState(false);
-  const [iconOpen, setIconOpen] = React.useState(false);
+  const [iconAnchor, setIconAnchor] = React.useState<{ x: number; y: number } | null>(null);
   const editorRef = React.useRef<HTMLDivElement>(null);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -559,7 +555,7 @@ function Editor({
   }
 
   async function setIcon(emoji: string | null) {
-    setIconOpen(false);
+    setIconAnchor(null);
     if (!doc) return;
     setDoc({ ...doc, icon: emoji });
     await renamePageAction(orgId, pageId, title.trim() || "Sem título", emoji).catch(() => {});
@@ -620,48 +616,36 @@ function Editor({
         )}
       </div>
 
-      {/* Ícone (emoji) */}
-      <div className="relative mb-1">
+      {/* Ícone (emoji / ícone Lucide / imagem) */}
+      <div className="mb-1">
         <button
           type="button"
-          onClick={() => setIconOpen((o) => !o)}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setIconAnchor({ x: r.left, y: r.bottom + 4 });
+          }}
           className={cn(
             "flex h-10 items-center gap-1.5 rounded-md px-1.5 hover:bg-elevated",
-            doc.icon ? "text-[32px] leading-none" : "text-dense text-subtle",
+            doc.icon ? "" : "text-dense text-subtle",
           )}
         >
           {doc.icon ? (
-            <span>{doc.icon}</span>
+            <span className="flex size-8 items-center justify-center overflow-hidden leading-none">
+              <IconContent icon={doc.icon} fallback="" />
+            </span>
           ) : (
             <>
               <SmilePlus className="size-4" /> Adicionar ícone
             </>
           )}
         </button>
-        {iconOpen && (
-          <div className="absolute left-0 top-full z-20 mt-1 w-[300px] rounded-lg border border-border bg-surface p-2 shadow-xl">
-            <div className="flex flex-wrap gap-0.5">
-              {DOC_EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setIcon(e)}
-                  className="flex size-9 items-center justify-center rounded text-xl hover:bg-elevated"
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-            {doc.icon && (
-              <button
-                type="button"
-                onClick={() => setIcon(null)}
-                className="mt-1 flex w-full items-center justify-center gap-1.5 rounded border-t border-border pt-2 text-dense text-subtle hover:text-danger"
-              >
-                <X className="size-3.5" /> Remover ícone
-              </button>
-            )}
-          </div>
+        {iconAnchor && (
+          <IconPicker
+            anchor={iconAnchor}
+            onPickEmoji={(icon) => setIcon(icon)}
+            onRemove={() => setIcon(null)}
+            onClose={() => setIconAnchor(null)}
+          />
         )}
       </div>
 

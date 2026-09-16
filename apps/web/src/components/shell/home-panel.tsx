@@ -417,7 +417,9 @@ export function HomePanel({
         )}
       >
         {doc.icon ? (
-          <span className="shrink-0 text-[13px] leading-none">{doc.icon}</span>
+          <span className="flex size-4 shrink-0 items-center justify-center overflow-hidden leading-none">
+            <IconContent icon={doc.icon} fallback="" />
+          </span>
         ) : (
           <FileText className="size-3.5 shrink-0 text-subtle" />
         )}
