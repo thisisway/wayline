@@ -6,6 +6,7 @@ import {
   Check,
   ChevronsUpDown,
   Command,
+  LifeBuoy,
   LogOut,
   Plus,
   Search,
@@ -43,6 +44,8 @@ export function Topbar({
   onOpenSearch,
   onOpenBrain,
   onOpenPlans,
+  onOpenSettings,
+  onOpenSupport,
   isAdmin = false,
   isPlatformAdmin = false,
 }: {
@@ -55,6 +58,8 @@ export function Topbar({
   onOpenSearch?: () => void;
   onOpenBrain?: () => void;
   onOpenPlans?: () => void;
+  onOpenSettings?: () => void;
+  onOpenSupport?: () => void;
   isAdmin?: boolean;
   isPlatformAdmin?: boolean;
 }) {
@@ -119,18 +124,98 @@ export function Topbar({
           )}
         </button>
         <ThemeToggle />
-        <Avatar name={userName} src={userAvatar} size="md" title={userName} />
-        <button
-          type="button"
-          onClick={() => signOut({ redirectTo: "/login" })}
-          aria-label="Sair"
-          title="Sair"
-          className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-danger"
-        >
-          <LogOut className="size-4" />
-        </button>
+        <AccountMenu
+          userName={userName}
+          userAvatar={userAvatar}
+          onOpenSettings={onOpenSettings}
+          onOpenSupport={onOpenSupport}
+        />
       </div>
     </header>
+  );
+}
+
+/** Menu da conta (avatar) — perfil/configurações, suporte e sair. */
+function AccountMenu({
+  userName,
+  userAvatar,
+  onOpenSettings,
+  onOpenSupport,
+}: {
+  userName: string;
+  userAvatar?: string;
+  onOpenSettings?: () => void;
+  onOpenSupport?: () => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Sua conta"
+        title="Sua conta"
+        className="flex items-center rounded-full ring-offset-2 ring-offset-surface transition-shadow hover:ring-2 hover:ring-brand/40"
+      >
+        <Avatar name={userName} src={userAvatar} size="md" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-2 px-2 py-2">
+            <Avatar name={userName} src={userAvatar} size="sm" />
+            <span className="min-w-0 flex-1 truncate text-ui font-semibold text-foreground">
+              {userName}
+            </span>
+          </div>
+          <div className="my-1 h-px bg-border" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onOpenSettings?.();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+          >
+            <Settings className="size-4" /> Perfil e configurações
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onOpenSupport?.();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
+          >
+            <LifeBuoy className="size-4" /> Suporte
+          </button>
+          <div className="my-1 h-px bg-border" />
+          <button
+            type="button"
+            onClick={() => signOut({ redirectTo: "/login" })}
+            className="flex w-full items-center gap-2 rounded-md px-2 h-9 text-ui font-medium text-danger transition-colors hover:bg-danger/10"
+          >
+            <LogOut className="size-4" /> Sair da conta
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

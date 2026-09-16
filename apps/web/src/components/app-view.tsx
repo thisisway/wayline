@@ -519,6 +519,8 @@ export function AppView({
           onOpenSearch={() => setSearchOpen(true)}
           onOpenBrain={() => setBrainOpen(true)}
           onOpenPlans={() => setPlansOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSupport={() => setSupportOpen(true)}
           isAdmin={isAdmin}
           isPlatformAdmin={isPlatformAdmin}
         />
