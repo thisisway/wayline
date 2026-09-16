@@ -42,6 +42,7 @@ export interface FormPatchInput {
   fields?: FormFieldSchema[];
   status?: string;
   thankYou?: string;
+  target?: string;
   targetListId?: string | null;
 }
 
@@ -57,6 +58,7 @@ export async function updateFormAction(
     fields: patch.fields,
     status: patch.status === "published" ? "published" : patch.status === "draft" ? "draft" : undefined,
     thankYou: patch.thankYou,
+    target: patch.target,
     targetListId: patch.targetListId,
   };
   await updateForm(orgId, id, clean);

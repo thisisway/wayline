@@ -575,7 +575,9 @@ export const forms = pgTable(
     fields: jsonb("fields").$type<FormFieldSchema[]>().notNull().default(sql`'[]'::jsonb`),
     status: text("status").notNull().default("draft"), // draft | published
     token: text("token").notNull().unique(),
-    /** Lista onde cada resposta vira uma tarefa (opcional). */
+    /** Destino de cada resposta: 'list' (tarefa no board) | 'funnel' (lead no funil). */
+    target: text("target").notNull().default("list"),
+    /** Lista onde cada resposta vira uma tarefa (quando target = 'list'). */
     targetListId: uuid("target_list_id"),
     /** Mensagem exibida após o envio. */
     thankYou: text("thank_you").notNull().default("Obrigado! Sua resposta foi registrada."),

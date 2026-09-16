@@ -435,6 +435,13 @@
       "when": 1789563445635,
       "tag": "0061_small_brood",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1789565244839,
+      "tag": "0062_curious_harry_osborn",
+      "breakpoints": true
     }
   ]
 }

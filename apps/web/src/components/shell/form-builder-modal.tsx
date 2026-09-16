@@ -65,6 +65,7 @@ export function FormBuilderModal({
   const [thankYou, setThankYou] = React.useState("");
   const [fields, setFields] = React.useState<FormFieldSchema[]>([]);
   const [published, setPublished] = React.useState(false);
+  const [target, setTarget] = React.useState<"list" | "funnel">("list");
   const [targetListId, setTargetListId] = React.useState("");
   const [lists, setLists] = React.useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = React.useState(false);
@@ -80,6 +81,7 @@ export function FormBuilderModal({
       setThankYou(f.thankYou);
       setFields(f.fields);
       setPublished(f.status === "published");
+      setTarget(f.target === "funnel" ? "funnel" : "list");
       setTargetListId(f.targetListId ?? "");
     });
     listListOptionsAction(orgId).then(setLists);
@@ -114,7 +116,8 @@ export function FormBuilderModal({
       thankYou,
       fields,
       status: nextPublished ? "published" : "draft",
-      targetListId: targetListId || null,
+      target,
+      targetListId: target === "list" ? targetListId || null : null,
     }).catch(() => {});
     setSaving(false);
     setPublished(nextPublished);
@@ -314,25 +317,42 @@ export function FormBuilderModal({
             </label>
 
             <label className="block">
-              <span className="text-dense font-medium text-muted">
-                Criar tarefa a cada resposta em
-              </span>
+              <span className="text-dense font-medium text-muted">Destino de cada resposta</span>
               <select
-                value={targetListId}
-                onChange={(e) => setTargetListId(e.target.value)}
+                value={target}
+                onChange={(e) => setTarget(e.target.value as "list" | "funnel")}
                 className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
               >
-                <option value="">Não criar tarefa</option>
-                {lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
+                <option value="list">Board — criar tarefa numa lista</option>
+                <option value="funnel">Funil comercial — criar lead (oportunidade)</option>
               </select>
-              <span className="mt-1 block text-[11px] text-subtle">
-                Cada envio vira um card na 1ª coluna da lista escolhida (título = 1º campo preenchido).
-              </span>
             </label>
+
+            {target === "list" ? (
+              <label className="block">
+                <span className="text-dense font-medium text-muted">Criar tarefa em</span>
+                <select
+                  value={targetListId}
+                  onChange={(e) => setTargetListId(e.target.value)}
+                  className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                >
+                  <option value="">Não criar tarefa</option>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-[11px] text-subtle">
+                  Cada envio vira um card na 1ª coluna da lista (título = 1º campo preenchido).
+                </span>
+              </label>
+            ) : (
+              <span className="block text-[11px] text-subtle">
+                Cada envio cria uma oportunidade na etapa <strong>Lead</strong> do funil de vendas
+                (Comercial → Funil), com as respostas nas notas internas.
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-5">

@@ -179,6 +179,31 @@ export async function createProposal(orgId: string, createdBy: string | null): P
   return row!.id;
 }
 
+/** Cria uma oportunidade (lead) no funil a partir de uma resposta de formulário. */
+export async function createLeadFromForm(
+  orgId: string,
+  title: string,
+  notes: string,
+): Promise<string> {
+  const db = getDb();
+  const [{ max }] = (await db
+    .select({ max: sql<number>`coalesce(max(${proposals.number}), 0)`.mapWith(Number) })
+    .from(proposals)
+    .where(eq(proposals.orgId, orgId))) as [{ max: number }];
+  const [row] = await db
+    .insert(proposals)
+    .values({
+      orgId,
+      token: token(),
+      number: max + 1,
+      title: title.slice(0, 200) || "Lead",
+      stage: "lead",
+      internalNotes: notes.slice(0, 5000),
+    })
+    .returning({ id: proposals.id });
+  return row!.id;
+}
+
 export interface ProposalItemInput {
   description: string;
   details: string;

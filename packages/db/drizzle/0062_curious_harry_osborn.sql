@@ -1,0 +1,1 @@
+ALTER TABLE "forms" ADD COLUMN IF NOT EXISTS "target" text DEFAULT 'list' NOT NULL;

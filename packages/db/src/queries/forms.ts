@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb, withOrg } from "../client";
 import { forms, formResponses, lists, statuses, tasks } from "../schema";
 import type { FormFieldSchema } from "../schema/collaboration";
+import { createLeadFromForm } from "./proposals";
 
 export type { FormFieldSchema };
 
@@ -24,6 +25,7 @@ export interface FormDTO {
   status: string;
   token: string;
   thankYou: string;
+  target: string;
   targetListId: string | null;
 }
 
@@ -57,6 +59,7 @@ function toDTO(f: typeof forms.$inferSelect): FormDTO {
     status: f.status,
     token: f.token,
     thankYou: f.thankYou,
+    target: f.target ?? "list",
     targetListId: f.targetListId ?? null,
   };
 }
@@ -149,6 +152,7 @@ export interface FormPatch {
   fields?: FormFieldSchema[];
   status?: string;
   thankYou?: string;
+  target?: string;
   targetListId?: string | null;
 }
 
@@ -160,6 +164,7 @@ export async function updateForm(orgId: string, id: string, patch: FormPatch): P
   if (patch.fields !== undefined) set.fields = patch.fields;
   if (patch.status !== undefined) set.status = patch.status;
   if (patch.thankYou !== undefined) set.thankYou = patch.thankYou;
+  if (patch.target !== undefined) set.target = patch.target === "funnel" ? "funnel" : "list";
   if (patch.targetListId !== undefined) set.targetListId = patch.targetListId;
   await db.update(forms).set(set).where(and(eq(forms.id, id), eq(forms.orgId, orgId)));
 }
@@ -213,8 +218,22 @@ export async function submitFormResponse(
   }
   await db.insert(formResponses).values({ orgId: f.orgId, formId: f.id, answers: clean });
 
-  // Roteia a resposta para o board como tarefa (se configurado). Best-effort.
-  if (f.targetListId) {
+  // Roteia a resposta (best-effort: nunca falha o envio do usuário).
+  if (f.target === "funnel") {
+    try {
+      const fields = f.fields ?? [];
+      const firstVal = fields.map((fld) => clean[fld.id]).find((v) => v && v.trim());
+      const title = (firstVal || f.title || "Lead").slice(0, 200);
+      const notes = [
+        `Lead recebido pelo formulário "${f.title}".`,
+        "",
+        ...fields.map((fld) => `${fld.label}: ${clean[fld.id] ?? "—"}`),
+      ].join("\n");
+      await createLeadFromForm(f.orgId, title, notes);
+    } catch {
+      /* segue o jogo */
+    }
+  } else if (f.targetListId) {
     try {
       await createTaskFromForm(f.orgId, f.targetListId, f.fields ?? [], clean, f.title);
     } catch {
