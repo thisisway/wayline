@@ -6,10 +6,12 @@ import {
   getProposal,
   listClientOptions,
   listProposals,
+  setProposalStage,
   updateProposal,
   type ProposalDTO,
   type ProposalListItem,
   type ProposalPatch,
+  type ProposalStage,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertModule, getSessionUserId } from "@/lib/authz";
@@ -99,6 +101,17 @@ export async function updateProposalAction(
     dbPatch.validUntil = patch.validUntilIso ? new Date(patch.validUntilIso) : null;
   }
   await updateProposal(orgId, id, dbPatch);
+  revalidatePath("/app");
+  return true;
+}
+
+export async function moveProposalStageAction(
+  orgId: string,
+  id: string,
+  stage: ProposalStage,
+): Promise<boolean> {
+  if (!(await assertModule(orgId, "comercial", "edit"))) return false;
+  await setProposalStage(orgId, id, stage);
   revalidatePath("/app");
   return true;
 }

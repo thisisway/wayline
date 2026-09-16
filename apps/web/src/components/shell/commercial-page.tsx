@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileSignature,
   FileText,
+  Filter,
   Image as ImageIcon,
   LayoutDashboard,
   Package,
@@ -25,6 +26,7 @@ interface Area {
 
 export function CommercialPage({
   salesEnabled,
+  onOpenFunnel,
   onOpenOverview,
   onOpenClients,
   onOpenProposals,
@@ -33,6 +35,7 @@ export function CommercialPage({
   onOpenContracts,
 }: {
   salesEnabled: boolean;
+  onOpenFunnel: () => void;
   onOpenOverview: () => void;
   onOpenClients: () => void;
   onOpenProposals: () => void;
@@ -42,9 +45,18 @@ export function CommercialPage({
 }) {
   const areas: Area[] = [
     {
+      id: "funnel",
+      label: "Funil de vendas",
+      description: "Kanban das oportunidades por etapa.",
+      icon: Filter,
+      color: "#6366F1",
+      onOpen: onOpenFunnel,
+      salesOnly: true,
+    },
+    {
       id: "overview",
       label: "Visão geral",
-      description: "Funil de propostas, valores e conversão.",
+      description: "Números do funil, valores e conversão.",
       icon: LayoutDashboard,
       color: "#14B8A6",
       onOpen: onOpenOverview,

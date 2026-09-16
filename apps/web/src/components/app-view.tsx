@@ -43,6 +43,7 @@ import { CheckSquare, ClipboardList as ClipboardIcon, Briefcase as BriefcaseIcon
 import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
+import { SalesFunnel } from "@/components/shell/sales-funnel";
 import { ServicesModal } from "@/components/shell/services-modal";
 import { PortfolioModal } from "@/components/shell/portfolio-modal";
 import { ContractsModal } from "@/components/shell/contracts-modal";
@@ -182,6 +183,8 @@ export function AppView({
   const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [clientsOpen, setClientsOpen] = React.useState(false);
   const [proposalsOpen, setProposalsOpen] = React.useState(false);
+  const [proposalsInitialId, setProposalsInitialId] = React.useState<string | null>(null);
+  const [funnelOpen, setFunnelOpen] = React.useState(false);
   const [servicesOpen, setServicesOpen] = React.useState(false);
   const [portfolioOpen, setPortfolioOpen] = React.useState(false);
   const [contractsOpen, setContractsOpen] = React.useState(false);
@@ -364,7 +367,26 @@ export function AppView({
       )}
       {clientsOpen && <ClientsModal orgId={activeOrgId} onClose={() => setClientsOpen(false)} />}
       {proposalsOpen && (
-        <ProposalsModal orgId={activeOrgId} onClose={() => setProposalsOpen(false)} />
+        <ProposalsModal
+          orgId={activeOrgId}
+          initialId={proposalsInitialId}
+          onClose={() => {
+            setProposalsOpen(false);
+            setProposalsInitialId(null);
+          }}
+        />
+      )}
+      {funnelOpen && (
+        <SalesFunnel
+          orgId={activeOrgId}
+          canEdit={hasModuleAccess(moduleAccess, "comercial", "edit")}
+          onOpenProposal={(id) => {
+            setFunnelOpen(false);
+            setProposalsInitialId(id);
+            setProposalsOpen(true);
+          }}
+          onClose={() => setFunnelOpen(false)}
+        />
       )}
       {servicesOpen && <ServicesModal orgId={activeOrgId} onClose={() => setServicesOpen(false)} />}
       {portfolioOpen && (
@@ -551,6 +573,7 @@ export function AppView({
           ) : (
             <CommercialPage
               salesEnabled={salesEnabled}
+              onOpenFunnel={() => setFunnelOpen(true)}
               onOpenOverview={() => setOverviewOpen(true)}
               onOpenClients={() => setClientsOpen(true)}
               onOpenProposals={() => setProposalsOpen(true)}

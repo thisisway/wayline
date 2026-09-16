@@ -21,11 +21,16 @@ export interface ProposalItemDTO {
   term: string;
 }
 
+/** Etapas do funil comercial (ordem = colunas do Kanban). */
+export const PROPOSAL_STAGES = ["lead", "qualificado", "proposta", "ganho", "perdido"] as const;
+export type ProposalStage = (typeof PROPOSAL_STAGES)[number];
+
 export interface ProposalListItem {
   id: string;
   number: number;
   title: string;
   status: string;
+  stage: string;
   clientName: string | null;
   totalCents: number;
   token: string;
@@ -90,6 +95,7 @@ export async function listProposals(orgId: string): Promise<ProposalListItem[]> 
         number: p.number,
         title: p.title,
         status: p.status,
+        stage: p.stage,
         clientName: p.client?.name ?? null,
         totalCents: Math.round(sub * (1 - p.discountPct / 100)),
         token: p.token,
@@ -304,6 +310,8 @@ export async function decideProposal(
     .update(proposals)
     .set({
       status: decision,
+      // Reflete a decisão do cliente no funil automaticamente.
+      stage: decision === "accepted" ? "ganho" : "perdido",
       decidedByName: byName.slice(0, 80),
       decidedByDoc: byDoc.slice(0, 30) || null,
       decidedAt: new Date(),
@@ -318,6 +326,20 @@ export async function decideProposal(
   );
   if (decision === "accepted") void emitEvent(p.orgId, "proposal.accepted", { title: p.title, by: byName });
   return true;
+}
+
+/** Move a proposta no funil comercial (Kanban). */
+export async function setProposalStage(
+  orgId: string,
+  id: string,
+  stage: ProposalStage,
+): Promise<void> {
+  if (!PROPOSAL_STAGES.includes(stage)) return;
+  const db = getDb();
+  await db
+    .update(proposals)
+    .set({ stage, updatedAt: new Date() })
+    .where(and(eq(proposals.id, id), eq(proposals.orgId, orgId), isNull(proposals.deletedAt)));
 }
 
 export async function listClientOptions(

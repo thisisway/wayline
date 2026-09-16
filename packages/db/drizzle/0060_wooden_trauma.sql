@@ -1,0 +1,1 @@
+ALTER TABLE "proposals" ADD COLUMN IF NOT EXISTS "stage" text DEFAULT 'lead' NOT NULL;

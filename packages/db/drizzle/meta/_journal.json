@@ -421,6 +421,13 @@
       "when": 1789561135212,
       "tag": "0059_flashy_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1789562906334,
+      "tag": "0060_wooden_trauma",
+      "breakpoints": true
     }
   ]
 }

@@ -69,11 +69,19 @@ function Area(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   );
 }
 
-export function ProposalsModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+export function ProposalsModal({
+  orgId,
+  initialId = null,
+  onClose,
+}: {
+  orgId: string;
+  initialId?: string | null;
+  onClose: () => void;
+}) {
   const [list, setList] = React.useState<ProposalListItem[] | null>(null);
   const [clients, setClients] = React.useState<Array<{ id: string; name: string }>>([]);
   const [aiOn, setAiOn] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(initialId);
 
   // Editor
   const [d, setD] = React.useState<ProposalDTO | null>(null);

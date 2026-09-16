@@ -443,8 +443,10 @@ export const proposals = pgTable(
     nextSteps: text("next_steps").notNull().default(""),
     /** Só interno (não vai pro cliente). */
     internalNotes: text("internal_notes").notNull().default(""),
-    /** draft | sent | accepted | rejected */
+    /** draft | sent | accepted | rejected (ciclo do documento) */
     status: text("status").notNull().default("draft"),
+    /** Etapa no funil comercial: lead | qualificado | proposta | ganho | perdido */
+    stage: text("stage").notNull().default("lead"),
     token: text("token").notNull().unique(),
     validUntil: timestamp("valid_until", { withTimezone: true }),
     /** Assinatura do cliente pelo link público. */
