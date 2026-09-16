@@ -39,7 +39,14 @@ async function emailBranding(): Promise<{ name: string; logo: string | null }> {
     getBrandName(),
     getPlatformSettings().catch(() => null),
   ]);
-  return { name, logo: resolveLogo(settings?.logoUrl) };
+  const configured = settings?.logoUrl ?? null;
+  let logo = resolveLogo(configured);
+  // Logo enviada no admin fica como data-URL (bloqueada em email). Servimos ela
+  // pelo endpoint público /brand/logo, que exige uma base absoluta (APP_URL).
+  if (!logo && configured && appUrl) {
+    logo = `${appUrl.replace(/\/$/, "")}/brand/logo`;
+  }
+  return { name, logo };
 }
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
