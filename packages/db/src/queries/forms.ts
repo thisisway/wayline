@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb, withOrg } from "../client";
 import { forms, formResponses, lists, statuses, tasks } from "../schema";
 import type { FormFieldSchema } from "../schema/collaboration";
-import { createLeadFromForm } from "./proposals";
+import { createLead } from "./proposals";
 
 export type { FormFieldSchema };
 
@@ -229,7 +229,7 @@ export async function submitFormResponse(
         "",
         ...fields.map((fld) => `${fld.label}: ${clean[fld.id] ?? "—"}`),
       ].join("\n");
-      await createLeadFromForm(f.orgId, title, notes);
+      await createLead(f.orgId, title, notes);
     } catch {
       /* segue o jogo */
     }

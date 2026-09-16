@@ -181,8 +181,8 @@ export async function createProposal(orgId: string, createdBy: string | null): P
   return row!.id;
 }
 
-/** Cria uma oportunidade (lead) no funil a partir de uma resposta de formulário. */
-export async function createLeadFromForm(
+/** Cria uma oportunidade (lead) na etapa "lead" do funil (formulário, Calendly…). */
+export async function createLead(
   orgId: string,
   title: string,
   notes: string,

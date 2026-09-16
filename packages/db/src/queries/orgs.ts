@@ -401,3 +401,19 @@ export async function duplicateListStructure(orgId: string, listId: string): Pro
     return newList.id;
   });
 }
+
+/** Lê a signing key do Calendly de uma org (webhook inbound). */
+export async function getOrgCalendlyKey(orgId: string): Promise<string | null> {
+  const db = getDb();
+  const o = await db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+  return o?.calendlySigningKey ?? null;
+}
+
+/** Define/limpa a signing key do Calendly (null = desativa a integração). */
+export async function setOrgCalendlyKey(orgId: string, key: string | null): Promise<void> {
+  const db = getDb();
+  await db
+    .update(organizations)
+    .set({ calendlySigningKey: key })
+    .where(eq(organizations.id, orgId));
+}

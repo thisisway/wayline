@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Plug, Plus, Send, Trash2, X } from "lucide-react";
+import { CalendarClock, Check, Copy, Plug, Plus, Send, Trash2, X } from "lucide-react";
 import { Button, Input, cn } from "@wayline/ui";
 import type { IntegrationDTO, IntegrationKind } from "@wayline/db";
 import {
@@ -11,6 +11,7 @@ import {
   testIntegrationAction,
   updateIntegrationAction,
 } from "@/actions/integrations";
+import { calendlyEnabledAction, setCalendlyKeyAction } from "@/actions/calendly";
 
 // Espelha INTEGRATION_EVENTS do @wayline/db — mantido local p/ não puxar o
 // pacote server (postgres/crypto) para o bundle client.
@@ -41,6 +42,114 @@ const URL_HINT: Record<IntegrationKind, string> = {
   slack: "https://hooks.slack.com/services/…",
   discord: "https://discord.com/api/webhooks/…",
 };
+
+/** Calendly (inbound): agendamentos viram leads no funil de vendas. */
+function CalendlyPanel({ orgId }: { orgId: string }) {
+  const [enabled, setEnabled] = React.useState<boolean | null>(null);
+  const [key, setKey] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    calendlyEnabledAction(orgId)
+      .then(setEnabled)
+      .catch(() => setEnabled(false));
+  }, [orgId]);
+
+  const url =
+    typeof window !== "undefined" ? `${window.location.origin}/api/calendly/webhook?org=${orgId}` : "";
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
+
+  async function save(disable = false) {
+    setBusy(true);
+    setMsg(null);
+    const value = disable ? "" : key;
+    const ok = await setCalendlyKeyAction(orgId, value).catch(() => false);
+    setBusy(false);
+    if (ok) {
+      setEnabled(!!value.trim());
+      setKey("");
+      setMsg(value.trim() ? "Calendly conectado — agendamentos viram leads." : "Calendly desativado.");
+    }
+  }
+
+  return (
+    <div className="mb-4 rounded-lg border border-border bg-canvas p-3.5">
+      <div className="mb-2 flex items-center gap-2">
+        <CalendarClock className="size-4 text-brand" />
+        <span className="text-ui font-semibold text-foreground">Calendly → Funil de vendas</span>
+        {enabled != null && (
+          <span
+            className={cn(
+              "rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase",
+              enabled ? "bg-success/15 text-success" : "bg-elevated text-subtle",
+            )}
+          >
+            {enabled ? "Conectado" : "Inativo"}
+          </span>
+        )}
+      </div>
+      <p className="mb-2 text-dense text-muted">
+        Quando alguém agenda uma reunião no Calendly, cria uma oportunidade na etapa{" "}
+        <strong>Lead</strong> do funil.
+      </p>
+
+      <label className="text-[11px] font-semibold uppercase text-subtle">1. URL do webhook</label>
+      <div className="mb-2 mt-1 flex items-center gap-2">
+        <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="h-9" />
+        <button
+          type="button"
+          onClick={copy}
+          className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 h-9 text-dense font-medium text-muted hover:bg-elevated hover:text-foreground"
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          {copied ? "Copiado" : "Copiar"}
+        </button>
+      </div>
+
+      <label className="text-[11px] font-semibold uppercase text-subtle">
+        2. Signing key do Calendly
+      </label>
+      <div className="mt-1 flex items-center gap-2">
+        <Input
+          type="password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder={enabled ? "•••••••• (já configurada)" : "Cole a signing key do webhook"}
+          className="h-9"
+        />
+        <Button onClick={() => save(false)} disabled={busy || !key.trim()}>
+          {busy ? "Salvando…" : "Salvar"}
+        </Button>
+        {enabled && (
+          <button
+            type="button"
+            onClick={() => save(true)}
+            disabled={busy}
+            className="shrink-0 text-dense font-medium text-muted hover:text-danger"
+          >
+            Desativar
+          </button>
+        )}
+      </div>
+      {msg && <p className="mt-1.5 text-dense text-success">{msg}</p>}
+      <p className="mt-1.5 text-[11px] text-subtle">
+        No Calendly, crie um <strong>Webhook Subscription</strong> (evento{" "}
+        <code>invitee.created</code>) com a URL acima e cole aqui a signing key gerada.
+      </p>
+    </div>
+  );
+}
 
 export function IntegrationsModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const [items, setItems] = React.useState<IntegrationDTO[]>([]);
@@ -129,6 +238,8 @@ export function IntegrationsModal({ orgId, onClose }: { orgId: string; onClose: 
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
+          <CalendlyPanel orgId={orgId} />
+
           <p className="mb-4 text-dense text-muted">
             Envie eventos do Wayline (tarefa concluída, proposta aceita, fatura paga…) para um webhook, canal do Slack ou Discord. Conecte Zapier/Make/n8n via webhook.
           </p>

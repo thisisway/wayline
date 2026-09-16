@@ -98,6 +98,8 @@ export const organizations = pgTable("organizations", {
   icon: text("icon"),
   /** Cliente no Stripe (para o portal de cobrança self-service). */
   stripeCustomerId: text("stripe_customer_id"),
+  /** Signing key do webhook do Calendly (agendamentos viram leads no funil). */
+  calendlySigningKey: text("calendly_signing_key"),
   ...timestamps,
   ...softDelete,
 });

@@ -64,6 +64,8 @@ export {
   moveListToFolder,
   duplicateListStructure,
   createListFromTemplate,
+  getOrgCalendlyKey,
+  setOrgCalendlyKey,
   type TemplateSeed,
 } from "./queries/orgs";
 export {
@@ -303,6 +305,7 @@ export {
   getProposalByToken,
   decideProposal,
   setProposalStage,
+  createLead,
   listClientOptions,
   PROPOSAL_STAGES,
   type ProposalStage,
