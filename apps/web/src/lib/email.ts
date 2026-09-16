@@ -14,6 +14,10 @@ const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM;
 export const appUrl = process.env.APP_URL;
 
+const ACCENT = "#1D66FF";
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
 export function emailEnabled(): boolean {
   return Boolean(apiKey && from);
 }
@@ -35,7 +39,70 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
-/** Template simples e responsivo para uma notificação. */
+/**
+ * Shell responsivo e compatível (layout em tabela) para todos os emails.
+ * Centraliza um card branco sobre fundo neutro, com cabeçalho (marca),
+ * corpo e rodapé. `preheader` é o texto de prévia na caixa de entrada.
+ */
+function emailShell(opts: {
+  brand: string;
+  preheader: string;
+  content: string;
+  footer?: string;
+}): string {
+  const brand = escapeHtml(opts.brand);
+  const year = new Date().getFullYear();
+  const footer =
+    opts.footer ??
+    `Você recebeu este email porque tem uma conta no ${brand}.`;
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<title>${brand}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;-webkit-font-smoothing:antialiased;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(
+    opts.preheader,
+  )}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5f7;">
+<tr><td align="center" style="padding:32px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e6e8ee;border-radius:14px;overflow:hidden;">
+<tr><td style="padding:26px 32px 6px 32px;">
+<span style="font-family:${FONT};font-weight:800;font-size:20px;color:${ACCENT};letter-spacing:-0.02em;">${brand}</span>
+</td></tr>
+<tr><td style="padding:12px 32px 28px 32px;font-family:${FONT};color:#0B1023;">
+${opts.content}
+</td></tr>
+<tr><td style="padding:18px 32px;background:#fafbfc;border-top:1px solid #eef0f4;font-family:${FONT};font-size:12px;line-height:1.5;color:#94a3b8;">
+${footer}
+</td></tr>
+</table>
+<div style="font-family:${FONT};font-size:11px;color:#b6bdc9;margin-top:16px;">© ${year} ${brand}</div>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+/** Botão "bulletproof" (tabela) — renderiza bem inclusive no Outlook. */
+function emailButton(href: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 6px 0;"><tr>
+<td align="center" bgcolor="${ACCENT}" style="border-radius:8px;">
+<a href="${href}" target="_blank" style="display:inline-block;padding:12px 24px;font-family:${FONT};font-size:14px;font-weight:600;line-height:1;color:#ffffff;text-decoration:none;border-radius:8px;">${escapeHtml(
+    label,
+  )}</a>
+</td></tr></table>`;
+}
+
+const h1 = (t: string) =>
+  `<h1 style="margin:0 0 10px 0;font-family:${FONT};font-size:19px;font-weight:700;color:#0B1023;">${t}</h1>`;
+const p = (t: string) =>
+  `<p style="margin:0 0 8px 0;font-family:${FONT};font-size:15px;line-height:1.55;color:#334155;">${t}</p>`;
+
+/** Template simples para uma notificação (síncrono; brandName vem do chamador). */
 export function notificationEmail(opts: {
   heading: string;
   actorName: string;
@@ -46,19 +113,18 @@ export function notificationEmail(opts: {
 }): string {
   const brand = opts.brandName ?? "Wayline";
   const link = appUrl && opts.taskId ? `${appUrl}/app?task=${opts.taskId}` : appUrl;
-  const button = link
-    ? `<a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir tarefa</a>`
-    : "";
-  return `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
-      <strong>${escapeHtml(opts.actorName)}</strong> ${escapeHtml(opts.action)}
-      <strong>${escapeHtml(opts.taskTitle)}</strong>.
-    </p>
-    <p style="margin:16px 0">${button}</p>
-    <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email porque é membro de um workspace no ${escapeHtml(brand)}.</p>
-  </div>`;
+  const content =
+    p(
+      `<strong>${escapeHtml(opts.actorName)}</strong> ${escapeHtml(opts.action)} <strong>${escapeHtml(
+        opts.taskTitle,
+      )}</strong>.`,
+    ) + (link ? emailButton(link, "Abrir tarefa") : "");
+  return emailShell({
+    brand,
+    preheader: `${opts.actorName} ${opts.action} ${opts.taskTitle}`,
+    content,
+    footer: `Você recebeu este email porque é membro de um workspace no ${escapeHtml(brand)}.`,
+  });
 }
 
 /**
@@ -99,23 +165,22 @@ export async function sendSupportUpdateEmail(
     opts.kind === "reply"
       ? "O suporte respondeu seu chamado"
       : "Seu chamado foi marcado como resolvido";
-  const button = link
-    ? `<a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir chamado</a>`
-    : "";
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">${escapeHtml(line)}:
-      <strong>${escapeHtml(opts.ticketSubject || "Seu chamado")}</strong>.
-    </p>
-    <p style="margin:16px 0">${button}</p>
-    <p style="font-size:12px;color:#64748B;margin-top:24px">Você recebeu este email por ter aberto um chamado no ${escapeHtml(brand)}.</p>
-  </div>`;
-  const subject =
+  const subject = escapeHtml(opts.ticketSubject || "Seu chamado");
+  const content =
+    h1(line) +
+    p(`Chamado: <strong>${subject}</strong>.`) +
+    (link ? emailButton(link, "Abrir chamado") : "");
+  const html = emailShell({
+    brand,
+    preheader: `${line}: ${opts.ticketSubject || "seu chamado"}`,
+    content,
+    footer: `Você recebeu este email por ter aberto um chamado no ${escapeHtml(brand)}.`,
+  });
+  const subjectLine =
     opts.kind === "reply"
       ? `Resposta do suporte: ${opts.ticketSubject || "seu chamado"}`
       : `Chamado resolvido: ${opts.ticketSubject || "seu chamado"}`;
-  return sendEmail(to, subject, html);
+  return sendEmail(to, subjectLine, html);
 }
 
 /** Email de convite para um workspace, com o link de aceite. */
@@ -127,19 +192,21 @@ export async function sendInviteEmail(
 ): Promise<boolean> {
   const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/invite/${token}` : `/invite/${token}`;
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
-      <strong>${escapeHtml(inviterName)}</strong> convidou você para o workspace
-      <strong>${escapeHtml(orgName)}</strong> no ${escapeHtml(brand)}.
-    </p>
-    <p style="margin:16px 0">
-      <a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Aceitar convite</a>
-    </p>
-    <p style="font-size:12px;color:#64748B">Ou copie este link: ${link}</p>
-    <p style="font-size:12px;color:#64748B;margin-top:16px">O convite expira em 7 dias.</p>
-  </div>`;
+  const content =
+    h1("Você foi convidado 🎉") +
+    p(
+      `<strong>${escapeHtml(inviterName)}</strong> convidou você para o workspace <strong>${escapeHtml(
+        orgName,
+      )}</strong> no ${escapeHtml(brand)}.`,
+    ) +
+    emailButton(link, "Aceitar convite") +
+    `<p style="margin:12px 0 0 0;font-family:${FONT};font-size:12px;line-height:1.5;color:#94a3b8;word-break:break-all;">Ou copie este link:<br>${link}</p>`;
+  const html = emailShell({
+    brand,
+    preheader: `${inviterName} convidou você para ${orgName}`,
+    content,
+    footer: "Este convite expira em 7 dias. Se você não esperava por ele, ignore este email.",
+  });
   return sendEmail(to, `${inviterName} convidou você para ${orgName}`, html);
 }
 
@@ -151,32 +218,38 @@ export async function sendMemberAddedEmail(
 ): Promise<boolean> {
   const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/app` : undefined;
-  const button = link
-    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o workspace</a></p>`
-    : "";
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">
-      <strong>${escapeHtml(inviterName)}</strong> adicionou você ao workspace
-      <strong>${escapeHtml(orgName)}</strong> no ${escapeHtml(brand)}.
-    </p>
-    ${button}
-    <p style="font-size:12px;color:#64748B;margin-top:16px">Já está tudo pronto — é só entrar com a sua conta.</p>
-  </div>`;
+  const content =
+    h1(`Bem-vindo ao ${escapeHtml(orgName)}`) +
+    p(
+      `<strong>${escapeHtml(inviterName)}</strong> adicionou você ao workspace <strong>${escapeHtml(
+        orgName,
+      )}</strong> no ${escapeHtml(brand)}.`,
+    ) +
+    (link ? emailButton(link, "Abrir o workspace") : "");
+  const html = emailShell({
+    brand,
+    preheader: `${inviterName} adicionou você ao workspace ${orgName}`,
+    content,
+    footer: "Já está tudo pronto — é só entrar com a sua conta.",
+  });
   return sendEmail(to, `Você foi adicionado a ${orgName} no ${brand}`, html);
 }
 
 /** Email com o código de verificação de cadastro. */
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
   const brand = await getBrandName();
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 16px">Seu código de confirmação é:</p>
-    <div style="font-size:32px;font-weight:800;letter-spacing:8px;background:#F1F5F9;border-radius:10px;padding:16px;text-align:center;color:#0B1023">${escapeHtml(code)}</div>
-    <p style="font-size:13px;color:#64748B;margin-top:16px">Expira em 15 minutos. Se você não tentou criar uma conta, ignore este email.</p>
-  </div>`;
+  const content =
+    h1("Confirme seu email") +
+    p("Use o código abaixo para confirmar sua conta:") +
+    `<div style="margin:16px 0 4px 0;font-family:${FONT};font-size:34px;font-weight:800;letter-spacing:10px;background:#f1f5f9;border-radius:12px;padding:18px;text-align:center;color:#0B1023;">${escapeHtml(
+      code,
+    )}</div>`;
+  const html = emailShell({
+    brand,
+    preheader: `Seu código de confirmação: ${code}`,
+    content,
+    footer: "O código expira em 15 minutos. Se você não tentou criar uma conta, ignore este email.",
+  });
   return sendEmail(to, `${code} é o seu código ${brand}`, html);
 }
 
@@ -184,15 +257,18 @@ export async function sendVerificationEmail(to: string, code: string): Promise<b
 export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
   const brand = await getBrandName();
   const link = appUrl ? `${appUrl}/app` : undefined;
-  const button = link
-    ? `<p style="margin:16px 0"><a href="${link}" style="display:inline-block;background:#1D66FF;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Abrir o ${escapeHtml(brand)}</a></p>`
-    : "";
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0B1023">
-    <div style="font-weight:800;font-size:20px;color:#1D66FF;margin-bottom:16px">${escapeHtml(brand)}</div>
-    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Olá, ${escapeHtml(name.split(" ")[0] ?? name)}! Bem-vindo ao ${escapeHtml(brand)} — seu work OS de agência.</p>
-    ${button}
-  </div>`;
+  const first = escapeHtml(name.split(" ")[0] ?? name);
+  const content =
+    h1(`Olá, ${first}! 👋`) +
+    p(`Bem-vindo ao ${escapeHtml(brand)} — seu work OS de agência.`) +
+    p("Organize projetos, propostas, contratos e finanças em um só lugar.") +
+    (link ? emailButton(link, `Abrir o ${brand}`) : "");
+  const html = emailShell({
+    brand,
+    preheader: `Bem-vindo ao ${brand}`,
+    content,
+    footer: `Enviado pelo ${escapeHtml(brand)}.`,
+  });
   return sendEmail(to, `Bem-vindo ao ${brand} 🎉`, html);
 }
 
