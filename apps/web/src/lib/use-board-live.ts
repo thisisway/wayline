@@ -13,7 +13,7 @@ import type { Viewer } from "@/lib/presence";
  * - fallback: poll de 20s caso o SSE seja bloqueado por proxy.
  * Retorna os viewers atuais (para renderizar os avatares de presença).
  */
-export function useBoardLive(listId: string): Viewer[] {
+export function useBoardLive(listId: string, avatarUrl?: string | null): Viewer[] {
   const router = useRouter();
   const [viewers, setViewers] = React.useState<Viewer[]>([]);
 
@@ -33,7 +33,7 @@ export function useBoardLive(listId: string): Viewer[] {
       }
     });
 
-    const beat = () => heartbeatAction(listId).then(setViewers).catch(() => {});
+    const beat = () => heartbeatAction(listId, avatarUrl).then(setViewers).catch(() => {});
     beat();
     const heartbeatTimer = setInterval(beat, 10_000);
     const fallbackTimer = setInterval(() => router.refresh(), 20_000);
@@ -44,7 +44,7 @@ export function useBoardLive(listId: string): Viewer[] {
       clearInterval(fallbackTimer);
       void leaveAction(listId);
     };
-  }, [listId, router]);
+  }, [listId, router, avatarUrl]);
 
   return viewers;
 }

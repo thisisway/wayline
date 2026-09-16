@@ -33,13 +33,25 @@ export function SalesFunnel({
   const [dragId, setDragId] = React.useState<string | null>(null);
   const [over, setOver] = React.useState<ProposalStage | null>(null);
 
+  const dragRef = React.useRef<string | null>(null);
+  dragRef.current = dragId;
+
   React.useEffect(() => {
     listProposalsAction(orgId)
       .then(setRows)
       .catch(() => setRows([]));
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Ao vivo: re-busca quando alguém mexe no comercial (menos enquanto arrasto).
+    const es = new EventSource(`/api/comercial/live?orgId=${encodeURIComponent(orgId)}`);
+    es.addEventListener("comercial", () => {
+      if (dragRef.current) return;
+      listProposalsAction(orgId).then(setRows).catch(() => {});
+    });
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      es.close();
+    };
   }, [orgId, onClose]);
 
   function move(id: string, stage: ProposalStage) {

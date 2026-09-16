@@ -10,6 +10,16 @@ export async function pokeList(listId: string): Promise<void> {
   if (listId) send(listId, "board", String(Date.now()));
 }
 
+/** Sinaliza aos outros clientes que um documento foi salvo (fire-and-forget). */
+export async function pokeDoc(pageId: string): Promise<void> {
+  if (pageId) send(`doc:${pageId}`, "doc", String(Date.now()));
+}
+
+/** Sinaliza aos outros clientes que o comercial (propostas/funil) mudou. */
+export async function pokeComercial(orgId: string): Promise<void> {
+  if (orgId) send(`comercial:${orgId}`, "comercial", String(Date.now()));
+}
+
 /** Avisa usuários (canal por usuário) que há uma nova notificação. */
 export async function pokeUsers(userIds: string[]): Promise<void> {
   for (const id of [...new Set(userIds)]) {
@@ -18,7 +28,7 @@ export async function pokeUsers(userIds: string[]): Promise<void> {
 }
 
 /** Registra/renova presença na lista e devolve os viewers atuais. */
-export async function heartbeatAction(listId: string): Promise<Viewer[]> {
+export async function heartbeatAction(listId: string, avatarUrl?: string | null): Promise<Viewer[]> {
   const session = await auth();
   if (!session?.user?.id || !listId) return [];
   if (!(await userCanAccessList(session.user.id, listId))) return [];
@@ -26,7 +36,8 @@ export async function heartbeatAction(listId: string): Promise<Viewer[]> {
   heartbeat(listId, {
     userId: session.user.id,
     name: session.user.name ?? "Usuário",
-    avatarUrl: null,
+    // O avatar do próprio usuário (data URL) não cabe no JWT — vem do cliente.
+    avatarUrl: avatarUrl && avatarUrl.length < 60_000 ? avatarUrl : null,
   });
 
   const current = viewers(listId);

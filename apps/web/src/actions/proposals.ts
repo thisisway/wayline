@@ -15,6 +15,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertModule, getSessionUserId } from "@/lib/authz";
+import { pokeComercial } from "@/actions/live";
 import { aiEnabled, draftProposal } from "@/lib/ai";
 import { rateLimit, MIN } from "@/lib/rate-limit";
 
@@ -42,6 +43,7 @@ export async function createProposalAction(orgId: string): Promise<string | null
   if (!(await assertModule(orgId, "comercial", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createProposal(orgId, uid);
+  await pokeComercial(orgId);
   revalidatePath("/app");
   return id;
 }
@@ -101,6 +103,7 @@ export async function updateProposalAction(
     dbPatch.validUntil = patch.validUntilIso ? new Date(patch.validUntilIso) : null;
   }
   await updateProposal(orgId, id, dbPatch);
+  await pokeComercial(orgId);
   revalidatePath("/app");
   return true;
 }
@@ -112,6 +115,7 @@ export async function moveProposalStageAction(
 ): Promise<boolean> {
   if (!(await assertModule(orgId, "comercial", "edit"))) return false;
   await setProposalStage(orgId, id, stage);
+  await pokeComercial(orgId);
   revalidatePath("/app");
   return true;
 }
@@ -119,6 +123,7 @@ export async function moveProposalStageAction(
 export async function deleteProposalAction(orgId: string, id: string): Promise<void> {
   if (!(await assertModule(orgId, "comercial", "manage"))) return;
   await deleteProposal(orgId, id);
+  await pokeComercial(orgId);
   revalidatePath("/app");
 }
 

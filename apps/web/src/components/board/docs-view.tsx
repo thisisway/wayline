@@ -37,6 +37,7 @@ import {
   renamePageAction,
   savePageContentAction,
 } from "@/actions/pages";
+import { pokeDoc } from "@/actions/live";
 
 type SaveState = "idle" | "saving" | "saved";
 
@@ -417,6 +418,9 @@ function Editor({
   const [iconAnchor, setIconAnchor] = React.useState<{ x: number; y: number } | null>(null);
   const editorRef = React.useRef<HTMLDivElement>(null);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Doc ao vivo: ignora o "eco" do próprio save; sinaliza mudança remota.
+  const suppressRef = React.useRef(0);
+  const [remoteChanged, setRemoteChanged] = React.useState(false);
 
   // Menu "/" (comandos de bloco)
   const [slashOpen, setSlashOpen] = React.useState(false);
@@ -518,11 +522,22 @@ function Editor({
     if (url) exec("createLink", url);
   }
 
+  const reloadContent = React.useCallback(() => {
+    getPageAction(orgId, pageId).then((d) => {
+      if (!d) return;
+      setDoc(d);
+      setTitle(d.title);
+      if (editorRef.current) editorRef.current.innerHTML = d.content || "";
+      setRemoteChanged(false);
+    });
+  }, [orgId, pageId]);
+
   React.useEffect(() => {
     let alive = true;
     setDoc(null);
     setConverted(false);
     setSlashOpen(false);
+    setRemoteChanged(false);
     getPageAction(orgId, pageId).then((d) => {
       if (!alive || !d) return;
       setDoc(d);
@@ -535,12 +550,29 @@ function Editor({
     };
   }, [orgId, pageId]);
 
+  // Doc ao vivo: outra pessoa salvou → recarrega se você não está editando;
+  // se está com o cursor no editor, mostra um aviso não-intrusivo.
+  React.useEffect(() => {
+    const es = new EventSource(`/api/docs/live?docId=${encodeURIComponent(pageId)}`);
+    es.addEventListener("doc", () => {
+      if (Date.now() < suppressRef.current) return; // eco do próprio save
+      const editing =
+        document.activeElement === editorRef.current || saveTimer.current !== null;
+      if (editing) setRemoteChanged(true);
+      else reloadContent();
+    });
+    return () => es.close();
+  }, [pageId, reloadContent]);
+
   function scheduleSave() {
     setSave("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       const html = editorRef.current?.innerHTML ?? "";
       await savePageContentAction(orgId, pageId, html);
+      saveTimer.current = null;
+      suppressRef.current = Date.now() + 2500; // ignora o próprio eco SSE
+      void pokeDoc(pageId);
       setSave("saved");
     }, 700);
   }
@@ -714,6 +746,19 @@ function Editor({
           Digite <kbd className="rounded border border-border px-1">/</kbd> para blocos
         </span>
       </div>
+
+      {remoteChanged && (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-brand/30 bg-brand/10 px-3 py-1.5 text-dense text-brand">
+          <span>Este documento foi atualizado por outra pessoa.</span>
+          <button
+            type="button"
+            onClick={reloadContent}
+            className="shrink-0 rounded-md bg-brand px-2.5 py-1 text-[12px] font-semibold text-white hover:bg-brand-80"
+          >
+            Recarregar
+          </button>
+        </div>
+      )}
 
       {/* Conteúdo editável */}
       <div

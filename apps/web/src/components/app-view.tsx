@@ -250,7 +250,7 @@ export function AppView({
     return () => window.removeEventListener("keydown", onKey);
   }, [data, focusEditor]);
   const [filters, setFilters] = React.useState<BoardFilters>(EMPTY_FILTERS);
-  const viewers = useBoardLive(data?.listId ?? "");
+  const viewers = useBoardLive(data?.listId ?? "", userAvatar);
   useNotificationsLive();
 
   const filtered = React.useMemo(() => (data ? applyFilters(data, filters) : null), [data, filters]);
