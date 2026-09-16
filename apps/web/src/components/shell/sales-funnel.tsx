@@ -43,7 +43,7 @@ export function SalesFunnel({
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     // Ao vivo: re-busca quando alguém mexe no comercial (menos enquanto arrasto).
-    const es = new EventSource(`/api/comercial/live?orgId=${encodeURIComponent(orgId)}`);
+    const es = new EventSource(`/api/org/live?topic=comercial&orgId=${encodeURIComponent(orgId)}`);
     es.addEventListener("comercial", () => {
       if (dragRef.current) return;
       listProposalsAction(orgId).then(setRows).catch(() => {});

@@ -10,6 +10,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertModule, getSessionUserId } from "@/lib/authz";
+import { pokeFinanceiro } from "@/actions/live";
 
 export async function listExpensesAction(orgId: string): Promise<ExpenseDTO[]> {
   if (!(await assertModule(orgId, "financeiro", "view"))) return [];
@@ -42,6 +43,7 @@ export async function createExpenseAction(orgId: string, raw: ExpenseInputRaw): 
   if (!(await assertModule(orgId, "financeiro", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createExpense(orgId, uid, toInput(raw));
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
   return id;
 }
@@ -49,6 +51,7 @@ export async function createExpenseAction(orgId: string, raw: ExpenseInputRaw): 
 export async function updateExpenseAction(orgId: string, id: string, raw: ExpenseInputRaw): Promise<boolean> {
   if (!(await assertModule(orgId, "financeiro", "edit"))) return false;
   await updateExpense(orgId, id, toInput(raw));
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
   return true;
 }
@@ -56,5 +59,6 @@ export async function updateExpenseAction(orgId: string, id: string, raw: Expens
 export async function deleteExpenseAction(orgId: string, id: string): Promise<void> {
   if (!(await assertModule(orgId, "financeiro", "manage"))) return;
   await deleteExpense(orgId, id);
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
 }

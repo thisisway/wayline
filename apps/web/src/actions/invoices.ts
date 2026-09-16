@@ -13,6 +13,7 @@ import {
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
 import { assertModule, getSessionUserId } from "@/lib/authz";
+import { pokeFinanceiro } from "@/actions/live";
 
 export async function listInvoicesAction(orgId: string): Promise<InvoiceListItem[]> {
   if (!(await assertModule(orgId, "financeiro", "view"))) return [];
@@ -28,6 +29,7 @@ export async function createInvoiceAction(orgId: string): Promise<string | null>
   if (!(await assertModule(orgId, "financeiro", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createInvoice(orgId, uid);
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
   return id;
 }
@@ -39,6 +41,7 @@ export async function invoiceFromContractAction(
   if (!(await assertModule(orgId, "financeiro", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createInvoiceFromContract(orgId, contractId, uid);
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
   return id;
 }
@@ -73,6 +76,7 @@ export async function updateInvoiceAction(
     clean.dueDate = patch.dueDateIso ? new Date(patch.dueDateIso) : null;
   }
   await updateInvoice(orgId, id, clean);
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
   return true;
 }
@@ -80,5 +84,6 @@ export async function updateInvoiceAction(
 export async function deleteInvoiceAction(orgId: string, id: string): Promise<void> {
   if (!(await assertModule(orgId, "financeiro", "manage"))) return;
   await deleteInvoice(orgId, id);
+  await pokeFinanceiro(orgId);
   revalidatePath("/app");
 }

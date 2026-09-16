@@ -62,6 +62,13 @@ export function FinancePage({ orgId }: { orgId: string }) {
     reloadInvoices();
     reloadExpenses();
     clientOptionsAction(orgId).then(setClients);
+    // Ao vivo: outra pessoa mexeu no financeiro → recarrega as listas.
+    const es = new EventSource(`/api/org/live?topic=financeiro&orgId=${encodeURIComponent(orgId)}`);
+    es.addEventListener("financeiro", () => {
+      reloadInvoices();
+      reloadExpenses();
+    });
+    return () => es.close();
   }, [orgId, reloadInvoices, reloadExpenses]);
 
   const kpi = React.useMemo(() => {

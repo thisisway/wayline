@@ -20,6 +20,16 @@ export async function pokeComercial(orgId: string): Promise<void> {
   if (orgId) send(`comercial:${orgId}`, "comercial", String(Date.now()));
 }
 
+/** Sinaliza aos outros clientes que o financeiro (faturas/despesas) mudou. */
+export async function pokeFinanceiro(orgId: string): Promise<void> {
+  if (orgId) send(`financeiro:${orgId}`, "financeiro", String(Date.now()));
+}
+
+/** Sinaliza aos outros clientes que os membros da org mudaram. */
+export async function pokeMembers(orgId: string): Promise<void> {
+  if (orgId) send(`members:${orgId}`, "members", String(Date.now()));
+}
+
 /** Avisa usuários (canal por usuário) que há uma nova notificação. */
 export async function pokeUsers(userIds: string[]): Promise<void> {
   for (const id of [...new Set(userIds)]) {

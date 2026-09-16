@@ -40,6 +40,7 @@ import {
   type WorkspaceMember,
 } from "@wayline/db";
 import { auth } from "@/auth";
+import { pokeMembers } from "@/actions/live";
 import { ACTIVE_LIST_COOKIE, ACTIVE_ORG_COOKIE } from "@/lib/constants";
 import { assertMember, assertRole, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { emailEnabled, sendInviteEmail, sendMemberAddedEmail } from "@/lib/email";
@@ -289,6 +290,7 @@ export async function addMemberAction(orgId: string, email: string): Promise<Add
   // Já tem conta e entrou: avisa por email (best-effort, nunca quebra a ação).
   if (status === "added") {
     if (emailEnabled()) await sendMemberAddedEmail(value, orgName, inviterName).catch(() => {});
+    await pokeMembers(orgId);
     revalidatePath("/app");
     return "added";
   }
@@ -309,6 +311,7 @@ export async function removeMemberAction(orgId: string, userId: string): Promise
   const target = members.find((m) => m.userId === userId);
   if (!target || target.role === "owner") return; // não remove owners
   await removeMember(orgId, userId);
+  await pokeMembers(orgId);
   revalidatePath("/app");
 }
 
@@ -320,6 +323,7 @@ export async function setMemberRoleAction(
 ): Promise<void> {
   if (!(await assertRole(orgId, "admin"))) return;
   await setMemberRole(orgId, userId, role);
+  await pokeMembers(orgId);
   revalidatePath("/app");
 }
 
@@ -332,6 +336,7 @@ export async function setMemberModuleAccessAction(
 ): Promise<void> {
   if (!(await assertRole(orgId, "admin"))) return;
   await setMemberModuleAccess(orgId, userId, moduleKey, level);
+  await pokeMembers(orgId);
   revalidatePath("/app");
 }
 

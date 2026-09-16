@@ -77,8 +77,14 @@ export function MembersModal({
     reload();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [reload, onClose]);
+    // Ao vivo: outra pessoa adicionou/alterou/removeu membro → recarrega a lista.
+    const es = new EventSource(`/api/org/live?topic=members&orgId=${encodeURIComponent(orgId)}`);
+    es.addEventListener("members", () => reload());
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      es.close();
+    };
+  }, [orgId, reload, onClose]);
 
   async function add() {
     const value = email.trim();
