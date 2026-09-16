@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
-import { getDb } from "../client";
-import { contracts, invoices } from "../schema";
+import { getDb, withOrg } from "../client";
+import { clients, contracts, invoices, spaces } from "../schema";
+import { createList, createSpace } from "./orgs";
 import { emitEvent } from "./integrations";
 
 export interface InvoiceListItem {
@@ -181,8 +182,49 @@ export async function updateInvoice(orgId: string, id: string, patch: InvoicePat
     const inv = await db.query.invoices.findFirst({
       where: and(eq(invoices.id, id), eq(invoices.orgId, orgId)),
     });
-    if (inv) void emitEvent(orgId, "invoice.paid", { title: inv.title, amountCents: inv.amountCents });
+    if (inv) {
+      void emitEvent(orgId, "invoice.paid", { title: inv.title, amountCents: inv.amountCents });
+      // Handoff: pagamento confirmado → abre o projeto na Produção. Best-effort:
+      // nunca falha o pagamento se a criação do projeto der erro.
+      void sendInvoiceToProduction(orgId, id).catch(() => {});
+    }
   }
+}
+
+/**
+ * Cria (uma única vez) a lista de produção quando a fatura é paga. Idempotente
+ * via invoices.production_list_id. Acha/cria o space "Produção" e uma lista
+ * nomeada pelo cliente/fatura.
+ */
+async function sendInvoiceToProduction(orgId: string, invoiceId: string): Promise<void> {
+  const db = getDb();
+  const inv = await db.query.invoices.findFirst({
+    where: and(eq(invoices.id, invoiceId), eq(invoices.orgId, orgId)),
+  });
+  if (!inv || inv.productionListId) return; // já enviado
+
+  // Acha o space de Produção existente (por nome) ou cria um novo.
+  // ponytail: prefixo "Produ%" pode casar "Produtos"; aceitável p/ uma agência.
+  const existing = await withOrg(orgId, (tx) =>
+    tx.query.spaces.findFirst({
+      where: and(ilike(spaces.name, "Produ%"), isNull(spaces.deletedAt)),
+    }),
+  );
+  const spaceId = existing?.id ?? (await createSpace(orgId, "Produção"));
+
+  const client = inv.clientId
+    ? await withOrg(orgId, (tx) =>
+        tx.query.clients.findFirst({ where: eq(clients.id, inv.clientId!) }),
+      )
+    : null;
+  const name = client?.name || (inv.title && inv.title !== "Fatura" ? inv.title : "Novo projeto");
+
+  const listId = await createList(orgId, spaceId, name);
+  await db
+    .update(invoices)
+    .set({ productionListId: listId })
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.orgId, orgId)));
+  void emitEvent(orgId, "production.created", { title: name });
 }
 
 /**

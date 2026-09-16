@@ -8,13 +8,15 @@ export type IntegrationEvent =
   | "task.completed"
   | "proposal.accepted"
   | "contract.signed"
-  | "invoice.paid";
+  | "invoice.paid"
+  | "production.created";
 
 export const INTEGRATION_EVENTS: IntegrationEvent[] = [
   "task.completed",
   "proposal.accepted",
   "contract.signed",
   "invoice.paid",
+  "production.created",
 ];
 
 export interface IntegrationDTO {
@@ -120,6 +122,8 @@ function humanMessage(event: IntegrationEvent, data: Record<string, unknown>): s
       const brl = (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       return `💰 Fatura paga: ${title} — ${brl}`;
     }
+    case "production.created":
+      return `🚀 Projeto em produção: ${title}`;
   }
 }
 

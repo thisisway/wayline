@@ -14,13 +14,20 @@ import {
 
 // Espelha INTEGRATION_EVENTS do @wayline/db — mantido local p/ não puxar o
 // pacote server (postgres/crypto) para o bundle client.
-const INTEGRATION_EVENTS = ["task.completed", "proposal.accepted", "contract.signed", "invoice.paid"] as const;
+const INTEGRATION_EVENTS = [
+  "task.completed",
+  "proposal.accepted",
+  "contract.signed",
+  "invoice.paid",
+  "production.created",
+] as const;
 
 const EVENT_LABEL: Record<string, string> = {
   "task.completed": "Tarefa concluída",
   "proposal.accepted": "Proposta aceita",
   "contract.signed": "Contrato assinado",
   "invoice.paid": "Fatura paga",
+  "production.created": "Projeto em produção",
 };
 
 const KIND_LABEL: Record<IntegrationKind, string> = {

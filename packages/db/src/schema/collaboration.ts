@@ -663,6 +663,8 @@ export const invoices = pgTable(
     /** Recorrência: 'none' | 'monthly'. next_issue_at = quando gerar a próxima. */
     recurrence: text("recurrence").notNull().default("none"),
     nextIssueAt: timestamp("next_issue_at", { withTimezone: true }),
+    /** Lista de produção criada quando a fatura foi paga (idempotência do handoff). */
+    productionListId: uuid("production_list_id"),
     token: text("token").notNull().unique(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
