@@ -1,7 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Check, CreditCard, Keyboard, LogOut, Moon, Plug, Sparkles, Sun, Upload, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Copy,
+  CreditCard,
+  Keyboard,
+  LogOut,
+  Moon,
+  Plug,
+  RefreshCw,
+  Sparkles,
+  Sun,
+  Upload,
+  X,
+} from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Input, cn } from "@wayline/ui";
@@ -13,6 +27,7 @@ import {
   type ChangePasswordResult,
 } from "@/actions/profile";
 import { billingPortalAction, subscriptionSummaryAction } from "@/actions/billing";
+import { getCalendarTokenAction, regenerateCalendarTokenAction } from "@/actions/calendar";
 import { AccountDataSection } from "@/components/shell/account-data-section";
 import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
 
@@ -53,6 +68,80 @@ const PWD_MSG: Record<ChangePasswordResult, { text: string; ok: boolean }> = {
   nosession: { text: "Sessão expirada. Entre novamente.", ok: false },
   nopassword: { text: "Esta conta não usa senha.", ok: false },
 };
+
+/** Feed ICS: assinar as tarefas com prazo no Google Agenda/Apple/Outlook. */
+function CalendarSection() {
+  const [token, setToken] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    getCalendarTokenAction().then(setToken).catch(() => {});
+  }, []);
+
+  const url =
+    token && typeof window !== "undefined"
+      ? `${window.location.origin}/api/calendar/ics?token=${token}`
+      : "";
+
+  async function copy() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
+
+  async function regenerate() {
+    if (busy) return;
+    if (
+      !window.confirm(
+        "Gerar um novo link? O link atual para de funcionar nos calendários já conectados.",
+      )
+    )
+      return;
+    setBusy(true);
+    const t = await regenerateCalendarTokenAction().catch(() => null);
+    if (t) setToken(t);
+    setCopied(false);
+    setBusy(false);
+  }
+
+  return (
+    <Section title="Calendário">
+      <p className="mb-2 flex items-center gap-1.5 text-dense text-muted">
+        <CalendarDays className="size-4 shrink-0" />
+        Assine suas tarefas com prazo no Google Agenda, Apple ou Outlook — atualiza sozinho.
+      </p>
+      <div className="flex items-center gap-2">
+        <Input readOnly value={url || "Gerando link…"} onFocus={(e) => e.currentTarget.select()} />
+        <button
+          type="button"
+          onClick={copy}
+          disabled={!url}
+          className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 h-9 text-dense font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground disabled:opacity-50"
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          {copied ? "Copiado" : "Copiar"}
+        </button>
+      </div>
+      <p className="mt-1.5 text-[11px] text-subtle">
+        No Google Agenda: <strong>Outros calendários → + → Assinar por URL</strong> e cole o link.
+      </p>
+      <button
+        type="button"
+        onClick={regenerate}
+        disabled={busy}
+        className="mt-2 flex items-center gap-1.5 text-dense font-medium text-muted transition-colors hover:text-danger disabled:opacity-50"
+      >
+        <RefreshCw className="size-3.5" /> Gerar novo link
+      </button>
+    </Section>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -369,6 +458,8 @@ export function SettingsModal({
               </button>
             </div>
           </Section>
+
+          <CalendarSection />
 
           {/* Plano */}
           <Section title="Plano & cobrança">

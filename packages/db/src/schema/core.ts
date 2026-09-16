@@ -109,6 +109,8 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   // Auth.js (Credentials): hash bcrypt. Nulo p/ usuários ainda sem senha.
   passwordHash: text("password_hash"),
+  // Token secreto do feed ICS (assinatura de calendário). Nulo até gerar.
+  calendarToken: text("calendar_token").unique(),
   ...timestamps,
 });
 

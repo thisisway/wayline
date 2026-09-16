@@ -215,6 +215,13 @@ export {
   type Subtask,
 } from "./queries/subtasks";
 export { getMyTasks, type MyTask } from "./queries/my-tasks";
+export {
+  getOrCreateCalendarToken,
+  regenerateCalendarToken,
+  getCalendarFeedByToken,
+  type CalendarTask,
+  type CalendarFeed,
+} from "./queries/calendar";
 export { searchTasks, type SearchResult } from "./queries/search";
 export { getChatMessages, sendChatMessage, type ChatMessage } from "./queries/chat";
 export {
