@@ -3,15 +3,25 @@
 import { randomInt } from "node:crypto";
 import bcrypt from "bcryptjs";
 import {
+  bumpPasswordResetAttempts,
   bumpVerificationAttempts,
   createOrg,
   createUser,
+  deletePasswordReset,
   deleteVerification,
+  getPasswordReset,
   getUserByEmail,
   getVerification,
+  setUserPasswordHash,
+  upsertPasswordReset,
   upsertVerification,
 } from "@wayline/db";
-import { emailEnabled, sendVerificationEmail, sendWelcomeEmail } from "@/lib/email";
+import {
+  emailEnabled,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from "@/lib/email";
 import { rateLimit, MIN } from "@/lib/rate-limit";
 
 const TOO_MANY = "Muitas tentativas. Aguarde alguns minutos e tente de novo.";
@@ -99,6 +109,71 @@ export async function verifyRegistrationAction(
   await createOrg(userId, "Meu Workspace");
   await deleteVerification(e);
   await sendWelcomeEmail(e, v.name).catch(() => {});
+  return { ok: true };
+}
+
+/**
+ * Recuperação de senha — etapa 1: envia um código ao email (se existir conta).
+ * Sempre retorna ok:true para não revelar se o email tem cadastro.
+ */
+export async function requestPasswordResetAction(email: string): Promise<StartResult> {
+  const e = email.trim().toLowerCase();
+  if (!e) return { ok: false, error: "Informe seu email." };
+  // Anti-spam: 5 pedidos por IP a cada 10 min.
+  if (!(await rateLimit("pwreset", 5, 10 * MIN))) return { ok: false, error: TOO_MANY };
+  if (!emailEnabled()) {
+    return { ok: false, error: "Recuperação por email indisponível neste ambiente." };
+  }
+
+  const user = await getUserByEmail(e);
+  // Só envia se o usuário existir — mas responde igual nos dois casos.
+  if (user) {
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    const codeHash = await bcrypt.hash(code, 10);
+    await upsertPasswordReset({ email: e, codeHash, expiresAt: new Date(Date.now() + TTL_MS) });
+    await sendPasswordResetEmail(e, code).catch(() => {});
+  }
+  return { ok: true, verified: false };
+}
+
+/** Recuperação de senha — etapa 2: confere o código e grava a nova senha. */
+export async function resetPasswordAction(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<VerifyResult> {
+  const e = email.trim().toLowerCase();
+  if (newPassword.length < 6) {
+    return { ok: false, error: "A senha precisa ter ao menos 6 caracteres." };
+  }
+  // Anti brute-force do código: 12 tentativas por IP a cada 10 min.
+  if (!(await rateLimit("pwreset-verify", 12, 10 * MIN))) return { ok: false, error: TOO_MANY };
+
+  const r = await getPasswordReset(e);
+  if (!r) return { ok: false, error: "Nenhum código pendente. Recomece a recuperação." };
+  if (r.expiresAt.getTime() < Date.now()) {
+    await deletePasswordReset(e);
+    return { ok: false, error: "Código expirado. Recomece a recuperação." };
+  }
+  if (r.attempts >= MAX_ATTEMPTS) {
+    await deletePasswordReset(e);
+    return { ok: false, error: "Muitas tentativas. Recomece a recuperação." };
+  }
+
+  const match = await bcrypt.compare(code.trim(), r.codeHash);
+  if (!match) {
+    await bumpPasswordResetAttempts(e);
+    return { ok: false, error: "Código inválido." };
+  }
+
+  const user = await getUserByEmail(e);
+  if (!user) {
+    await deletePasswordReset(e);
+    return { ok: false, error: "Conta não encontrada." };
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await setUserPasswordHash(user.id, passwordHash);
+  await deletePasswordReset(e);
   return { ok: true };
 }
 

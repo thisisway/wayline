@@ -1,5 +1,5 @@
 import "server-only";
-import { getBrandName, getUsersByIds } from "@wayline/db";
+import { getBrandName, getPlatformSettings, getUsersByIds } from "@wayline/db";
 
 /**
  * Envio de email via Resend (REST, sem SDK). 100% opcional: se faltarem as
@@ -20,6 +20,26 @@ const FONT =
 
 export function emailEnabled(): boolean {
   return Boolean(apiKey && from);
+}
+
+/**
+ * Só serve logo em email se a URL for absoluta (http) — clientes de email não
+ * carregam caminhos relativos. Caminho "/..." vira absoluto se houver APP_URL.
+ */
+function resolveLogo(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (appUrl && url.startsWith("/")) return `${appUrl.replace(/\/$/, "")}${url}`;
+  return null;
+}
+
+/** Nome + logo (quando utilizável) da marca configurada no sistema. */
+async function emailBranding(): Promise<{ name: string; logo: string | null }> {
+  const [name, settings] = await Promise.all([
+    getBrandName(),
+    getPlatformSettings().catch(() => null),
+  ]);
+  return { name, logo: resolveLogo(settings?.logoUrl) };
 }
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
@@ -49,12 +69,16 @@ function emailShell(opts: {
   preheader: string;
   content: string;
   footer?: string;
+  logo?: string | null;
 }): string {
   const brand = escapeHtml(opts.brand);
   const year = new Date().getFullYear();
   const footer =
     opts.footer ??
     `Você recebeu este email porque tem uma conta no ${brand}.`;
+  const header = opts.logo
+    ? `<img src="${opts.logo}" alt="${brand}" height="34" style="display:block;border:0;outline:none;max-height:40px;width:auto;">`
+    : `<span style="font-family:${FONT};font-weight:800;font-size:20px;color:${ACCENT};letter-spacing:-0.02em;">${brand}</span>`;
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -71,7 +95,7 @@ function emailShell(opts: {
 <tr><td align="center" style="padding:32px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid #e6e8ee;border-radius:14px;overflow:hidden;">
 <tr><td style="padding:26px 32px 6px 32px;">
-<span style="font-family:${FONT};font-weight:800;font-size:20px;color:${ACCENT};letter-spacing:-0.02em;">${brand}</span>
+${header}
 </td></tr>
 <tr><td style="padding:12px 32px 28px 32px;font-family:${FONT};color:#0B1023;">
 ${opts.content}
@@ -110,6 +134,7 @@ export function notificationEmail(opts: {
   taskTitle: string;
   taskId?: string;
   brandName?: string;
+  logo?: string | null;
 }): string {
   const brand = opts.brandName ?? "Wayline";
   const link = appUrl && opts.taskId ? `${appUrl}/app?task=${opts.taskId}` : appUrl;
@@ -121,6 +146,7 @@ export function notificationEmail(opts: {
     ) + (link ? emailButton(link, "Abrir tarefa") : "");
   return emailShell({
     brand,
+    logo: opts.logo,
     preheader: `${opts.actorName} ${opts.action} ${opts.taskTitle}`,
     content,
     footer: `Você recebeu este email porque é membro de um workspace no ${escapeHtml(brand)}.`,
@@ -139,13 +165,15 @@ export async function emailNotify(
   try {
     const recipients = await getUsersByIds(recipientIds);
     if (recipients.length === 0) return;
+    const { name, logo } = await emailBranding();
     const html = notificationEmail({
       heading: opts.subject,
       actorName: opts.actorName,
       action: opts.action,
       taskTitle: opts.taskTitle,
       taskId: opts.taskId,
-      brandName: await getBrandName(),
+      brandName: name,
+      logo,
     });
     await Promise.allSettled(recipients.map((r) => sendEmail(r.email, opts.subject, html)));
   } catch {
@@ -159,7 +187,7 @@ export async function sendSupportUpdateEmail(
   opts: { kind: "reply" | "resolved"; ticketSubject: string; ticketId: string },
 ): Promise<boolean> {
   if (!emailEnabled() || !to) return false;
-  const brand = await getBrandName();
+  const { name: brand, logo } = await emailBranding();
   const link = appUrl ? `${appUrl}/app?ticket=${opts.ticketId}` : appUrl;
   const line =
     opts.kind === "reply"
@@ -172,6 +200,7 @@ export async function sendSupportUpdateEmail(
     (link ? emailButton(link, "Abrir chamado") : "");
   const html = emailShell({
     brand,
+    logo,
     preheader: `${line}: ${opts.ticketSubject || "seu chamado"}`,
     content,
     footer: `Você recebeu este email por ter aberto um chamado no ${escapeHtml(brand)}.`,
@@ -190,7 +219,7 @@ export async function sendInviteEmail(
   token: string,
   inviterName: string,
 ): Promise<boolean> {
-  const brand = await getBrandName();
+  const { name: brand, logo } = await emailBranding();
   const link = appUrl ? `${appUrl}/invite/${token}` : `/invite/${token}`;
   const content =
     h1("Você foi convidado 🎉") +
@@ -203,6 +232,7 @@ export async function sendInviteEmail(
     `<p style="margin:12px 0 0 0;font-family:${FONT};font-size:12px;line-height:1.5;color:#94a3b8;word-break:break-all;">Ou copie este link:<br>${link}</p>`;
   const html = emailShell({
     brand,
+    logo,
     preheader: `${inviterName} convidou você para ${orgName}`,
     content,
     footer: "Este convite expira em 7 dias. Se você não esperava por ele, ignore este email.",
@@ -216,7 +246,7 @@ export async function sendMemberAddedEmail(
   orgName: string,
   inviterName: string,
 ): Promise<boolean> {
-  const brand = await getBrandName();
+  const { name: brand, logo } = await emailBranding();
   const link = appUrl ? `${appUrl}/app` : undefined;
   const content =
     h1(`Bem-vindo ao ${escapeHtml(orgName)}`) +
@@ -228,6 +258,7 @@ export async function sendMemberAddedEmail(
     (link ? emailButton(link, "Abrir o workspace") : "");
   const html = emailShell({
     brand,
+    logo,
     preheader: `${inviterName} adicionou você ao workspace ${orgName}`,
     content,
     footer: "Já está tudo pronto — é só entrar com a sua conta.",
@@ -237,7 +268,7 @@ export async function sendMemberAddedEmail(
 
 /** Email com o código de verificação de cadastro. */
 export async function sendVerificationEmail(to: string, code: string): Promise<boolean> {
-  const brand = await getBrandName();
+  const { name: brand, logo } = await emailBranding();
   const content =
     h1("Confirme seu email") +
     p("Use o código abaixo para confirmar sua conta:") +
@@ -246,6 +277,7 @@ export async function sendVerificationEmail(to: string, code: string): Promise<b
     )}</div>`;
   const html = emailShell({
     brand,
+    logo,
     preheader: `Seu código de confirmação: ${code}`,
     content,
     footer: "O código expira em 15 minutos. Se você não tentou criar uma conta, ignore este email.",
@@ -255,7 +287,7 @@ export async function sendVerificationEmail(to: string, code: string): Promise<b
 
 /** Email de boas-vindas no cadastro. */
 export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
-  const brand = await getBrandName();
+  const { name: brand, logo } = await emailBranding();
   const link = appUrl ? `${appUrl}/app` : undefined;
   const first = escapeHtml(name.split(" ")[0] ?? name);
   const content =
@@ -265,11 +297,32 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
     (link ? emailButton(link, `Abrir o ${brand}`) : "");
   const html = emailShell({
     brand,
+    logo,
     preheader: `Bem-vindo ao ${brand}`,
     content,
     footer: `Enviado pelo ${escapeHtml(brand)}.`,
   });
   return sendEmail(to, `Bem-vindo ao ${brand} 🎉`, html);
+}
+
+/** Email com o código de recuperação de senha. */
+export async function sendPasswordResetEmail(to: string, code: string): Promise<boolean> {
+  const { name: brand, logo } = await emailBranding();
+  const content =
+    h1("Redefinir sua senha") +
+    p("Use o código abaixo para criar uma nova senha:") +
+    `<div style="margin:16px 0 4px 0;font-family:${FONT};font-size:34px;font-weight:800;letter-spacing:10px;background:#f1f5f9;border-radius:12px;padding:18px;text-align:center;color:#0B1023;">${escapeHtml(
+      code,
+    )}</div>`;
+  const html = emailShell({
+    brand,
+    logo,
+    preheader: `Seu código para redefinir a senha: ${code}`,
+    content,
+    footer:
+      "O código expira em 15 minutos. Se você não pediu para redefinir a senha, ignore este email — sua senha continua a mesma.",
+  });
+  return sendEmail(to, `${code} — redefinição de senha ${brand}`, html);
 }
 
 function escapeHtml(s: string): string {

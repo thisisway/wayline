@@ -119,6 +119,13 @@ export {
   type VerificationRow,
 } from "./queries/email-verification";
 export {
+  upsertPasswordReset,
+  getPasswordReset,
+  bumpPasswordResetAttempts,
+  deletePasswordReset,
+  type PasswordResetRow,
+} from "./queries/password-reset";
+export {
   listClients,
   createClient,
   updateClient,

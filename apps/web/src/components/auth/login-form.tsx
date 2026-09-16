@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input } from "@wayline/ui";
 import { BrandLogo, hasBrandLogo } from "@/components/shell/brand-logo";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password";
 
 /** Destino pós-login: usa ?next=/… se for um caminho interno seguro. */
 export function safeNext(): string {
@@ -28,6 +29,7 @@ export function LoginForm({
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [showForgot, setShowForgot] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,6 +71,9 @@ export function LoginForm({
           </div>
         </div>
 
+        {showForgot ? (
+          <ForgotPasswordForm initialEmail={email} onBack={() => setShowForgot(false)} />
+        ) : (
         <form
           onSubmit={onSubmit}
           className="space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm"
@@ -101,6 +106,15 @@ export function LoginForm({
               placeholder="••••••••"
               required
             />
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="text-dense text-muted hover:text-brand hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -120,6 +134,7 @@ export function LoginForm({
             </Link>
           </p>
         </form>
+        )}
         <p className="mt-6 text-center text-[11px] text-subtle">
           <Link href="/privacidade" className="hover:underline">
             Privacidade

@@ -127,6 +127,16 @@ export const emailVerifications = pgTable("email_verifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
+/** Códigos de recuperação de senha (por email). Um pendente por email. */
+export const passwordResets = pgTable("password_resets", {
+  id: idColumn(),
+  email: text("email").notNull().unique(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 /** Vínculo user↔org com papel. Guests são o acesso do portal do cliente. */
 export const memberships = pgTable(
   "memberships",
