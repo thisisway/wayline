@@ -9,7 +9,7 @@ import {
   type CreateClientInput,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertMember, assertRole } from "@/lib/authz";
+import { assertMember, assertModule, assertRole } from "@/lib/authz";
 
 export async function listClientsAction(orgId: string): Promise<ClientDTO[]> {
   if (!(await assertMember(orgId))) return [];
@@ -20,7 +20,7 @@ export async function createClientAction(
   orgId: string,
   input: CreateClientInput,
 ): Promise<ClientDTO | null> {
-  if (!input.name.trim() || !(await assertRole(orgId, "admin"))) return null;
+  if (!input.name.trim() || !(await assertModule(orgId, "comercial", "edit"))) return null;
   const client = await createClient(orgId, input);
   revalidatePath("/app");
   return client;

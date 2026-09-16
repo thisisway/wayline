@@ -2,12 +2,19 @@
 
 import * as React from "react";
 import { Check, Copy, FileText, Package, Plus, Sparkles, Trash2, X } from "lucide-react";
-import type { PortfolioItemDTO, ProposalDTO, ProposalListItem, ServiceDTO } from "@wayline/db";
+import type {
+  PortfolioItemDTO,
+  ProposalDTO,
+  ProposalListItem,
+  ProposalStage,
+  ServiceDTO,
+} from "@wayline/db";
 import { Badge, Button, Input, cn } from "@wayline/ui";
 import { toCents, toInput } from "@/lib/money";
 import { listServicesAction } from "@/actions/services";
 import { listPortfolioAction } from "@/actions/portfolio";
 import { contractFromProposalAction } from "@/actions/contracts";
+import { createClientAction } from "@/actions/clients";
 import {
   aiEnabledAction,
   clientOptionsAction,
@@ -16,8 +23,17 @@ import {
   draftProposalAction,
   getProposalAction,
   listProposalsAction,
+  moveProposalStageAction,
   updateProposalAction,
 } from "@/actions/proposals";
+
+const STAGES: { value: string; label: string }[] = [
+  { value: "lead", label: "Lead" },
+  { value: "qualificado", label: "Qualificado" },
+  { value: "proposta", label: "Proposta" },
+  { value: "ganho", label: "Ganho" },
+  { value: "perdido", label: "Perdido" },
+];
 
 const STATUS: Record<string, { label: string; variant: "neutral" | "brand" | "success" | "danger" }> = {
   draft: { label: "Rascunho", variant: "neutral" },
@@ -87,8 +103,11 @@ export function ProposalsModal({
   const [d, setD] = React.useState<ProposalDTO | null>(null);
   const [title, setTitle] = React.useState("");
   const [clientId, setClientId] = React.useState("");
+  const [addingClient, setAddingClient] = React.useState(false);
+  const [newClientName, setNewClientName] = React.useState("");
   const [validUntil, setValidUntil] = React.useState("");
   const [status, setStatus] = React.useState("draft");
+  const [stage, setStage] = React.useState("lead");
   const [recurrence, setRecurrence] = React.useState("once");
   const [intro, setIntro] = React.useState("");
   const [objective, setObjective] = React.useState("");
@@ -134,8 +153,11 @@ export function ProposalsModal({
     setGenMsg(null);
     setTitle(p.title);
     setClientId(p.clientId ?? "");
+    setAddingClient(false);
+    setNewClientName("");
     setValidUntil(p.validUntil ? new Date(p.validUntil).toISOString().slice(0, 10) : "");
     setStatus(p.status);
+    setStage(p.stage);
     setRecurrence(p.recurrence);
     setIntro(p.intro);
     setObjective(p.objective);
@@ -167,6 +189,21 @@ export function ProposalsModal({
   async function open(id: string) {
     const p = await getProposalAction(orgId, id);
     if (p) loadInto(p);
+  }
+  async function createClientInline() {
+    const name = newClientName.trim();
+    if (!name) return;
+    const c = await createClientAction(orgId, { name, color: "#1D66FF" }).catch(() => null);
+    if (c) {
+      setClients((cs) => [...cs, { id: c.id, name: c.name }]);
+      setClientId(c.id);
+    }
+    setAddingClient(false);
+    setNewClientName("");
+  }
+  function changeStage(next: string) {
+    setStage(next);
+    if (selectedId) void moveProposalStageAction(orgId, selectedId, next as ProposalStage).catch(() => {});
   }
   async function createNew() {
     const id = await createProposalAction(orgId);
@@ -347,15 +384,60 @@ export function ProposalsModal({
                 </div>
                 <div className="space-y-3">
                   <Field label="Cliente">
+                    {addingClient ? (
+                      <div className="flex gap-1.5">
+                        <Input
+                          autoFocus
+                          value={newClientName}
+                          placeholder="Nome do cliente"
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void createClientInline();
+                            else if (e.key === "Escape") setAddingClient(false);
+                          }}
+                        />
+                        <Button size="sm" onClick={() => void createClientInline()} disabled={!newClientName.trim()}>
+                          Criar
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <select
+                          value={clientId}
+                          onChange={(e) => setClientId(e.target.value)}
+                          className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                        >
+                          <option value="">Sem cliente</option>
+                          {clients.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewClientName("");
+                            setAddingClient(true);
+                          }}
+                          title="Novo cliente"
+                          aria-label="Novo cliente"
+                          className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border text-subtle hover:bg-elevated hover:text-foreground"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                    )}
+                  </Field>
+                  <Field label="Etapa do funil">
                     <select
-                      value={clientId}
-                      onChange={(e) => setClientId(e.target.value)}
+                      value={stage}
+                      onChange={(e) => changeStage(e.target.value)}
                       className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
                     >
-                      <option value="">Sem cliente</option>
-                      {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
+                      {STAGES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
                         </option>
                       ))}
                     </select>

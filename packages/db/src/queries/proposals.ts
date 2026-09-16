@@ -55,6 +55,7 @@ export interface ProposalDTO {
   internalNotes: string;
   portfolioIds: string[];
   status: string;
+  stage: string;
   token: string;
   clientId: string | null;
   validUntil: Date | null;
@@ -140,6 +141,7 @@ function baseDTO(p: RawProposal): Omit<ProposalDTO, "internalNotes"> & { interna
     internalNotes: p.internalNotes,
     portfolioIds: p.portfolioIds ?? [],
     status: p.status,
+    stage: p.stage,
     token: p.token,
     clientId: p.clientId,
     validUntil: p.validUntil,
