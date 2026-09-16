@@ -9,10 +9,10 @@ import {
   type ServiceInput,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertMember, assertRole } from "@/lib/authz";
+import { assertModule } from "@/lib/authz";
 
 export async function listServicesAction(orgId: string): Promise<ServiceDTO[]> {
-  if (!(await assertMember(orgId))) return [];
+  if (!(await assertModule(orgId, "comercial", "view"))) return [];
   return listServices(orgId);
 }
 
@@ -20,7 +20,7 @@ export async function createServiceAction(
   orgId: string,
   input: ServiceInput,
 ): Promise<ServiceDTO | null> {
-  if (!(await assertRole(orgId, "admin"))) return null;
+  if (!(await assertModule(orgId, "comercial", "edit"))) return null;
   const s = await createService(orgId, input);
   revalidatePath("/app");
   return s;
@@ -31,13 +31,13 @@ export async function updateServiceAction(
   id: string,
   input: ServiceInput,
 ): Promise<void> {
-  if (!(await assertRole(orgId, "admin"))) return;
+  if (!(await assertModule(orgId, "comercial", "manage"))) return;
   await updateService(orgId, id, input);
   revalidatePath("/app");
 }
 
 export async function deleteServiceAction(orgId: string, id: string): Promise<void> {
-  if (!(await assertRole(orgId, "admin"))) return;
+  if (!(await assertModule(orgId, "comercial", "manage"))) return;
   await deleteService(orgId, id);
   revalidatePath("/app");
 }

@@ -1,6 +1,13 @@
 import { and, asc, eq } from "drizzle-orm";
 import { getDb, withOrg } from "../client";
 import { memberships, users } from "../schema";
+import {
+  effectiveModuleAccess,
+  MODULE_KEYS,
+  type AccessLevel,
+  type ModuleAccessMap,
+  type ModuleKey,
+} from "../access-modules";
 
 export interface WorkspaceMember {
   userId: string;
@@ -8,6 +15,8 @@ export interface WorkspaceMember {
   email: string;
   avatarUrl: string | null;
   role: string;
+  /** Acesso efetivo por módulo (para o painel de membros). */
+  modules: ModuleAccessMap;
 }
 
 /** Membros da org (para o painel de membros e os responsáveis de tarefa). */
@@ -24,7 +33,29 @@ export async function getWorkspaceMembers(orgId: string): Promise<WorkspaceMembe
       email: m.user.email,
       avatarUrl: m.user.avatarUrl,
       role: m.role,
+      modules: effectiveModuleAccess(m.role, m.moduleAccess),
     }));
+  });
+}
+
+/** Grava a exceção de acesso a um módulo para um membro (não mexe em owners). */
+export async function setMemberModuleAccess(
+  orgId: string,
+  userId: string,
+  moduleKey: ModuleKey,
+  level: AccessLevel,
+): Promise<void> {
+  if (!MODULE_KEYS.includes(moduleKey)) return;
+  await withOrg(orgId, async (tx) => {
+    const m = await tx.query.memberships.findFirst({
+      where: and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)),
+    });
+    if (!m || m.role === "owner") return; // owner sempre tem tudo
+    const next = { ...(m.moduleAccess ?? {}), [moduleKey]: level };
+    await tx
+      .update(memberships)
+      .set({ moduleAccess: next })
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
   });
 }
 

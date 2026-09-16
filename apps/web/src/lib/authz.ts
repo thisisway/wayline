@@ -1,4 +1,10 @@
-import { getUserOrgs, getUserProfile } from "@wayline/db";
+import {
+  getUserOrgs,
+  getUserProfile,
+  hasModuleAccess,
+  type AccessLevel,
+  type ModuleKey,
+} from "@wayline/db";
 import { auth } from "@/auth";
 
 /**
@@ -36,6 +42,24 @@ export async function assertRole(
   const role = await getUserRole(orgId);
   if (!role) return false;
   return (ROLE_RANK[role] ?? 0) >= (ROLE_RANK[min] ?? 99);
+}
+
+/**
+ * Confirma que o usuário tem AO MENOS o nível `need` no módulo `key`
+ * (Comercial/Financeiro/Produção). Base para a visibilidade por módulo:
+ * owner/admin têm tudo por default; membros ganham acesso por exceção.
+ */
+export async function assertModule(
+  orgId: string,
+  key: ModuleKey,
+  need: AccessLevel,
+): Promise<boolean> {
+  if (!orgId) return false;
+  const session = await auth();
+  if (!session?.user?.id) return false;
+  const org = (await getUserOrgs(session.user.id)).find((o) => o.id === orgId);
+  if (!org) return false;
+  return hasModuleAccess(org.modules, key, need);
 }
 
 /**

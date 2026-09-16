@@ -139,6 +139,9 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: membershipRole("role").notNull().default("member"),
+    // Exceções de acesso por módulo (comercial/financeiro/producao). null =
+    // usa o default derivado do papel. Ver access-modules.ts.
+    moduleAccess: jsonb("module_access").$type<Record<string, string>>(),
     ...timestamps,
   },
   (t) => [

@@ -7,6 +7,16 @@
  */
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
+export {
+  MODULE_KEYS,
+  MODULE_LABELS,
+  defaultModuleAccess,
+  effectiveModuleAccess,
+  hasModuleAccess,
+  type ModuleKey,
+  type AccessLevel,
+  type ModuleAccessMap,
+} from "./access-modules";
 
 export {
   getDefaultBoard,
@@ -120,6 +130,7 @@ export {
   getWorkspaceMembers,
   addMemberByEmail,
   setMemberRole,
+  setMemberModuleAccess,
   removeMember,
   type WorkspaceMember,
   type AddMemberStatus,

@@ -1,6 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { getDb, withOrg, withUser } from "../client";
 import { lists, memberships, users } from "../schema";
+import { effectiveModuleAccess, type ModuleAccessMap } from "../access-modules";
 
 export interface AuthUser {
   id: string;
@@ -75,6 +76,8 @@ export interface UserOrg {
   logoUrl: string | null;
   brandColor: string | null;
   icon: string | null;
+  /** Acesso efetivo por módulo (default do papel + exceções gravadas). */
+  modules: ModuleAccessMap;
 }
 
 /** O usuário tem acesso à lista? (a lista está numa org da qual ele é membro) */
@@ -109,6 +112,7 @@ export async function getUserOrgs(userId: string): Promise<UserOrg[]> {
         logoUrl: m.organization.logoUrl ?? null,
         brandColor: m.organization.brandColor ?? null,
         icon: m.organization.icon ?? null,
+        modules: effectiveModuleAccess(m.role, m.moduleAccess),
       }));
   });
 }

@@ -2,14 +2,23 @@
 
 import * as React from "react";
 import { Check, Copy, Link2, Trash2, UserPlus, X } from "lucide-react";
+import { MODULE_KEYS, MODULE_LABELS, type AccessLevel, type ModuleKey } from "@wayline/db/modules";
 import type { InvitationDTO, WorkspaceMember } from "@wayline/db";
 import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import {
   addMemberAction,
   listMembersAction,
   removeMemberAction,
+  setMemberModuleAccessAction,
   setMemberRoleAction,
 } from "@/actions/org";
+
+const LEVEL_LABELS: Record<AccessLevel, string> = {
+  none: "Sem acesso",
+  view: "Ver",
+  edit: "Editar",
+  manage: "Gerenciar",
+};
 import {
   createInviteAction,
   listInvitesAction,
@@ -49,6 +58,15 @@ export function MembersModal({
   async function changeRole(userId: string, role: "admin" | "member" | "guest") {
     setMembers((ms) => (ms ?? []).map((m) => (m.userId === userId ? { ...m, role } : m)));
     await setMemberRoleAction(orgId, userId, role).catch(() => {});
+  }
+
+  async function changeModule(userId: string, key: ModuleKey, level: AccessLevel) {
+    setMembers((ms) =>
+      (ms ?? []).map((m) =>
+        m.userId === userId ? { ...m, modules: { ...m.modules, [key]: level } } : m,
+      ),
+    );
+    await setMemberModuleAccessAction(orgId, userId, key, level).catch(() => {});
   }
 
   const reload = React.useCallback(() => {
@@ -134,41 +152,65 @@ export function MembersModal({
             <p className="p-2 text-dense text-subtle">Carregando…</p>
           ) : (
             members.map((m) => (
-              <div
-                key={m.userId}
-                className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-elevated"
-              >
-                <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="md" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-ui font-medium text-foreground">{m.name}</p>
-                  <p className="truncate text-dense text-subtle">{m.email}</p>
+              <div key={m.userId} className="group rounded-md px-2 py-2 hover:bg-elevated">
+                <div className="flex items-center gap-3">
+                  <Avatar name={m.name} src={m.avatarUrl ?? undefined} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-ui font-medium text-foreground">{m.name}</p>
+                    <p className="truncate text-dense text-subtle">{m.email}</p>
+                  </div>
+                  {isAdmin && m.role !== "owner" ? (
+                    <select
+                      value={m.role}
+                      onChange={(e) =>
+                        changeRole(m.userId, e.target.value as "admin" | "member" | "guest")
+                      }
+                      className="h-8 rounded-md border border-border bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="admin">admin</option>
+                      <option value="member">member</option>
+                      <option value="guest">guest</option>
+                    </select>
+                  ) : (
+                    <Badge variant={m.role === "owner" ? "brand" : "neutral"} size="sm">
+                      {m.role}
+                    </Badge>
+                  )}
+                  {isAdmin && m.role !== "owner" && (
+                    <button
+                      type="button"
+                      onClick={() => remove(m.userId)}
+                      aria-label={`Remover ${m.name}`}
+                      className="flex size-7 items-center justify-center rounded-md text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  )}
                 </div>
-                {isAdmin && m.role !== "owner" ? (
-                  <select
-                    value={m.role}
-                    onChange={(e) =>
-                      changeRole(m.userId, e.target.value as "admin" | "member" | "guest")
-                    }
-                    className="h-8 rounded-md border border-border bg-surface px-1.5 text-dense text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="admin">admin</option>
-                    <option value="member">member</option>
-                    <option value="guest">guest</option>
-                  </select>
-                ) : (
-                  <Badge variant={m.role === "owner" ? "brand" : "neutral"} size="sm">
-                    {m.role}
-                  </Badge>
-                )}
-                {isAdmin && m.role !== "owner" && (
-                  <button
-                    type="button"
-                    onClick={() => remove(m.userId)}
-                    aria-label={`Remover ${m.name}`}
-                    className="flex size-7 items-center justify-center rounded-md text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+
+                {/* Acesso por módulo — só faz sentido ajustar para member/guest
+                    (admin e owner já têm acesso total). */}
+                {isAdmin && (m.role === "member" || m.role === "guest") && (
+                  <div className="mt-2 flex flex-wrap gap-2 pl-11">
+                    {MODULE_KEYS.map((key) => (
+                      <label key={key} className="flex items-center gap-1 text-[11px] text-subtle">
+                        {MODULE_LABELS[key]}
+                        <select
+                          value={m.modules[key]}
+                          onChange={(e) =>
+                            changeModule(m.userId, key, e.target.value as AccessLevel)
+                          }
+                          className="h-7 rounded border border-border bg-surface px-1 text-[11px] text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          {(Object.keys(LEVEL_LABELS) as AccessLevel[]).map((lv) => (
+                            <option key={lv} value={lv}>
+                              {LEVEL_LABELS[lv]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
             ))

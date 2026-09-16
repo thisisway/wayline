@@ -12,12 +12,12 @@ import {
   type ProposalPatch,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertMember, assertRole, getSessionUserId } from "@/lib/authz";
+import { assertModule, getSessionUserId } from "@/lib/authz";
 import { aiEnabled, draftProposal } from "@/lib/ai";
 import { rateLimit, MIN } from "@/lib/rate-limit";
 
 export async function listProposalsAction(orgId: string): Promise<ProposalListItem[]> {
-  if (!(await assertMember(orgId))) return [];
+  if (!(await assertModule(orgId, "comercial", "view"))) return [];
   return listProposals(orgId);
 }
 
@@ -25,19 +25,19 @@ export async function getProposalAction(
   orgId: string,
   id: string,
 ): Promise<ProposalDTO | null> {
-  if (!(await assertMember(orgId))) return null;
+  if (!(await assertModule(orgId, "comercial", "view"))) return null;
   return getProposal(orgId, id);
 }
 
 export async function clientOptionsAction(
   orgId: string,
 ): Promise<Array<{ id: string; name: string }>> {
-  if (!(await assertMember(orgId))) return [];
+  if (!(await assertModule(orgId, "comercial", "view"))) return [];
   return listClientOptions(orgId);
 }
 
 export async function createProposalAction(orgId: string): Promise<string | null> {
-  if (!(await assertRole(orgId, "admin"))) return null;
+  if (!(await assertModule(orgId, "comercial", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createProposal(orgId, uid);
   revalidatePath("/app");
@@ -76,7 +76,7 @@ export async function updateProposalAction(
   id: string,
   patch: ProposalPatchInput,
 ): Promise<boolean> {
-  if (!(await assertRole(orgId, "admin"))) return false;
+  if (!(await assertModule(orgId, "comercial", "edit"))) return false;
   const dbPatch: ProposalPatch = {
     title: patch.title,
     intro: patch.intro,
@@ -104,7 +104,7 @@ export async function updateProposalAction(
 }
 
 export async function deleteProposalAction(orgId: string, id: string): Promise<void> {
-  if (!(await assertRole(orgId, "admin"))) return;
+  if (!(await assertModule(orgId, "comercial", "manage"))) return;
   await deleteProposal(orgId, id);
   revalidatePath("/app");
 }
@@ -114,7 +114,7 @@ export async function draftProposalAction(
   orgId: string,
   briefing: string,
 ): Promise<{ intro: string; items: Array<{ description: string; amountCents: number }> } | null> {
-  if (!aiEnabled() || !briefing.trim() || !(await assertRole(orgId, "admin"))) return null;
+  if (!aiEnabled() || !briefing.trim() || !(await assertModule(orgId, "comercial", "edit"))) return null;
   // Protege contra abuso de créditos de IA: 20 gerações por IP a cada 10 min.
   if (!(await rateLimit("ai-draft", 20, 10 * MIN))) return null;
   return draftProposal(briefing.trim());

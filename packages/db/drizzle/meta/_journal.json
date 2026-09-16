@@ -414,6 +414,13 @@
       "when": 1789501834323,
       "tag": "0058_icy_nebula",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789561135212,
+      "tag": "0059_flashy_dagger",
+      "breakpoints": true
     }
   ]
 }

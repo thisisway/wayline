@@ -34,6 +34,9 @@ import {
   markNotificationsRead,
   removeMember,
   setMemberRole,
+  setMemberModuleAccess,
+  type AccessLevel,
+  type ModuleKey,
   type WorkspaceMember,
 } from "@wayline/db";
 import { auth } from "@/auth";
@@ -317,6 +320,18 @@ export async function setMemberRoleAction(
 ): Promise<void> {
   if (!(await assertRole(orgId, "admin"))) return;
   await setMemberRole(orgId, userId, role);
+  revalidatePath("/app");
+}
+
+/** Define o acesso de um membro a um módulo (admin+; não altera owners). */
+export async function setMemberModuleAccessAction(
+  orgId: string,
+  userId: string,
+  moduleKey: ModuleKey,
+  level: AccessLevel,
+): Promise<void> {
+  if (!(await assertRole(orgId, "admin"))) return;
+  await setMemberModuleAccess(orgId, userId, moduleKey, level);
   revalidatePath("/app");
 }
 

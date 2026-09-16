@@ -9,10 +9,10 @@ import {
   type ExpenseInput,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertMember, assertRole, getSessionUserId } from "@/lib/authz";
+import { assertModule, getSessionUserId } from "@/lib/authz";
 
 export async function listExpensesAction(orgId: string): Promise<ExpenseDTO[]> {
-  if (!(await assertMember(orgId))) return [];
+  if (!(await assertModule(orgId, "financeiro", "view"))) return [];
   return listExpenses(orgId);
 }
 
@@ -39,7 +39,7 @@ function toInput(raw: ExpenseInputRaw): ExpenseInput {
 }
 
 export async function createExpenseAction(orgId: string, raw: ExpenseInputRaw): Promise<string | null> {
-  if (!(await assertRole(orgId, "admin"))) return null;
+  if (!(await assertModule(orgId, "financeiro", "edit"))) return null;
   const uid = await getSessionUserId();
   const id = await createExpense(orgId, uid, toInput(raw));
   revalidatePath("/app");
@@ -47,14 +47,14 @@ export async function createExpenseAction(orgId: string, raw: ExpenseInputRaw): 
 }
 
 export async function updateExpenseAction(orgId: string, id: string, raw: ExpenseInputRaw): Promise<boolean> {
-  if (!(await assertRole(orgId, "admin"))) return false;
+  if (!(await assertModule(orgId, "financeiro", "edit"))) return false;
   await updateExpense(orgId, id, toInput(raw));
   revalidatePath("/app");
   return true;
 }
 
 export async function deleteExpenseAction(orgId: string, id: string): Promise<void> {
-  if (!(await assertRole(orgId, "admin"))) return;
+  if (!(await assertModule(orgId, "financeiro", "manage"))) return;
   await deleteExpense(orgId, id);
   revalidatePath("/app");
 }

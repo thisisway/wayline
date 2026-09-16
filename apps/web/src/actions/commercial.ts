@@ -1,7 +1,7 @@
 "use server";
 
 import { listContracts, listProposals } from "@wayline/db";
-import { assertMember } from "@/lib/authz";
+import { assertModule } from "@/lib/authz";
 
 export interface CommercialOverview {
   proposals: {
@@ -35,7 +35,7 @@ const EMPTY: CommercialOverview = {
 
 /** Agrega o funil comercial a partir das queries resilientes (nunca lança). */
 export async function commercialOverviewAction(orgId: string): Promise<CommercialOverview> {
-  if (!(await assertMember(orgId))) return EMPTY;
+  if (!(await assertModule(orgId, "comercial", "view"))) return EMPTY;
   const [proposals, contracts] = await Promise.all([
     listProposals(orgId),
     listContracts(orgId),

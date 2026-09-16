@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Database, LayoutGrid } from "lucide-react";
+import { hasModuleAccess, type ModuleAccessMap } from "@wayline/db/modules";
 import type {
   AssignedComment,
   BoardData,
@@ -96,6 +97,7 @@ export function AppView({
   platformLogoDark,
   platformIcon,
   modules = [],
+  moduleAccess,
   focusTaskId,
   focusTicketId,
 }: {
@@ -121,9 +123,12 @@ export function AppView({
   platformLogoDark?: string | null;
   platformIcon?: string | null;
   modules?: string[];
+  moduleAccess: ModuleAccessMap;
   focusTaskId?: string;
   focusTicketId?: string;
 }) {
+  const canComercial = hasModuleAccess(moduleAccess, "comercial", "view");
+  const canFinanceiro = hasModuleAccess(moduleAccess, "financeiro", "view");
   const router = useRouter();
   const [, startTransition] = React.useTransition();
   const [view, setView] = React.useState("board");
@@ -315,8 +320,8 @@ export function AppView({
         onOpenForms={() => setView("forms")}
         onOpenSupport={() => setSupportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
-        showComercial={isAdmin}
-        showFinance={isAdmin}
+        showComercial={canComercial}
+        showFinance={canFinanceiro}
         supportBadge={supportAwaiting}
       />
       {sidebarOpen && (
@@ -523,7 +528,6 @@ export function AppView({
             userName={userName}
             myTasks={myTasks}
             nav={nav}
-            isAdmin={isAdmin}
             recents={recents}
             onGoToList={(listId) => {
               setView("board");
@@ -536,23 +540,27 @@ export function AppView({
             }}
             onSearch={() => setSearchOpen(true)}
             onOpenBrain={() => setBrainOpen(true)}
-            onOpenComercial={() => setView("comercial")}
-            onOpenFinance={() => setView("finance")}
+            onOpenComercial={canComercial ? () => setView("comercial") : undefined}
+            onOpenFinance={canFinanceiro ? () => setView("finance") : undefined}
             onOpenForms={() => setView("forms")}
             onOpenSupport={() => setSupportOpen(true)}
           />
         ) : view === "comercial" ? (
-          <CommercialPage
-            salesEnabled={salesEnabled}
-            onOpenOverview={() => setOverviewOpen(true)}
-            onOpenClients={() => setClientsOpen(true)}
-            onOpenProposals={() => setProposalsOpen(true)}
-            onOpenServices={() => setServicesOpen(true)}
-            onOpenPortfolio={() => setPortfolioOpen(true)}
-            onOpenContracts={() => setContractsOpen(true)}
-          />
+          !canComercial ? (
+            <NoModuleAccess module="Comercial" />
+          ) : (
+            <CommercialPage
+              salesEnabled={salesEnabled}
+              onOpenOverview={() => setOverviewOpen(true)}
+              onOpenClients={() => setClientsOpen(true)}
+              onOpenProposals={() => setProposalsOpen(true)}
+              onOpenServices={() => setServicesOpen(true)}
+              onOpenPortfolio={() => setPortfolioOpen(true)}
+              onOpenContracts={() => setContractsOpen(true)}
+            />
+          )
         ) : view === "finance" ? (
-          <FinancePage orgId={activeOrgId} />
+          !canFinanceiro ? <NoModuleAccess module="Financeiro" /> : <FinancePage orgId={activeOrgId} />
         ) : view === "forms" ? (
           <FormsPage orgId={activeOrgId} isAdmin={isAdmin} />
         ) : view === "board" ? (
@@ -681,6 +689,23 @@ function UpgradeLock({
       >
         Ver planos & fazer upgrade
       </button>
+    </div>
+  );
+}
+
+function NoModuleAccess({ module }: { module: string }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
+      <span className="flex size-12 items-center justify-center rounded-xl bg-elevated text-muted">
+        <Lock className="size-6" />
+      </span>
+      <div>
+        <p className="font-display text-h3 font-bold">Sem acesso ao {module}</p>
+        <p className="mt-1 max-w-sm text-ui text-muted">
+          Você não tem permissão para ver o módulo {module}. Peça a um administrador para liberar
+          seu acesso nas configurações de membros.
+        </p>
+      </div>
     </div>
   );
 }

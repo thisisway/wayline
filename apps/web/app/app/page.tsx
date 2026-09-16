@@ -91,6 +91,7 @@ export default async function AppPage({
       userAvatar={profile?.avatarUrl ?? undefined}
       isAdmin={activeOrg.role === "owner" || activeOrg.role === "admin"}
       isGuest={activeOrg.role === "guest"}
+      moduleAccess={activeOrg.modules}
       isPlatformAdmin={platformAdmin}
       planFlags={effectivePlan(activeOrg.plan, activeOrg.trialEndsAt).flags}
       trialDaysLeft={trialDaysLeft(activeOrg.trialEndsAt)}

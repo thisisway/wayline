@@ -53,7 +53,6 @@ export function HomeDashboard({
   myTasks,
   nav,
   recents,
-  isAdmin,
   onGoToList,
   onOpenTask,
   onSearch,
@@ -67,7 +66,6 @@ export function HomeDashboard({
   myTasks: MyTask[];
   nav: NavSpace[];
   recents: RecentTask[];
-  isAdmin: boolean;
   onGoToList: (listId: string) => void;
   onOpenTask: (listId: string, taskId: string) => void;
   onSearch?: () => void;
@@ -125,8 +123,8 @@ export function HomeDashboard({
   const actions: Action[] = [
     { label: "Buscar", icon: Search, color: "#1D66FF", onClick: onSearch },
     { label: "Wayline Brain", icon: Sparkles, color: "#7C5CFF", onClick: onOpenBrain },
-    ...(isAdmin ? [{ label: "Comercial", icon: Briefcase, color: "#0EA5E9", onClick: onOpenComercial } as Action] : []),
-    ...(isAdmin ? [{ label: "Financeiro", icon: Wallet, color: "#17C86A", onClick: onOpenFinance } as Action] : []),
+    ...(onOpenComercial ? [{ label: "Comercial", icon: Briefcase, color: "#0EA5E9", onClick: onOpenComercial } as Action] : []),
+    ...(onOpenFinance ? [{ label: "Financeiro", icon: Wallet, color: "#17C86A", onClick: onOpenFinance } as Action] : []),
     { label: "Formulários", icon: ClipboardList, color: "#FFB800", onClick: onOpenForms },
     { label: "Suporte", icon: LifeBuoy, color: "#EC4899", onClick: onOpenSupport },
   ];
