@@ -218,6 +218,26 @@ export {
 } from "./queries/subtasks";
 export { getMyTasks, type MyTask } from "./queries/my-tasks";
 export {
+  createApiToken,
+  listApiTokens,
+  revokeApiToken,
+  resolveApiToken,
+  type ApiScope,
+  type ApiTokenDTO,
+  type ResolvedToken,
+} from "./queries/api-tokens";
+export {
+  mcpProjectsByClient,
+  mcpSearchProjects,
+  mcpProjectSummary,
+  mcpProjectTasks,
+  mcpSearchMembers,
+  mcpUsersByIds,
+  type McpProject,
+  type McpProjectSummary,
+  type McpTaskRow,
+} from "./queries/mcp-reads";
+export {
   getOrCreateCalendarToken,
   regenerateCalendarToken,
   getCalendarFeedByToken,

@@ -2,17 +2,20 @@
 
 import * as React from "react";
 import {
+  Bot,
   CalendarDays,
   Check,
   Copy,
   CreditCard,
   Keyboard,
+  KeyRound,
   LogOut,
   Moon,
   Plug,
   RefreshCw,
   Sparkles,
   Sun,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -28,6 +31,12 @@ import {
 } from "@/actions/profile";
 import { billingPortalAction, subscriptionSummaryAction } from "@/actions/billing";
 import { getCalendarTokenAction, regenerateCalendarTokenAction } from "@/actions/calendar";
+import {
+  createApiTokenAction,
+  listApiTokensAction,
+  revokeApiTokenAction,
+} from "@/actions/api-tokens";
+import type { ApiTokenDTO } from "@wayline/db";
 import { AccountDataSection } from "@/components/shell/account-data-section";
 import { effectivePlan, formatPrice, resolvePlan, trialActive, trialDaysLeft } from "@/lib/plans";
 
@@ -139,6 +148,127 @@ function CalendarSection() {
       >
         <RefreshCw className="size-3.5" /> Gerar novo link
       </button>
+    </Section>
+  );
+}
+
+/** Tokens de API para agentes de IA (MCP da Wayline). */
+function AiAccessSection() {
+  const [tokens, setTokens] = React.useState<ApiTokenDTO[] | null>(null);
+  const [name, setName] = React.useState("");
+  const [scope, setScope] = React.useState<"read" | "write">("write");
+  const [busy, setBusy] = React.useState(false);
+  const [fresh, setFresh] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  const reload = React.useCallback(() => {
+    listApiTokensAction().then(setTokens).catch(() => setTokens([]));
+  }, []);
+  React.useEffect(() => reload(), [reload]);
+
+  async function create() {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    setFresh(null);
+    const res = await createApiTokenAction(name.trim(), scope).catch(() => null);
+    setBusy(false);
+    if (res) {
+      setFresh(res.token);
+      setName("");
+      reload();
+    }
+  }
+  async function revoke(id: string) {
+    if (!window.confirm("Revogar este token? Agentes que o usam perdem o acesso.")) return;
+    setTokens((ts) => (ts ?? []).filter((t) => t.id !== id));
+    await revokeApiTokenAction(id).catch(() => {});
+  }
+  async function copy() {
+    if (!fresh) return;
+    try {
+      await navigator.clipboard.writeText(fresh);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
+
+  return (
+    <Section title="Acesso de IA (MCP)">
+      <p className="mb-2 flex items-center gap-1.5 text-dense text-muted">
+        <Bot className="size-4 shrink-0" />
+        Tokens para conectar agentes de IA à Wayline via MCP. As ações da IA respeitam suas
+        permissões.
+      </p>
+
+      {fresh && (
+        <div className="mb-3 rounded-md border border-brand/30 bg-brand/10 p-2.5">
+          <p className="mb-1 text-[11px] font-semibold uppercase text-brand">
+            Copie agora — o token não será mostrado de novo
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded bg-surface px-2 py-1.5 font-mono text-[12px] text-foreground">
+              {fresh}
+            </code>
+            <button
+              type="button"
+              onClick={copy}
+              className="flex shrink-0 items-center gap-1 rounded-md bg-brand px-2.5 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-80"
+            >
+              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nome (ex.: Claude Desktop)"
+          className="h-9"
+        />
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value as "read" | "write")}
+          className="h-9 shrink-0 rounded-md border border-border bg-canvas px-2 text-dense text-foreground"
+        >
+          <option value="read">Leitura</option>
+          <option value="write">Leitura + escrita</option>
+        </select>
+        <Button onClick={create} disabled={busy || !name.trim()}>
+          <KeyRound className="size-4" /> Gerar
+        </Button>
+      </div>
+
+      {tokens && tokens.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {tokens.map((t) => (
+            <div
+              key={t.id}
+              className="group flex items-center gap-2 rounded-md bg-elevated/50 px-2.5 py-1.5"
+            >
+              <span className="min-w-0 flex-1 truncate text-dense font-medium text-foreground">
+                {t.name}
+                <span className="ml-2 text-[11px] font-normal text-subtle">
+                  {t.scope === "read" ? "leitura" : "leitura+escrita"}
+                  {t.lastUsedAt ? ` · usado ${new Date(t.lastUsedAt).toLocaleDateString("pt-BR")}` : " · nunca usado"}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => revoke(t.id)}
+                aria-label={`Revogar ${t.name}`}
+                className="text-subtle opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </Section>
   );
 }
@@ -460,6 +590,8 @@ export function SettingsModal({
           </Section>
 
           <CalendarSection />
+
+          <AiAccessSection />
 
           {/* Plano */}
           <Section title="Plano & cobrança">

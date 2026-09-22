@@ -1,0 +1,261 @@
+Quero criar uma integração completa entre a Wayline e agentes de Inteligência Artificial através de um servidor MCP (Model Context Protocol) e de uma Skill oficial da Wayline.
+
+O objetivo é permitir que uma IA consiga consultar, entender e operar a Wayline de forma estruturada, segura e eficiente, utilizando o mínimo possível de tokens e contexto.
+
+1. MCP da Wayline
+
+Crie um servidor MCP responsável por expor as funcionalidades da Wayline para agentes de IA.
+
+Antes da implementação, analise a estrutura atual do sistema, banco de dados, APIs, autenticação, entidades, relacionamentos e regras de negócio existentes.
+
+Evite duplicar funcionalidades que já existem.
+
+O MCP deverá funcionar como uma camada segura entre a IA e a Wayline.
+
+A IA deverá conseguir trabalhar com entidades como:
+
+* clientes;
+* projetos;
+* tarefas;
+* setores;
+* equipes;
+* usuários;
+* responsáveis;
+* status;
+* prioridades;
+* prazos;
+* comentários;
+* arquivos;
+* briefings;
+* informações e contexto dos projetos.
+
+A arquitetura deverá permitir expansão futura para novas funcionalidades.
+
+2. Descoberta antes da execução
+
+A IA não deve precisar carregar toda a estrutura da Wayline no contexto.
+
+Crie ferramentas pequenas e específicas para descoberta progressiva.
+
+Exemplo de fluxo:
+
+buscar cliente → buscar projetos do cliente → selecionar projeto → consultar informações necessárias → executar ação.
+
+Evite retornar listas gigantes ou objetos completos quando somente algumas informações forem necessárias.
+
+Implemente busca, filtros, paginação e retornos compactos.
+
+Sempre que possível, utilize IDs internamente depois que uma entidade for localizada.
+
+Exemplo:
+
+search_clients
+get_client
+list_client_projects
+search_projects
+get_project
+list_project_tasks
+create_task
+update_task
+assign_task
+list_departments
+list_team_members
+add_project_context
+
+Os nomes finais das ferramentas podem ser definidos de acordo com a arquitetura encontrada no sistema.
+
+3. Economia de tokens e contexto
+
+Essa é uma prioridade importante.
+
+O MCP e a Skill devem ser projetados para evitar que a IA precise receber grandes quantidades de informações.
+
+Utilize:
+
+* progressive disclosure;
+* respostas compactas;
+* filtros;
+* paginação;
+* busca por nome, ID e outros identificadores;
+* seleção de campos;
+* resumos antes de conteúdos completos;
+* IDs para referências posteriores;
+* ferramentas especializadas em vez de uma ferramenta genérica gigantesca;
+* carregamento de detalhes somente quando necessário.
+
+A IA deve descobrir progressivamente o que precisa para concluir cada tarefa.
+
+4. Skill da Wayline
+
+Crie também uma Skill oficial ensinando agentes de IA a utilizar corretamente o MCP da Wayline.
+
+A Skill deverá funcionar como um manual operacional para o agente.
+
+Ela deve explicar:
+
+* o que é a Wayline;
+* quais recursos estão disponíveis;
+* como descobrir clientes;
+* como localizar projetos;
+* como identificar o projeto correto;
+* como consultar setores;
+* como localizar responsáveis;
+* como criar tarefas;
+* como distribuir tarefas;
+* como atualizar tarefas;
+* como consultar contexto existente;
+* quando buscar informações adicionais;
+* quais ferramentas utilizar em cada situação;
+* quais informações evitar carregar desnecessariamente;
+* como minimizar chamadas e consumo de tokens;
+* como lidar com resultados ambíguos;
+* como agir quando existirem clientes ou projetos com nomes semelhantes;
+* quando pedir confirmação ao usuário antes de executar uma ação.
+
+Não coloque toda a documentação dentro do contexto principal da Skill.
+
+Organize a documentação de forma modular, permitindo que o agente carregue instruções específicas somente quando precisar.
+
+5. Fluxo principal de trabalho
+
+A integração será utilizada principalmente para gestão de projetos da nossa agência.
+
+Os projetos podem envolver:
+
+* Social Media;
+* desenvolvimento de sites;
+* sites institucionais;
+* landing pages;
+* e-commerce;
+* blogs;
+* fóruns;
+* design;
+* desenvolvimento;
+* conteúdo;
+* copywriting;
+* tráfego;
+* SEO;
+* outros serviços digitais.
+
+Quando eu solicitar algo como:
+
+“Crie as tarefas para desenvolver o site do Cliente X.”
+
+A IA deverá ser capaz de:
+
+1. localizar o Cliente X;
+2. identificar os projetos relacionados;
+3. encontrar o projeto correto;
+4. consultar apenas o contexto necessário;
+5. entender os setores disponíveis;
+6. identificar responsáveis quando necessário;
+7. estruturar as tarefas;
+8. criar as tarefas dentro do projeto correto;
+9. atribuir cada tarefa ao setor ou responsável adequado;
+10. definir dependências, prioridade, prazo ou status quando essas informações estiverem disponíveis;
+11. retornar um resumo curto das ações realizadas.
+
+Outro exemplo:
+
+“Adicione essa pauta ao projeto de Social Media do Cliente X e envie as tarefas para os setores responsáveis.”
+
+O agente deverá descobrir automaticamente cliente, projeto e estrutura necessária antes de executar a operação.
+
+6. Segurança
+
+Implemente níveis claros de operação.
+
+Separe ferramentas de:
+
+* leitura;
+* criação;
+* atualização;
+* exclusão;
+* ações potencialmente destrutivas.
+
+Ações destrutivas ou irreversíveis devem exigir confirmação explícita quando apropriado.
+
+Nunca permita que parâmetros enviados pelo agente sejam utilizados diretamente em consultas ao banco sem validação.
+
+Respeite autenticação, autorização, escopo do usuário e permissões existentes na Wayline.
+
+A IA nunca deve conseguir acessar dados que o usuário autenticado não poderia acessar normalmente.
+
+7. Arquitetura
+
+Estruture o projeto pensando em manutenção e crescimento.
+
+Separe claramente:
+
+* servidor MCP;
+* autenticação;
+* camada de serviços;
+* acesso à API ou banco;
+* validação;
+* schemas;
+* ferramentas MCP;
+* tratamento de erros;
+* logs/auditoria;
+* documentação;
+* Skill da Wayline.
+
+Evite criar regras de negócio duplicadas dentro do MCP quando elas já existirem no backend da Wayline.
+
+Sempre que possível:
+
+IA → MCP → serviços/API da Wayline → banco de dados.
+
+8. Auditoria
+
+Operações realizadas por agentes de IA devem ser identificáveis.
+
+Quando possível, registre:
+
+* usuário;
+* agente;
+* ferramenta utilizada;
+* entidade afetada;
+* ação realizada;
+* data e hora;
+* parâmetros relevantes;
+* resultado.
+
+Isso será importante para descobrir posteriormente quem criou, alterou ou removeu determinada informação.
+
+9. Tratamento de ambiguidades
+
+A IA nunca deve escolher silenciosamente uma entidade quando houver dúvida relevante.
+
+Exemplo:
+
+Existem dois projetos:
+
+* Site Institucional — Cliente X
+* Landing Page — Cliente X
+
+Se o pedido for apenas:
+
+“Adicione essa tarefa no projeto do Cliente X.”
+
+O agente deverá buscar os projetos existentes e solicitar esclarecimento caso não exista informação suficiente para determinar o projeto correto.
+
+Quando existir apenas uma correspondência evidente, poderá continuar normalmente.
+
+10. Entrega
+
+Primeiro analise o sistema existente.
+
+Depois apresente:
+
+1. arquitetura proposta;
+2. entidades identificadas;
+3. ferramentas MCP necessárias;
+4. estrutura da Skill;
+5. estratégia para economia de tokens/contexto;
+6. estratégia de autenticação e autorização;
+7. fluxos principais;
+8. riscos ou pontos que precisam ser definidos.
+
+Após essa análise, implemente o MCP e a Skill seguindo a arquitetura aprovada.
+
+Não recrie a Wayline. Utilize e integre corretamente a estrutura que já existe no projeto.

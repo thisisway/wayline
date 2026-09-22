@@ -1,0 +1,53 @@
+# Wayline MCP
+
+Servidor MCP (Model Context Protocol) que expõe a Wayline para agentes de IA.
+Fala com a API HTTP `/api/v1` da Wayline usando um **token pessoal** — todas as
+ações respeitam as permissões do usuário dono do token. **Fase 1: só leitura.**
+
+## Instalação
+
+```bash
+cd mcp-server
+npm install
+```
+
+## Token
+
+Na Wayline: **Configurações → Acesso de IA (MCP) → Gerar** (escolha *Leitura* para
+o modo atual). Copie o token `wl_…` (só aparece uma vez).
+
+## Registrar no Claude Code / Desktop
+
+```bash
+claude mcp add wayline \
+  --env WAYLINE_API_TOKEN=wl_seu_token \
+  --env WAYLINE_API_URL=https://app.wayline.com.br/api/v1 \
+  -- node /caminho/absoluto/mcp-server/index.mjs
+```
+
+No Claude Desktop, o equivalente no `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "wayline": {
+      "command": "node",
+      "args": ["/caminho/absoluto/mcp-server/index.mjs"],
+      "env": {
+        "WAYLINE_API_TOKEN": "wl_seu_token",
+        "WAYLINE_API_URL": "https://app.wayline.com.br/api/v1"
+      }
+    }
+  }
+}
+```
+
+## Ferramentas (Fase 1 — leitura)
+
+`whoami`, `search_clients`, `list_client_projects`, `search_projects`,
+`get_project`, `list_project_tasks`, `get_task`, `list_task_comments`,
+`list_members`, `get_project_context`.
+
+Todas devolvem JSON compacto (id + poucos campos). Use IDs para as chamadas
+seguintes e carregue detalhes só quando precisar. A **Skill `wayline`**
+(`/wayline-skill`) ensina o fluxo recomendado.

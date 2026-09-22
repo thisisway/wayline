@@ -117,6 +117,25 @@ export const users = pgTable("users", {
 });
 
 /**
+ * Tokens de API pessoais (PAT) — usados pelo MCP/integrações headless.
+ * Guarda só o hash (sha256) do token; o valor cru é mostrado uma vez.
+ * Corre com a identidade e permissões do próprio usuário (sem RLS: auth).
+ */
+export const apiTokens = pgTable("api_tokens", {
+  id: idColumn(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull().default("Token"),
+  tokenHash: text("token_hash").notNull().unique(),
+  /** 'read' (só leitura) | 'write' (leitura + escrita). Nunca inclui exclusão sem confirmação. */
+  scope: text("scope").notNull().default("write"),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+/**
  * Verificação de email no cadastro. Guarda os dados pendentes + hash do código;
  * a conta (users) só é criada quando o código é confirmado. Sem RLS (pré-conta).
  */

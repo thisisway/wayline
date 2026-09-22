@@ -1,0 +1,14 @@
+{
+  "name": "wayline-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor MCP da Wayline — expõe clientes, projetos e tarefas para agentes de IA.",
+  "bin": { "wayline-mcp": "index.mjs" },
+  "scripts": { "start": "node index.mjs" },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  }
+}
