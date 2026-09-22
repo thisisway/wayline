@@ -215,4 +215,50 @@ server.tool(
   },
 );
 
+// --- Subtarefas ------------------------------------------------------------
+server.tool(
+  "list_subtasks",
+  "Lista as subtarefas de uma tarefa (id, título, concluída).",
+  { taskId: z.string(), orgId: z.string().optional() },
+  async ({ taskId, orgId }) => ok(await api(`/tasks/${taskId}/subtasks${qs({ orgId })}`)),
+);
+
+server.tool(
+  "create_subtask",
+  "Cria uma subtarefa dentro de uma tarefa.",
+  { taskId: z.string(), orgId: z.string().optional(), title: z.string() },
+  async ({ taskId, orgId, title }) =>
+    ok(await api(`/tasks/${taskId}/subtasks`, { method: "POST", body: { orgId, title } })),
+);
+
+server.tool(
+  "set_subtask_done",
+  "Marca uma subtarefa como concluída/reaberta (e opcionalmente renomeia).",
+  { subtaskId: z.string(), orgId: z.string().optional(), done: z.boolean().optional(), title: z.string().optional() },
+  async ({ subtaskId, orgId, done, title }) =>
+    ok(await api(`/subtasks/${subtaskId}`, { method: "PATCH", body: { orgId, done, title } })),
+);
+
+// --- Ações em lote ---------------------------------------------------------
+server.tool(
+  "bulk_set_status",
+  "Move várias tarefas para um status de uma vez. Passe projectId para atualizar o board ao vivo.",
+  { taskIds: z.array(z.string()), statusId: z.string(), orgId: z.string().optional(), projectId: z.string().optional() },
+  async ({ taskIds, statusId, orgId, projectId }) =>
+    ok(await api("/tasks/bulk-status", { method: "POST", body: { taskIds, statusId, orgId, projectId } })),
+);
+
+server.tool(
+  "bulk_set_priority",
+  "Define a prioridade (urgent|high|normal|low) de várias tarefas de uma vez.",
+  {
+    taskIds: z.array(z.string()),
+    priority: z.enum(["urgent", "high", "normal", "low"]),
+    orgId: z.string().optional(),
+    projectId: z.string().optional(),
+  },
+  async ({ taskIds, priority, orgId, projectId }) =>
+    ok(await api("/tasks/bulk-priority", { method: "POST", body: { taskIds, priority, orgId, projectId } })),
+);
+
 await server.connect(new StdioServerTransport());

@@ -36,6 +36,19 @@ primeira org do usuário; passe-o explicitamente quando o usuário tiver várias
 | `add_project_context {projectId, note}` | Anexa nota ao brief. | |
 | `delete_task {taskId, confirm:true}` | **Exclui** (soft). | **Destrutivo**: peça confirmação ao usuário antes; só então `confirm:true`. |
 
+## Subtarefas e lote (escrita)
+
+| Ferramenta | O que faz |
+|---|---|
+| `list_subtasks {taskId}` | Subtarefas (id, título, concluída). Leitura. |
+| `create_subtask {taskId, title}` | Cria uma subtarefa. |
+| `set_subtask_done {subtaskId, done?, title?}` | Conclui/reabre (e renomeia). |
+| `bulk_set_status {taskIds[], statusId, projectId?}` | Move várias tarefas de status. |
+| `bulk_set_priority {taskIds[], priority, projectId?}` | Prioridade de várias tarefas. |
+
+Para lote, junte primeiro os `taskIds` com `list_project_tasks` (filtrando por
+status/responsável). Passe `projectId` nos bulk para o board atualizar ao vivo.
+
 Toda ação de escrita é registrada na auditoria da tarefa como **"IA · <token>"**.
 Antes de criar/alterar, **confirme o projeto certo** (ver `safety.md`). Após agir,
 devolva um resumo curto.
