@@ -465,6 +465,7 @@ export {
 export { getListDoc, upsertListDoc, type DocDTO } from "./queries/documents";
 export {
   getTaskActivity,
+  logActivity,
   logCreated,
   logTaskChanges,
   type ActivityDTO,

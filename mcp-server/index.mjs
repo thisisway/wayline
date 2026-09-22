@@ -25,11 +25,13 @@ function qs(obj) {
   return s ? `?${s}` : "";
 }
 
-async function api(path) {
+async function api(path, opts = {}) {
   if (!TOKEN) return { error: "missing_token", hint: "Defina WAYLINE_API_TOKEN." };
   try {
     const res = await fetch(BASE + path, {
+      method: opts.method || "GET",
       headers: { Authorization: `Bearer ${TOKEN}`, "content-type": "application/json" },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
     const text = await res.text();
     if (!res.ok) return { error: res.status, body: text.slice(0, 300) };
@@ -124,6 +126,93 @@ server.tool(
   "Brief/contexto do projeto (texto compacto). Use para entender o projeto antes de agir.",
   { projectId: z.string(), orgId: z.string().optional() },
   async ({ projectId, orgId }) => ok(await api(`/projects/${projectId}/context${qs({ orgId })}`)),
+);
+
+// --- Escrita (fase 2). Requer token com escopo "Leitura + escrita". ---------
+// Confirme o projeto/tarefa certos antes de escrever; destrutivo pede confirmação.
+
+const taskShape = {
+  title: z.string(),
+  description: z.string().optional(),
+  priority: z.enum(["urgent", "high", "normal", "low"]).optional(),
+  dueDate: z.string().optional().describe("YYYY-MM-DD"),
+  assigneeIds: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().describe("setores/labels, ex.: ['Design','Dev']"),
+  statusId: z.string().optional(),
+};
+
+server.tool(
+  "create_task",
+  "Cria uma tarefa num projeto. statusId opcional (default: 1ª coluna). tags = setores.",
+  { projectId: z.string(), orgId: z.string().optional(), ...taskShape },
+  async ({ orgId, ...body }) => ok(await api("/tasks", { method: "POST", body: { orgId, ...body } })),
+);
+
+server.tool(
+  "create_tasks_bulk",
+  "Cria várias tarefas de uma vez no mesmo projeto (máx. 50). Use para montar um plano inteiro.",
+  {
+    projectId: z.string(),
+    orgId: z.string().optional(),
+    statusId: z.string().optional(),
+    tasks: z.array(z.object(taskShape)),
+  },
+  async ({ orgId, ...body }) =>
+    ok(await api("/tasks/bulk", { method: "POST", body: { orgId, ...body } })),
+);
+
+server.tool(
+  "update_task",
+  "Atualiza campos de uma tarefa (parcial): title, description, priority, dueDate, statusId, tags, assigneeIds.",
+  {
+    taskId: z.string(),
+    orgId: z.string().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    priority: z.enum(["urgent", "high", "normal", "low"]).optional(),
+    dueDate: z.string().optional(),
+    statusId: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    assigneeIds: z.array(z.string()).optional(),
+  },
+  async ({ taskId, orgId, ...body }) =>
+    ok(await api(`/tasks/${taskId}`, { method: "PATCH", body: { orgId, ...body } })),
+);
+
+server.tool(
+  "assign_task",
+  "Define os responsáveis de uma tarefa (substitui a lista). Pegue os ids em list_members.",
+  { taskId: z.string(), orgId: z.string().optional(), assigneeIds: z.array(z.string()) },
+  async ({ taskId, orgId, assigneeIds }) =>
+    ok(await api(`/tasks/${taskId}/assign`, { method: "POST", body: { orgId, assigneeIds } })),
+);
+
+server.tool(
+  "add_comment",
+  "Adiciona um comentário a uma tarefa.",
+  { taskId: z.string(), orgId: z.string().optional(), body: z.string() },
+  async ({ taskId, orgId, body }) =>
+    ok(await api(`/tasks/${taskId}/comments`, { method: "POST", body: { orgId, body } })),
+);
+
+server.tool(
+  "add_project_context",
+  "Anexa uma nota ao brief/contexto do projeto.",
+  { projectId: z.string(), orgId: z.string().optional(), note: z.string() },
+  async ({ projectId, orgId, note }) =>
+    ok(await api(`/projects/${projectId}/context`, { method: "POST", body: { orgId, note } })),
+);
+
+server.tool(
+  "delete_task",
+  "EXCLUI (soft) uma tarefa. Destrutivo: só chame após confirmação explícita do usuário; passe confirm:true.",
+  { taskId: z.string(), orgId: z.string().optional(), confirm: z.boolean() },
+  async ({ taskId, orgId, confirm }) => {
+    if (confirm !== true) {
+      return ok({ error: "confirmação obrigatória", hint: "Peça confirmação e chame com confirm:true." });
+    }
+    return ok(await api(`/tasks/${taskId}${qs({ orgId, confirm: "true" })}`, { method: "DELETE" }));
+  },
 );
 
 await server.connect(new StdioServerTransport());

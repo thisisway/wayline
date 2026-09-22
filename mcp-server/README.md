@@ -2,7 +2,9 @@
 
 Servidor MCP (Model Context Protocol) que expõe a Wayline para agentes de IA.
 Fala com a API HTTP `/api/v1` da Wayline usando um **token pessoal** — todas as
-ações respeitam as permissões do usuário dono do token. **Fase 1: só leitura.**
+ações respeitam as permissões do usuário dono do token. Leitura + escrita
+(criar/atualizar/atribuir/comentar) e exclusão com confirmação. As ações da IA
+ficam na auditoria da tarefa como "IA · <token>".
 
 ## Instalação
 
@@ -42,11 +44,16 @@ No Claude Desktop, o equivalente no `claude_desktop_config.json`:
 }
 ```
 
-## Ferramentas (Fase 1 — leitura)
+Para escrita, gere o token com escopo **Leitura + escrita**.
 
-`whoami`, `search_clients`, `list_client_projects`, `search_projects`,
+## Ferramentas
+
+Leitura: `whoami`, `search_clients`, `list_client_projects`, `search_projects`,
 `get_project`, `list_project_tasks`, `get_task`, `list_task_comments`,
 `list_members`, `get_project_context`.
+
+Escrita: `create_task`, `create_tasks_bulk`, `update_task`, `assign_task`,
+`add_comment`, `add_project_context`, `delete_task` (confirmação).
 
 Todas devolvem JSON compacto (id + poucos campos). Use IDs para as chamadas
 seguintes e carregue detalhes só quando precisar. A **Skill `wayline`**

@@ -40,9 +40,13 @@ Só siga sozinho quando houver **uma** correspondência evidente.
 ## Segurança e confirmação
 
 - O token roda com as permissões do usuário — você nunca vê o que ele não veria.
-- **Fase 1 é somente leitura.** Ações de escrita (criar/atualizar/atribuir) e,
-  sobretudo, **destrutivas** (excluir) exigem confirmação explícita do usuário
-  antes de executar. Ao final de qualquer ação, devolva um **resumo curto**.
+  A escrita exige um token com escopo **Leitura + escrita**.
+- **Leitura**: livre. **Escrita** (`create_task`, `create_tasks_bulk`,
+  `update_task`, `assign_task`, `add_comment`, `add_project_context`): confirme o
+  **projeto/tarefa certos** antes; toda ação da IA fica registrada na auditoria
+  como "IA · <token>". **Destrutivo** (`delete_task`): **sempre** peça
+  confirmação explícita e só então chame com `confirm:true`.
+- Ao final de qualquer ação, devolva um **resumo curto** (o que foi feito, onde).
 
 ## Documentação modular (carregue só quando precisar)
 

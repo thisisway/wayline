@@ -29,3 +29,26 @@ export function json(data: unknown, status = 200): Response {
 export const unauthorized = () => json({ error: "unauthorized" }, 401);
 export const forbidden = () => json({ error: "forbidden" }, 403);
 export const notFound = () => json({ error: "not_found" }, 404);
+
+/** Token com escopo de escrita, ou null (read-only / inválido). */
+export async function getWriteToken(req: Request): Promise<ResolvedToken | null> {
+  const t = await getToken(req);
+  return t && t.scope === "write" ? t : null;
+}
+
+/** Rótulo de autoria da IA para o log de auditoria. */
+export const aiActor = (t: ResolvedToken) => `IA · ${t.name}`;
+
+/** Labels (strings) → tags da tarefa (cor padrão). */
+export function toTags(labels?: string[]): Array<{ label: string; color: string }> {
+  return (labels ?? [])
+    .filter((l) => typeof l === "string" && l.trim())
+    .map((l) => ({ label: String(l).trim().slice(0, 40), color: "#94A3B8" }));
+}
+
+/** "YYYY-MM-DD"/ISO → Date | null (data inválida vira null). */
+export function toDate(s?: string | null): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}

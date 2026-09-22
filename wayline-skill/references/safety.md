@@ -7,10 +7,12 @@ tente contornar.
 
 ## Níveis de operação
 - **Leitura** (`whoami`, `search_*`, `get_*`, `list_*`): pode executar livremente.
-- **Escrita** (fase 2: `create_*`, `update_*`, `assign_*`, `add_*`): confirme o
-  alvo (projeto/tarefa) antes; resuma o que fará; execute; devolva resumo.
-- **Destrutivo** (fase 2: `delete_*`): **sempre** peça confirmação explícita e
-  só execute com o sinal de confirmação. Nunca exclua "por dedução".
+- **Escrita** (`create_task`, `create_tasks_bulk`, `update_task`, `assign_task`,
+  `add_comment`, `add_project_context`): exige token com escopo *Leitura + escrita*.
+  Confirme o alvo (projeto/tarefa) antes; resuma o que fará; execute; devolva
+  resumo. Tudo fica na auditoria como "IA · <token>".
+- **Destrutivo** (`delete_task`): **sempre** peça confirmação explícita ao usuário
+  e só então chame com `confirm:true`. Nunca exclua "por dedução".
 
 ## Ambiguidade — pare e pergunte
 Antes de agir sobre um cliente/projeto, verifique se a escolha é única:

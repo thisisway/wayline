@@ -53,6 +53,20 @@ async function insertRows(
   );
 }
 
+/** Registra uma ação avulsa (usado pela auditoria de escrita via IA/MCP). */
+export async function logActivity(
+  orgId: string,
+  taskId: string,
+  actorId: string | null,
+  actorName: string,
+  action: string,
+  detail: string | null = null,
+): Promise<void> {
+  await withOrg(orgId, async (tx) => {
+    await insertRows(tx, orgId, taskId, actorId, actorName, [{ action, detail }]);
+  });
+}
+
 /** Registra a criação de uma tarefa. */
 export async function logCreated(
   orgId: string,

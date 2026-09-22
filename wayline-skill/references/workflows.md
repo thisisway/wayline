@@ -7,10 +7,10 @@
 3. `get_project {projectId}` → pegue os `statusId` das colunas "abertas".
 4. `list_project_tasks {projectId, statusId}` → devolva a lista compacta.
 
-## 2. "Crie as tarefas para desenvolver o site do Cliente X" (Fase 2 — escrita)
+## 2. "Crie as tarefas para desenvolver o site do Cliente X"
 
-> Enquanto a escrita não estiver habilitada, faça 1–5 e **apresente o plano**
-> (lista de tarefas por setor/status) para o usuário aprovar, em vez de criar.
+> Confirme o projeto certo (passo 2) antes de criar. Se o pedido for grande,
+> vale apresentar o plano e pedir "ok" antes do `create_tasks_bulk`.
 
 1. `search_clients {q:"X"}` → clientId.
 2. `list_client_projects {clientId}` → identifique o projeto de site
@@ -21,7 +21,7 @@
 6. Estruture as tarefas (ex.: Briefing, Wireframe, UI, Front, Back, Conteúdo,
    SEO, QA, Deploy), cada uma com **tag de setor** (Design/Dev/Conteúdo/SEO),
    prioridade e prazo quando o brief permitir.
-7. **(Fase 2)** `create_tasks_bulk` no projeto correto; atribua por responsável.
+7. `create_tasks_bulk` no projeto correto; se for atribuir, use `assign_task`.
 8. Devolva um **resumo curto**: quantas tarefas, em qual projeto, por setor.
 
 ## 3. "Adicione essa pauta ao Social Media do Cliente X"
@@ -30,7 +30,7 @@
 2. `list_client_projects {clientId}` → ache o projeto de Social Media.
    Se não houver correspondência única, **pergunte**.
 3. Estruture as tarefas da pauta com tag `Social Media`.
-4. **(Fase 2)** crie e, se pedido, atribua aos responsáveis do setor.
+4. `create_tasks_bulk` e, se pedido, `assign_task` aos responsáveis do setor.
 
 ## Regra de ouro em todas
 

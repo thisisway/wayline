@@ -1,5 +1,13 @@
-import { getTaskComments } from "@wayline/db";
-import { forbidden, getToken, json, resolveOrg, unauthorized } from "@/lib/api-auth";
+import { addComment, getTaskComments, logActivity } from "@wayline/db";
+import {
+  aiActor,
+  forbidden,
+  getToken,
+  getWriteToken,
+  json,
+  resolveOrg,
+  unauthorized,
+} from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,4 +29,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       createdAt: c.createdAt.toISOString(),
     })),
   });
+}
+
+/** POST /api/v1/tasks/:id/comments — adiciona um comentário. Escrita. */
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getWriteToken(req);
+  if (!t) return unauthorized();
+  const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  const orgId = await resolveOrg(t.userId, body.orgId);
+  if (!orgId) return forbidden();
+  if (!body.body?.trim()) return json({ error: "body é obrigatório" }, 400);
+
+  const c = await addComment(orgId, {
+    taskId: id,
+    authorId: t.userId,
+    body: String(body.body).slice(0, 5000),
+  });
+  await logActivity(orgId, id, t.userId, aiActor(t), "comment", null);
+  return json({ id: c.id });
 }

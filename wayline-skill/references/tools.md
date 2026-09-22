@@ -24,9 +24,18 @@ primeira org do usuário; passe-o explicitamente quando o usuário tiver várias
 - Para atribuir/filtrar por responsável, pegue o `id` em `list_members`.
 - `priority` ∈ `urgent | high | normal | low`. `dueDate` vem como `YYYY-MM-DD`.
 
-## Escrita (Fase 2 — ainda não disponível)
+## Escrita (requer token com escopo "Leitura + escrita")
 
-`create_task`, `create_tasks_bulk`, `update_task`, `assign_task`, `add_comment`,
-`add_project_context`, `delete_task` (com confirmação). Não invente essas
-ferramentas enquanto não existirem; se o usuário pedir uma ação de escrita,
-explique que a fase de escrita ainda não está habilitada.
+| Ferramenta | O que faz | Notas |
+|---|---|---|
+| `create_task {projectId, title, description?, priority?, dueDate?, assigneeIds?, tags?, statusId?}` | Cria 1 tarefa. | `statusId` default = 1ª coluna. `tags` = setores. `dueDate`=YYYY-MM-DD. |
+| `create_tasks_bulk {projectId, tasks[], statusId?}` | Cria várias (máx. 50). | Ideal para montar um plano inteiro de uma vez. |
+| `update_task {taskId, ...campos}` | Atualiza parcial. | Só os campos enviados mudam. |
+| `assign_task {taskId, assigneeIds}` | Define responsáveis (substitui). | Pegue ids em `list_members`. |
+| `add_comment {taskId, body}` | Comenta na tarefa. | |
+| `add_project_context {projectId, note}` | Anexa nota ao brief. | |
+| `delete_task {taskId, confirm:true}` | **Exclui** (soft). | **Destrutivo**: peça confirmação ao usuário antes; só então `confirm:true`. |
+
+Toda ação de escrita é registrada na auditoria da tarefa como **"IA · <token>"**.
+Antes de criar/alterar, **confirme o projeto certo** (ver `safety.md`). Após agir,
+devolva um resumo curto.
