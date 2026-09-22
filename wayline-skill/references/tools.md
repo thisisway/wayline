@@ -49,6 +49,17 @@ primeira org do usuário; passe-o explicitamente quando o usuário tiver várias
 Para lote, junte primeiro os `taskIds` com `list_project_tasks` (filtrando por
 status/responsável). Passe `projectId` nos bulk para o board atualizar ao vivo.
 
+## Dependências entre tarefas
+
+| Ferramenta | O que faz |
+|---|---|
+| `list_dependencies {taskId}` | `blockedBy` (o que bloqueia esta) e `blocks` (o que ela bloqueia). |
+| `add_dependency {taskId, dependsOnId}` | `taskId` passa a **depender de** `dependsOnId` (ordena etapas). |
+| `remove_dependency {depId}` | Remove uma dependência (o `depId` vem de `list_dependencies`). |
+
+Ex.: ao montar o site, faça "Front" depender de "UI", e "Deploy" depender de
+"QA": `add_dependency {taskId: Front, dependsOnId: UI}`. Ciclos são recusados.
+
 Toda ação de escrita é registrada na auditoria da tarefa como **"IA · <token>"**.
 Antes de criar/alterar, **confirme o projeto certo** (ver `safety.md`). Após agir,
 devolva um resumo curto.

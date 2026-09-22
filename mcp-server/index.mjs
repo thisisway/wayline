@@ -261,4 +261,28 @@ server.tool(
     ok(await api("/tasks/bulk-priority", { method: "POST", body: { taskIds, priority, orgId, projectId } })),
 );
 
+// --- Dependências entre tarefas -------------------------------------------
+server.tool(
+  "list_dependencies",
+  "Dependências de uma tarefa: o que a bloqueia (blockedBy) e o que ela bloqueia (blocks).",
+  { taskId: z.string(), orgId: z.string().optional() },
+  async ({ taskId, orgId }) => ok(await api(`/tasks/${taskId}/dependencies${qs({ orgId })}`)),
+);
+
+server.tool(
+  "add_dependency",
+  "Faz uma tarefa depender de outra (taskId passa a ser bloqueada por dependsOnId). Use para ordenar etapas.",
+  { taskId: z.string(), dependsOnId: z.string(), orgId: z.string().optional() },
+  async ({ taskId, dependsOnId, orgId }) =>
+    ok(await api(`/tasks/${taskId}/dependencies`, { method: "POST", body: { orgId, dependsOnId } })),
+);
+
+server.tool(
+  "remove_dependency",
+  "Remove uma dependência pelo depId (obtido em list_dependencies).",
+  { depId: z.string(), orgId: z.string().optional() },
+  async ({ depId, orgId }) =>
+    ok(await api(`/dependencies/${depId}${qs({ orgId })}`, { method: "DELETE" })),
+);
+
 await server.connect(new StdioServerTransport());
