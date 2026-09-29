@@ -32,9 +32,18 @@ const TYPES: Array<{ value: FormFieldSchema["type"]; label: string }> = [
   { value: "select", label: "Lista suspensa" },
 ];
 
+function uid(): string {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch {
+    /* contexto sem crypto seguro */
+  }
+  return `f_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function newField(): FormFieldSchema {
   return {
-    id: crypto.randomUUID(),
+    id: uid(),
     type: "text",
     label: "Nova pergunta",
     placeholder: "",
@@ -72,6 +81,9 @@ export function FormBuilderModal({
   const [copied, setCopied] = React.useState(false);
   const [responses, setResponses] = React.useState<FormResponseDTO[] | null>(null);
 
+  // Carrega o formulário UMA vez por (org, form). Não depende de onClose —
+  // senão um re-render do pai (ex.: refresh ao vivo) refazia o fetch e apagava
+  // os campos ainda não salvos.
   React.useEffect(() => {
     getFormAction(orgId, formId).then((f) => {
       if (!f) return;
@@ -85,10 +97,14 @@ export function FormBuilderModal({
       setTargetListId(f.targetListId ?? "");
     });
     listListOptionsAction(orgId).then(setLists);
+  }, [orgId, formId]);
+
+  // Fechar com Esc (efeito separado: re-vincular não recarrega o formulário).
+  React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [orgId, formId, onClose]);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (tab === "responses" && responses === null) {
@@ -155,16 +171,8 @@ export function FormBuilderModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 p-4 animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-surface">
+      <div role="dialog" aria-modal="true" className="flex h-full w-full flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-border px-5 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -208,7 +216,7 @@ export function FormBuilderModal({
         {!loaded ? (
           <p className="p-8 text-center text-dense text-subtle">Carregando…</p>
         ) : tab === "build" ? (
-          <div className="flex-1 space-y-4 overflow-y-auto p-5">
+          <div className="mx-auto w-full max-w-3xl flex-1 space-y-4 overflow-y-auto p-5">
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
