@@ -7,6 +7,7 @@
  */
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
+export { applyRawSql } from "./migrate";
 export {
   MODULE_KEYS,
   MODULE_LABELS,
