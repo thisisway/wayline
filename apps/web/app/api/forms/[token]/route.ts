@@ -57,9 +57,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   // Honeypot: bot preencheu um campo oculto → aceita silenciosamente e descarta.
   const trapped = Boolean((data._hp && data._hp.trim()) || (data._gotcha && data._gotcha.trim()));
 
+  let created = false;
+  let target = "none";
   if (!trapped) {
-    const res = await submitLead(token, data).catch(() => ({ ok: false, listId: null }));
-    if (!res.ok) return json({ error: "form_not_found_or_unpublished" }, 404);
+    const res = await submitLead(token, data).catch(() => null);
+    if (!res || !res.ok) return json({ error: "form_not_found_or_unpublished" }, 404);
+    created = res.created;
+    target = res.target;
     if (res.listId) await pokeList(res.listId).catch(() => {});
   }
 
@@ -67,5 +71,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   if (redirect && /^https?:\/\//i.test(redirect)) {
     return new Response(null, { status: 303, headers: { Location: redirect, ...CORS } });
   }
-  return json({ ok: true });
+  return json({ ok: true, target, created });
 }

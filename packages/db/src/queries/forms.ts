@@ -301,12 +301,14 @@ async function resolveTargetStatus(
 export async function submitLead(
   token: string,
   data: Record<string, string>,
-): Promise<{ ok: boolean; listId: string | null }> {
+): Promise<{ ok: boolean; listId: string | null; target: string; created: boolean }> {
   const db = getDb();
   const f = await db.query.forms.findFirst({
     where: and(eq(forms.token, token), isNull(forms.deletedAt)),
   });
-  if (!f || f.status !== "published") return { ok: false, listId: null };
+  if (!f || f.status !== "published") {
+    return { ok: false, listId: null, target: "none", created: false };
+  }
 
   const clean: Record<string, string> = {};
   for (const [k, v] of Object.entries(data)) {
@@ -323,10 +325,11 @@ export async function submitLead(
 
   if (f.target === "funnel") {
     await createLead(f.orgId, title, description).catch(() => {});
-    return { ok: true, listId: null };
+    return { ok: true, listId: null, target: "funnel", created: true };
   }
   if (f.targetListId) {
     const listId = f.targetListId;
+    let created = false;
     await withOrg(f.orgId, async (tx) => {
       const list = await tx.query.lists.findFirst({
         where: and(eq(lists.id, listId), eq(lists.orgId, f.orgId), isNull(lists.deletedAt)),
@@ -345,10 +348,12 @@ export async function submitLead(
         description,
         position,
       });
+      created = true;
     });
-    return { ok: true, listId };
+    return { ok: true, listId, target: "list", created };
   }
-  return { ok: true, listId: null };
+  // target = 'list' mas sem lista configurada.
+  return { ok: true, listId: null, target: "list", created: false };
 }
 
 /** Cria uma tarefa na coluna escolhida (ou 1ª) da lista a partir de uma resposta. */
