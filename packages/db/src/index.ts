@@ -7,6 +7,7 @@
  */
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
+export { debugFindTasks, debugDeleteTasksByPrefix, type DebugTaskRow } from "./debug";
 export {
   MODULE_KEYS,
   MODULE_LABELS,
