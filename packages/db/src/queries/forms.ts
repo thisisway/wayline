@@ -71,12 +71,14 @@ export async function listListOptions(
   orgId: string,
 ): Promise<Array<{ id: string; name: string; spaceName: string | null }>> {
   try {
-    const db = getDb();
-    const rows = await db.query.lists.findMany({
-      where: and(eq(lists.orgId, orgId), isNull(lists.deletedAt)),
-      with: { space: true },
-      orderBy: [asc(lists.name)],
-    });
+    // withOrg: seta app.current_org para a RLS de `lists` deixar passar.
+    const rows = await withOrg(orgId, (tx) =>
+      tx.query.lists.findMany({
+        where: and(eq(lists.orgId, orgId), isNull(lists.deletedAt)),
+        with: { space: true },
+        orderBy: [asc(lists.name)],
+      }),
+    );
     return rows
       .map((l) => ({
         id: l.id,
