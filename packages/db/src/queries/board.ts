@@ -8,6 +8,7 @@ import {
   customFieldDefs,
   customFieldValues,
   folders,
+  forms,
   lists,
   pages,
   organizations,
@@ -488,6 +489,10 @@ export interface NavAccess {
   id: string;
   name: string;
 }
+export interface NavForm {
+  id: string;
+  title: string;
+}
 export interface NavFolder {
   id: string;
   name: string;
@@ -508,6 +513,8 @@ export interface NavSpace {
   docs: NavDoc[];
   /** Cofres de acesso soltos (sem pasta) do space. */
   accessTables: NavAccess[];
+  /** Formulários de captação do space. */
+  forms: NavForm[];
 }
 
 /**
@@ -519,6 +526,17 @@ export async function getWorkspaceNav(
   orgId: string,
   guestUserId?: string | null,
 ): Promise<NavSpace[]> {
+  // Formulários fora da tx do nav (forms é no-RLS): um erro (ex.: coluna
+  // space_id ainda não migrada) não pode poluir/abortar a transação abaixo.
+  const frms = guestUserId
+    ? []
+    : await getDb()
+        .query.forms.findMany({
+          where: and(eq(forms.orgId, orgId), isNotNull(forms.spaceId), isNull(forms.deletedAt)),
+          orderBy: [asc(forms.createdAt)],
+        })
+        .catch(() => [] as Array<{ id: string; title: string; spaceId: string | null }>);
+
   return withOrg(orgId, async (tx) => {
     const allowed = guestUserId ? await guestVisibleListIds(tx, guestUserId) : null;
     const sp = await tx.query.spaces.findMany({
@@ -588,6 +606,7 @@ export async function getWorkspaceNav(
         accessTables: spaceAccess
           .filter((a) => !a.folderId)
           .map((a) => ({ id: a.id, name: a.name })),
+        forms: frms.filter((fm) => fm.spaceId === s.id).map((fm) => ({ id: fm.id, title: fm.title })),
       };
     });
     return allowed

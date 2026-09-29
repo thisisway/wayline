@@ -38,6 +38,7 @@ import { ShareModal } from "@/components/shell/share-modal";
 import { CommercialPage } from "@/components/shell/commercial-page";
 import { FinancePage } from "@/components/shell/finance-page";
 import { FormsPage } from "@/components/shell/forms-page";
+import { FormBuilderModal } from "@/components/shell/form-builder-modal";
 import { WelcomeChecklist, type OnboardStep } from "@/components/shell/welcome-checklist";
 import { CheckSquare, ClipboardList as ClipboardIcon, Briefcase as BriefcaseIcon, Settings as SettingsIcon } from "lucide-react";
 import { OverviewModal } from "@/components/shell/overview-modal";
@@ -135,6 +136,7 @@ export function AppView({
   const [view, setView] = React.useState("board");
   const [docId, setDocId] = React.useState<string | null>(null);
   const [accessTable, setAccessTable] = React.useState<{ id: string; name: string } | null>(null);
+  const [formBuilderId, setFormBuilderId] = React.useState<string | null>(null);
   const [recents, setRecents] = React.useState<RecentTask[]>([]);
   React.useEffect(() => {
     if (view === "home") setRecents(getRecentTasks());
@@ -354,6 +356,7 @@ export function AppView({
             setAccessTable({ id, name });
             setView("access");
           }}
+          onOpenForm={(id) => setFormBuilderId(id)}
           onSelectList={() => {
             setView((v) => (v === "docs" || v === "access" || v === "home" ? "board" : v));
             if (typeof window !== "undefined" && window.innerWidth < 1024) setSidebarOpen(false);
@@ -482,6 +485,14 @@ export function AppView({
           columns={data.columns.map((c) => ({ id: c.id, name: c.name }))}
           members={data.members}
           onClose={() => setAutomationsOpen(false)}
+        />
+      )}
+      {formBuilderId && (
+        <FormBuilderModal
+          orgId={activeOrgId}
+          formId={formBuilderId}
+          onClose={() => setFormBuilderId(null)}
+          onSaved={() => router.refresh()}
         />
       )}
 

@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   ChevronDown,
+  ClipboardList,
   Copy,
   FileText,
   Folder,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { TemplatesModal } from "@/components/shell/templates-modal";
 import { IconPicker, IconContent } from "@/components/shell/icon-picker";
-import type { NavAccess, NavDoc, NavFolder, NavList, NavSpace } from "@wayline/db";
+import type { NavAccess, NavDoc, NavForm, NavFolder, NavList, NavSpace } from "@wayline/db";
 import { Input, SidebarItem, cn } from "@wayline/ui";
 import {
   createFolderAction,
@@ -42,6 +43,7 @@ import {
   switchList,
 } from "@/actions/org";
 import { createSpaceDocAction, moveDocAction } from "@/actions/pages";
+import { createFormAction, deleteFormAction } from "@/actions/forms";
 import {
   createAccessTableAction,
   deleteAccessTableAction,
@@ -187,6 +189,7 @@ export function HomePanel({
   onOpenReplies,
   onOpenDoc,
   onOpenAccess,
+  onOpenForm,
   onSelectList,
   isAdmin,
   onCollapse,
@@ -204,6 +207,7 @@ export function HomePanel({
   onOpenReplies: () => void;
   onOpenDoc?: (pageId: string) => void;
   onOpenAccess?: (tableId: string, name: string) => void;
+  onOpenForm?: (formId: string) => void;
   /** Selecionou uma lista — volta pro board (reseta a view de docs/relatórios). */
   onSelectList?: () => void;
   isAdmin: boolean;
@@ -297,6 +301,14 @@ export function HomePanel({
   function removeList(listId: string, name: string) {
     if (!window.confirm(`Excluir a lista "${name}" e suas tarefas?`)) return;
     startTransition(() => void deleteListAction(activeOrgId, listId));
+  }
+  async function addForm(spaceId: string) {
+    const id = await createFormAction(activeOrgId, { spaceId });
+    if (id) onOpenForm?.(id);
+  }
+  function removeForm(id: string, title: string) {
+    if (!window.confirm(`Excluir o formulário "${title}"?`)) return;
+    startTransition(() => void deleteFormAction(activeOrgId, id));
   }
   async function addAccess(spaceId: string, folderId: string | null = null) {
     const id = await createAccessTableAction(activeOrgId, spaceId, folderId);
@@ -396,6 +408,40 @@ export function HomePanel({
                 icon: Trash2,
                 danger: true,
                 onClick: () => removeAccess(access.id, access.name),
+              },
+            ]}
+          />
+        )}
+      </div>
+    );
+  }
+
+  /** Linha de um formulário de captação do space (abre o construtor). */
+  function FormRow({ form, indent }: { form: NavForm; indent: string }) {
+    return (
+      <div
+        className={cn(
+          "group flex h-8 items-center gap-1 rounded-md pr-1.5 text-dense text-muted transition-colors hover:bg-elevated hover:text-foreground",
+          indent,
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => onOpenForm?.(form.id)}
+          className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+        >
+          <ClipboardList className="size-3.5 shrink-0 text-subtle" />
+          <span className="truncate">{form.title}</span>
+        </button>
+        {isAdmin && (
+          <RowMenu
+            ariaLabel={`Ações de ${form.title}`}
+            items={[
+              {
+                label: "Excluir",
+                icon: Trash2,
+                danger: true,
+                onClick: () => removeForm(form.id, form.title),
               },
             ]}
           />
@@ -827,6 +873,14 @@ export function HomePanel({
                           },
                         },
                         {
+                          label: "Formulário de captação",
+                          icon: ClipboardList,
+                          onClick: () => {
+                            setCollapsed((s) => ({ ...s, [space.id]: false }));
+                            void addForm(space.id);
+                          },
+                        },
+                        {
                           label: "Excluir space",
                           icon: Trash2,
                           danger: true,
@@ -860,6 +914,9 @@ export function HomePanel({
                   {space.accessTables.map((a) => (
                     <AccessRow key={a.id} access={a} indent="pl-8" />
                   ))}
+                  {space.forms.map((fm) => (
+                    <FormRow key={fm.id} form={fm} indent="pl-8" />
+                  ))}
                   {addingListIn === space.id && (
                     <InlineAdd
                       indent
@@ -872,6 +929,7 @@ export function HomePanel({
                     space.lists.length === 0 &&
                     space.docs.length === 0 &&
                     space.accessTables.length === 0 &&
+                    space.forms.length === 0 &&
                     addingListIn !== space.id &&
                     addingFolderIn !== space.id && (
                       <p className="pl-8 py-1 text-[12px] text-subtle">Sem listas</p>

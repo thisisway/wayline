@@ -575,6 +575,8 @@ export const forms = pgTable(
     fields: jsonb("fields").$type<FormFieldSchema[]>().notNull().default(sql`'[]'::jsonb`),
     status: text("status").notNull().default("draft"), // draft | published
     token: text("token").notNull().unique(),
+    /** Space ao qual o formulário pertence (barra lateral). Null = org-level (legado). */
+    spaceId: uuid("space_id"),
     /** Destino de cada resposta: 'list' (tarefa no board) | 'funnel' (lead no funil). */
     target: text("target").notNull().default("list"),
     /** Lista onde cada resposta vira uma tarefa (quando target = 'list'). */

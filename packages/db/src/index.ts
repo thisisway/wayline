@@ -34,6 +34,7 @@ export {
   type NavList,
   type NavDoc,
   type NavAccess,
+  type NavForm,
 } from "./queries/board";
 export {
   getUserByEmail,

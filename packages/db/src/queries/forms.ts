@@ -153,6 +153,8 @@ export interface FormSeed {
   title?: string;
   description?: string;
   fields?: FormFieldSchema[];
+  /** Vincula o formulário a um Space; o destino já aponta pra 1ª lista dele. */
+  spaceId?: string;
 }
 
 export async function createForm(
@@ -161,6 +163,19 @@ export async function createForm(
   seed?: FormSeed,
 ): Promise<string> {
   const db = getDb();
+
+  // Se criado dentro de um Space, já aponta o destino pra 1ª lista dele.
+  let targetListId: string | null = null;
+  if (seed?.spaceId) {
+    const firstList = await withOrg(orgId, (tx) =>
+      tx.query.lists.findFirst({
+        where: and(eq(lists.spaceId, seed.spaceId!), isNull(lists.deletedAt)),
+        orderBy: [asc(lists.name)],
+      }),
+    ).catch(() => null);
+    targetListId = firstList?.id ?? null;
+  }
+
   const [row] = await db
     .insert(forms)
     .values({
@@ -170,6 +185,9 @@ export async function createForm(
       title: seed?.title?.trim() || "Formulário",
       description: seed?.description ?? "",
       fields: seed?.fields ?? [],
+      spaceId: seed?.spaceId ?? null,
+      target: "list",
+      targetListId,
     })
     .returning({ id: forms.id });
   return row!.id;
