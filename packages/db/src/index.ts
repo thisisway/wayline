@@ -12,6 +12,7 @@ export {
   debugFindForms,
   debugFindFormResponses,
   debugSimulateFormSubmit,
+  debugCallSubmitLead,
   debugDeleteTasksByPrefix,
   type DebugTaskRow,
   type DebugFormRow,

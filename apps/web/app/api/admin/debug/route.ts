@@ -1,4 +1,5 @@
 import {
+  debugCallSubmitLead,
   debugDeleteTasksByPrefix,
   debugFindForms,
   debugFindFormResponses,
@@ -40,12 +41,24 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
-    | { secret?: string; email?: string; prefix?: string; simulateFormId?: string }
+    | {
+        secret?: string;
+        email?: string;
+        prefix?: string;
+        simulateFormId?: string;
+        submitLeadFormId?: string;
+        submitLeadData?: Record<string, string>;
+      }
     | null;
   if (!authorized(body?.secret ?? null)) return new Response("unauthorized", { status: 401 });
 
   if (body?.simulateFormId) {
     const result = await debugSimulateFormSubmit(body.simulateFormId);
+    return Response.json(result);
+  }
+
+  if (body?.submitLeadFormId) {
+    const result = await debugCallSubmitLead(body.submitLeadFormId, body.submitLeadData ?? {});
     return Response.json(result);
   }
 

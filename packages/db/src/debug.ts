@@ -2,6 +2,7 @@ import { and, asc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg } from "./client";
 import { forms, formResponses, lists, spaces, statuses, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
+import { submitLead } from "./queries/forms";
 
 export interface DebugTaskRow {
   orgName: string;
@@ -318,6 +319,38 @@ export async function debugFindFormResponses(email: string, q: string): Promise<
     formTargetListId: r.formTargetListId,
     formStatus: r.formStatus,
   }));
+}
+
+/**
+ * Chama o submitLead REAL (mesma função usada por /api/forms/[token]) direto,
+ * sem passar pelas camadas de rota, pra ver o resultado/exceção exata sem
+ * nada engolindo o erro.
+ */
+export async function debugCallSubmitLead(
+  formId: string,
+  data: Record<string, string>,
+): Promise<{
+  ok?: boolean;
+  listId?: string | null;
+  target?: string;
+  created?: boolean;
+  formToken?: string;
+  error?: string;
+  errorStack?: string;
+}> {
+  const db = getDb();
+  const f = await db.query.forms.findFirst({ where: eq(forms.id, formId) });
+  if (!f) return { error: "form_not_found" };
+  try {
+    const result = await submitLead(f.token, data);
+    return { ...result, formToken: f.token };
+  } catch (e) {
+    return {
+      formToken: f.token,
+      error: String(e).slice(0, 500),
+      errorStack: e instanceof Error ? (e.stack ?? "").slice(0, 800) : undefined,
+    };
+  }
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */
