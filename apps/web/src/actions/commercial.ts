@@ -2,66 +2,25 @@
 
 import { listClients, listContracts, listProposals } from "@wayline/db";
 import { assertModule } from "@/lib/authz";
-
-/** Etapas do funil na ordem de exibição. */
-export const FUNNEL_STAGES = ["lead", "qualificado", "proposta", "ganho", "perdido"] as const;
-export type FunnelStage = (typeof FUNNEL_STAGES)[number];
-
-export interface CommercialDashboard {
-  /** Por etapa: quantidade e valor (soma dos totais). */
-  byStage: Record<FunnelStage, { count: number; valueCents: number }>;
-  /** Valor em aberto (lead+qualificado+proposta). */
-  openPipelineCents: number;
-  /** Oportunidades abertas (não ganho/perdido). */
-  openCount: number;
-  wonCount: number;
-  wonCents: number;
-  lostCount: number;
-  /** Ganhos / (ganhos + perdidos). */
-  conversionPct: number;
-  /** Ticket médio dos ganhos. */
-  avgTicketCents: number;
-  clientCount: number;
-  /** Últimas oportunidades na etapa Lead. */
-  recentLeads: Array<{ id: string; title: string; clientName: string | null; valueCents: number }>;
-}
-
-const EMPTY_DASH: CommercialDashboard = {
-  byStage: {
-    lead: { count: 0, valueCents: 0 },
-    qualificado: { count: 0, valueCents: 0 },
-    proposta: { count: 0, valueCents: 0 },
-    ganho: { count: 0, valueCents: 0 },
-    perdido: { count: 0, valueCents: 0 },
-  },
-  openPipelineCents: 0,
-  openCount: 0,
-  wonCount: 0,
-  wonCents: 0,
-  lostCount: 0,
-  conversionPct: 0,
-  avgTicketCents: 0,
-  clientCount: 0,
-  recentLeads: [],
-};
+import {
+  EMPTY_DASHBOARD,
+  emptyByStage,
+  FUNNEL_STAGES,
+  type CommercialDashboard,
+  type FunnelStage,
+} from "@/lib/commercial";
 
 /** KPIs do funil (por etapa) + leads recentes. Resiliente. */
 export async function commercialDashboardAction(orgId: string): Promise<CommercialDashboard> {
-  if (!(await assertModule(orgId, "comercial", "view"))) return EMPTY_DASH;
+  if (!(await assertModule(orgId, "comercial", "view"))) return EMPTY_DASHBOARD;
   const [proposals, clients] = await Promise.all([
     listProposals(orgId).catch(() => []),
     listClients(orgId).catch(() => []),
   ]);
 
   const d: CommercialDashboard = {
-    ...EMPTY_DASH,
-    byStage: {
-      lead: { count: 0, valueCents: 0 },
-      qualificado: { count: 0, valueCents: 0 },
-      proposta: { count: 0, valueCents: 0 },
-      ganho: { count: 0, valueCents: 0 },
-      perdido: { count: 0, valueCents: 0 },
-    },
+    ...EMPTY_DASHBOARD,
+    byStage: emptyByStage(),
     clientCount: clients.length,
     recentLeads: [],
   };

@@ -21,12 +21,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@wayline/ui";
-import {
-  commercialDashboardAction,
-  FUNNEL_STAGES,
-  type CommercialDashboard,
-  type FunnelStage,
-} from "@/actions/commercial";
+import { commercialDashboardAction } from "@/actions/commercial";
+import { FUNNEL_STAGES, type CommercialDashboard, type FunnelStage } from "@/lib/commercial";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
