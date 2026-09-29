@@ -27,6 +27,7 @@ export interface FormDTO {
   thankYou: string;
   target: string;
   targetListId: string | null;
+  targetStatusId: string | null;
 }
 
 /** Formulário público (link de resposta) — sem dados internos. */
@@ -61,6 +62,7 @@ function toDTO(f: typeof forms.$inferSelect): FormDTO {
     thankYou: f.thankYou,
     target: f.target ?? "list",
     targetListId: f.targetListId ?? null,
+    targetStatusId: f.targetStatusId ?? null,
   };
 }
 
@@ -82,6 +84,24 @@ export async function listListOptions(
         spaceName: (l as typeof l & { space?: { name?: string } }).space?.name ?? null,
       }))
       .sort((a, b) => `${a.spaceName ?? ""}${a.name}`.localeCompare(`${b.spaceName ?? ""}${b.name}`));
+  } catch {
+    return [];
+  }
+}
+
+/** Colunas (status) de uma lista, para escolher a de destino. Resiliente. */
+export async function listStatusOptions(
+  orgId: string,
+  listId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const rows = await withOrg(orgId, (tx) =>
+      tx.query.statuses.findMany({
+        where: eq(statuses.listId, listId),
+        orderBy: [asc(statuses.position)],
+      }),
+    );
+    return rows.map((s) => ({ id: s.id, name: s.name }));
   } catch {
     return [];
   }
@@ -161,6 +181,7 @@ export interface FormPatch {
   thankYou?: string;
   target?: string;
   targetListId?: string | null;
+  targetStatusId?: string | null;
 }
 
 export async function updateForm(orgId: string, id: string, patch: FormPatch): Promise<void> {
@@ -173,6 +194,7 @@ export async function updateForm(orgId: string, id: string, patch: FormPatch): P
   if (patch.thankYou !== undefined) set.thankYou = patch.thankYou;
   if (patch.target !== undefined) set.target = patch.target === "funnel" ? "funnel" : "list";
   if (patch.targetListId !== undefined) set.targetListId = patch.targetListId;
+  if (patch.targetStatusId !== undefined) set.targetStatusId = patch.targetStatusId;
   await db.update(forms).set(set).where(and(eq(forms.id, id), eq(forms.orgId, orgId)));
 }
 
@@ -242,12 +264,31 @@ export async function submitFormResponse(
     }
   } else if (f.targetListId) {
     try {
-      await createTaskFromForm(f.orgId, f.targetListId, f.fields ?? [], clean, f.title);
+      await createTaskFromForm(f.orgId, f.targetListId, f.fields ?? [], clean, f.title, f.targetStatusId);
     } catch {
       // não falha o envio do usuário se a criação da tarefa falhar
     }
   }
   return true;
+}
+
+/** Coluna de destino: o targetStatusId (se pertencer à lista) ou a 1ª coluna. */
+async function resolveTargetStatus(
+  tx: Parameters<Parameters<typeof withOrg>[1]>[0],
+  listId: string,
+  targetStatusId: string | null | undefined,
+): Promise<string | null> {
+  if (targetStatusId) {
+    const s = await tx.query.statuses.findFirst({
+      where: and(eq(statuses.id, targetStatusId), eq(statuses.listId, listId)),
+    });
+    if (s) return s.id;
+  }
+  const first = await tx.query.statuses.findFirst({
+    where: eq(statuses.listId, listId),
+    orderBy: [asc(statuses.position)],
+  });
+  return first?.id ?? null;
 }
 
 /**
@@ -289,10 +330,7 @@ export async function submitLead(
         where: and(eq(lists.id, listId), eq(lists.orgId, f.orgId), isNull(lists.deletedAt)),
       });
       if (!list) return;
-      const firstStatus = await tx.query.statuses.findFirst({
-        where: eq(statuses.listId, listId),
-        orderBy: [asc(statuses.position)],
-      });
+      const statusId = await resolveTargetStatus(tx, listId, f.targetStatusId);
       const position = await tx.$count(
         tasks,
         and(eq(tasks.listId, listId), isNull(tasks.deletedAt)),
@@ -300,7 +338,7 @@ export async function submitLead(
       await tx.insert(tasks).values({
         orgId: f.orgId,
         listId,
-        statusId: firstStatus?.id ?? null,
+        statusId,
         title,
         description,
         position,
@@ -311,24 +349,22 @@ export async function submitLead(
   return { ok: true, listId: null };
 }
 
-/** Cria uma tarefa na 1ª coluna da lista a partir de uma resposta de formulário. */
+/** Cria uma tarefa na coluna escolhida (ou 1ª) da lista a partir de uma resposta. */
 async function createTaskFromForm(
   orgId: string,
   listId: string,
   fields: FormFieldSchema[],
   answers: Record<string, string>,
   formTitle: string,
+  targetStatusId?: string | null,
 ): Promise<void> {
   await withOrg(orgId, async (tx) => {
-    // Garante que a lista pertence à org e pega a 1ª coluna.
+    // Garante que a lista pertence à org.
     const list = await tx.query.lists.findFirst({
       where: and(eq(lists.id, listId), eq(lists.orgId, orgId), isNull(lists.deletedAt)),
     });
     if (!list) return;
-    const firstStatus = await tx.query.statuses.findFirst({
-      where: eq(statuses.listId, listId),
-      orderBy: [asc(statuses.position)],
-    });
+    const statusId = await resolveTargetStatus(tx, listId, targetStatusId);
 
     const firstVal = fields.map((fld) => answers[fld.id]).find((v) => v && v.trim());
     const title = (firstVal || formTitle || "Resposta de formulário").slice(0, 200);
@@ -343,7 +379,7 @@ async function createTaskFromForm(
     await tx.insert(tasks).values({
       orgId,
       listId,
-      statusId: firstStatus?.id ?? null,
+      statusId,
       title,
       description,
       position,

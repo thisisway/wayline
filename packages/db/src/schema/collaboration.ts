@@ -579,6 +579,8 @@ export const forms = pgTable(
     target: text("target").notNull().default("list"),
     /** Lista onde cada resposta vira uma tarefa (quando target = 'list'). */
     targetListId: uuid("target_list_id"),
+    /** Coluna (status) de destino na lista. Nulo = 1ª coluna. */
+    targetStatusId: uuid("target_status_id"),
     /** Mensagem exibida após o envio. */
     thankYou: text("thank_you").notNull().default("Obrigado! Sua resposta foi registrada."),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),

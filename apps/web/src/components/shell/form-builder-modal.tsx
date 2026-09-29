@@ -20,6 +20,7 @@ import {
   getFormAction,
   listFormResponsesAction,
   listListOptionsAction,
+  listStatusOptionsAction,
   updateFormAction,
 } from "@/actions/forms";
 
@@ -76,6 +77,8 @@ export function FormBuilderModal({
   const [published, setPublished] = React.useState(false);
   const [target, setTarget] = React.useState<"list" | "funnel">("list");
   const [targetListId, setTargetListId] = React.useState("");
+  const [targetStatusId, setTargetStatusId] = React.useState("");
+  const [statuses, setStatuses] = React.useState<Array<{ id: string; name: string }>>([]);
   const [lists, setLists] = React.useState<
     Array<{ id: string; name: string; spaceName: string | null }>
   >([]);
@@ -97,9 +100,22 @@ export function FormBuilderModal({
       setPublished(f.status === "published");
       setTarget(f.target === "funnel" ? "funnel" : "list");
       setTargetListId(f.targetListId ?? "");
+      setTargetStatusId(f.targetStatusId ?? "");
     });
     listListOptionsAction(orgId).then(setLists);
   }, [orgId, formId]);
+
+  // Carrega as colunas da lista escolhida (para o seletor de coluna de destino).
+  React.useEffect(() => {
+    if (!targetListId) {
+      setStatuses([]);
+      return;
+    }
+    listStatusOptionsAction(orgId, targetListId).then((cols) => {
+      setStatuses(cols);
+      setTargetStatusId((cur) => (cols.some((c) => c.id === cur) ? cur : ""));
+    });
+  }, [orgId, targetListId]);
 
   // Fechar com Esc (efeito separado: re-vincular não recarrega o formulário).
   React.useEffect(() => {
@@ -136,6 +152,7 @@ export function FormBuilderModal({
       status: nextPublished ? "published" : "draft",
       target,
       targetListId: target === "list" ? targetListId || null : null,
+      targetStatusId: target === "list" && targetListId ? targetStatusId || null : null,
     }).catch(() => {});
     setSaving(false);
     setPublished(nextPublished);
@@ -353,8 +370,25 @@ export function FormBuilderModal({
                     </option>
                   ))}
                 </select>
+                {targetListId && statuses.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-dense font-medium text-muted">Coluna de destino</span>
+                    <select
+                      value={targetStatusId}
+                      onChange={(e) => setTargetStatusId(e.target.value)}
+                      className="mt-1 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                    >
+                      <option value="">1ª coluna (A fazer)</option>
+                      {statuses.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <span className="mt-1 block text-[11px] text-subtle">
-                  Cada envio vira um card na <strong>1ª coluna</strong> da lista (o seu "A fazer").
+                  Cada envio vira um card na coluna escolhida (padrão: 1ª coluna).
                   Título = 1º campo preenchido.
                 </span>
               </label>

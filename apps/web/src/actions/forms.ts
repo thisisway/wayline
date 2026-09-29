@@ -7,6 +7,7 @@ import {
   listFormResponses,
   listForms,
   listListOptions,
+  listStatusOptions,
   updateForm,
   type FormDTO,
   type FormFieldSchema,
@@ -44,6 +45,7 @@ export interface FormPatchInput {
   thankYou?: string;
   target?: string;
   targetListId?: string | null;
+  targetStatusId?: string | null;
 }
 
 export async function updateFormAction(
@@ -60,6 +62,7 @@ export async function updateFormAction(
     thankYou: patch.thankYou,
     target: patch.target,
     targetListId: patch.targetListId,
+    targetStatusId: patch.targetStatusId,
   };
   await updateForm(orgId, id, clean);
   revalidatePath("/app");
@@ -71,6 +74,14 @@ export async function listListOptionsAction(
 ): Promise<Array<{ id: string; name: string; spaceName: string | null }>> {
   if (!(await assertMember(orgId))) return [];
   return listListOptions(orgId);
+}
+
+export async function listStatusOptionsAction(
+  orgId: string,
+  listId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  if (!listId || !(await assertMember(orgId))) return [];
+  return listStatusOptions(orgId, listId);
 }
 
 export async function deleteFormAction(orgId: string, id: string): Promise<void> {
