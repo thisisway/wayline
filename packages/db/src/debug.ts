@@ -1,6 +1,6 @@
 import { and, asc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg } from "./client";
-import { forms, lists, spaces, statuses, tasks } from "./schema";
+import { forms, formResponses, lists, spaces, statuses, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
 
 export interface DebugTaskRow {
@@ -262,6 +262,62 @@ export async function debugSimulateFormSubmit(
       errorStack: e instanceof Error ? (e.stack ?? "").slice(0, 800) : undefined,
     };
   }
+}
+
+export interface DebugFormResponseRow {
+  responseId: string;
+  createdAt: string;
+  answers: Record<string, string>;
+  formId: string;
+  formTitle: string;
+  formTarget: string;
+  formTargetListId: string | null;
+  formStatus: string;
+}
+
+/**
+ * Busca respostas de formulário (form_responses.answers) por texto, em todas
+ * as orgs do email — pra descobrir em QUAL formulário uma resposta real caiu,
+ * já que form_responses não tem RLS (mesmo padrão de forms).
+ */
+export async function debugFindFormResponses(email: string, q: string): Promise<DebugFormResponseRow[]> {
+  const user = await getUserByEmail(email);
+  if (!user) return [];
+  const orgs = await getUserOrgs(user.id);
+  const orgIds = orgs.map((o) => o.id);
+  if (orgIds.length === 0) return [];
+
+  const db = getDb();
+  const rows = await db
+    .select({
+      responseId: formResponses.id,
+      createdAt: formResponses.createdAt,
+      answers: formResponses.answers,
+      formId: forms.id,
+      formTitle: forms.title,
+      formTarget: forms.target,
+      formTargetListId: forms.targetListId,
+      formStatus: forms.status,
+    })
+    .from(formResponses)
+    .innerJoin(forms, eq(forms.id, formResponses.formId))
+    .where(
+      and(
+        inArray(formResponses.orgId, orgIds),
+        sql`${formResponses.answers}::text ilike ${`%${q}%`}`,
+      ),
+    );
+
+  return rows.map((r) => ({
+    responseId: r.responseId,
+    createdAt: r.createdAt.toISOString(),
+    answers: r.answers,
+    formId: r.formId,
+    formTitle: r.formTitle,
+    formTarget: r.formTarget,
+    formTargetListId: r.formTargetListId,
+    formStatus: r.formStatus,
+  }));
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */

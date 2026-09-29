@@ -10,10 +10,12 @@ export { getDb, closeDb, type Database } from "./client";
 export {
   debugFindTasks,
   debugFindForms,
+  debugFindFormResponses,
   debugSimulateFormSubmit,
   debugDeleteTasksByPrefix,
   type DebugTaskRow,
   type DebugFormRow,
+  type DebugFormResponseRow,
 } from "./debug";
 export {
   MODULE_KEYS,

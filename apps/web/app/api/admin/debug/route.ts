@@ -1,6 +1,7 @@
 import {
   debugDeleteTasksByPrefix,
   debugFindForms,
+  debugFindFormResponses,
   debugFindTasks,
   debugSimulateFormSubmit,
 } from "@wayline/db";
@@ -27,6 +28,10 @@ export async function GET(req: Request) {
   if (!email) return Response.json({ error: "email obrigatório" }, { status: 400 });
   if (kind === "forms") {
     const rows = await debugFindForms(email, q);
+    return Response.json({ count: rows.length, rows });
+  }
+  if (kind === "responses") {
+    const rows = await debugFindFormResponses(email, q);
     return Response.json({ count: rows.length, rows });
   }
   const rows = await debugFindTasks(email, q);
