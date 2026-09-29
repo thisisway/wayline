@@ -69,6 +69,7 @@ import {
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 import { supportAwaitingCountAction } from "@/actions/support";
 import { switchList } from "@/actions/org";
+import { createProposalAction } from "@/actions/proposals";
 import { pushRecentTask, getRecentTasks, type RecentTask } from "@/lib/recents";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
@@ -585,7 +586,15 @@ export function AppView({
             <NoModuleAccess module="Comercial" />
           ) : (
             <CommercialPage
+              orgId={activeOrgId}
               salesEnabled={salesEnabled}
+              onNewLead={async () => {
+                const id = await createProposalAction(activeOrgId);
+                if (id) {
+                  setProposalsInitialId(id);
+                  setProposalsOpen(true);
+                }
+              }}
               onOpenFunnel={() => setFunnelOpen(true)}
               onOpenOverview={() => setOverviewOpen(true)}
               onOpenClients={() => setClientsOpen(true)}
@@ -593,6 +602,8 @@ export function AppView({
               onOpenServices={() => setServicesOpen(true)}
               onOpenPortfolio={() => setPortfolioOpen(true)}
               onOpenContracts={() => setContractsOpen(true)}
+              onOpenForms={() => setView("forms")}
+              onOpenIntegrations={() => setIntegrationsOpen(true)}
             />
           )
         ) : view === "finance" ? (
