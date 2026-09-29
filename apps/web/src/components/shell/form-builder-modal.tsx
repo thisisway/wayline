@@ -83,6 +83,7 @@ export function FormBuilderModal({
     Array<{ id: string; name: string; spaceName: string | null }>
   >([]);
   const [saving, setSaving] = React.useState(false);
+  const [saveMsg, setSaveMsg] = React.useState<{ text: string; ok: boolean } | null>(null);
   const [copied, setCopied] = React.useState(false);
   const [responses, setResponses] = React.useState<FormResponseDTO[] | null>(null);
 
@@ -144,7 +145,8 @@ export function FormBuilderModal({
   async function save(nextPublished = published) {
     if (saving) return;
     setSaving(true);
-    await updateFormAction(orgId, formId, {
+    setSaveMsg(null);
+    const ok = await updateFormAction(orgId, formId, {
       title,
       description,
       thankYou,
@@ -153,10 +155,19 @@ export function FormBuilderModal({
       target,
       targetListId: target === "list" ? targetListId || null : null,
       targetStatusId: target === "list" && targetListId ? targetStatusId || null : null,
-    }).catch(() => {});
+    }).catch(() => false);
     setSaving(false);
-    setPublished(nextPublished);
-    onSaved?.();
+    if (ok) {
+      setPublished(nextPublished);
+      setSaveMsg({ text: "Salvo.", ok: true });
+      onSaved?.();
+    } else {
+      setSaveMsg({
+        text: "Não foi possível salvar. Verifique sua permissão de admin e tente de novo.",
+        ok: false,
+      });
+    }
+    setTimeout(() => setSaveMsg(null), 4000);
   }
 
   async function remove() {
@@ -518,6 +529,11 @@ fetch("${typeof window !== "undefined" ? window.location.origin : ""}/api/forms/
             >
               <Trash2 className="size-4" />
             </button>
+            {saveMsg && (
+              <span className={cn("text-dense font-medium", saveMsg.ok ? "text-success" : "text-danger")}>
+                {saveMsg.text}
+              </span>
+            )}
             <div className="ml-auto flex items-center gap-2">
               <Button variant="secondary" onClick={() => save(false)} disabled={saving}>
                 {saving ? "Salvando…" : "Salvar rascunho"}

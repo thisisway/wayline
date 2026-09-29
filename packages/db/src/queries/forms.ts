@@ -204,7 +204,9 @@ export interface FormPatch {
   targetStatusId?: string | null;
 }
 
-export async function updateForm(orgId: string, id: string, patch: FormPatch): Promise<void> {
+/** Atualiza o formulário. Devolve false se nenhuma linha foi afetada (id/org
+ *  não confere, ou o formulário foi excluído) — nesse caso NADA foi salvo. */
+export async function updateForm(orgId: string, id: string, patch: FormPatch): Promise<boolean> {
   const db = getDb();
   const set: Record<string, unknown> = { updatedAt: new Date() };
   if (patch.title !== undefined) set.title = patch.title.trim() || "Formulário";
@@ -215,7 +217,12 @@ export async function updateForm(orgId: string, id: string, patch: FormPatch): P
   if (patch.target !== undefined) set.target = patch.target === "funnel" ? "funnel" : "list";
   if (patch.targetListId !== undefined) set.targetListId = patch.targetListId;
   if (patch.targetStatusId !== undefined) set.targetStatusId = patch.targetStatusId;
-  await db.update(forms).set(set).where(and(eq(forms.id, id), eq(forms.orgId, orgId)));
+  const rows = await db
+    .update(forms)
+    .set(set)
+    .where(and(eq(forms.id, id), eq(forms.orgId, orgId), isNull(forms.deletedAt)))
+    .returning({ id: forms.id });
+  return rows.length > 0;
 }
 
 export async function deleteForm(orgId: string, id: string): Promise<void> {

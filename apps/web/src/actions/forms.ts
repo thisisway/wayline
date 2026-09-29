@@ -64,9 +64,9 @@ export async function updateFormAction(
     targetListId: patch.targetListId,
     targetStatusId: patch.targetStatusId,
   };
-  await updateForm(orgId, id, clean);
+  const ok = await updateForm(orgId, id, clean);
   revalidatePath("/app");
-  return true;
+  return ok;
 }
 
 export async function listListOptionsAction(
