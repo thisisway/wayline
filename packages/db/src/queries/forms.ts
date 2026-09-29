@@ -290,10 +290,21 @@ export async function submitFormResponse(
       /* segue o jogo */
     }
   } else if (f.targetListId) {
-    try {
-      await createTaskFromForm(f.orgId, f.targetListId, f.fields ?? [], clean, f.title, f.targetStatusId);
-    } catch {
-      // não falha o envio do usuário se a criação da tarefa falhar
+    // Não falha o envio do visitante se a criação da tarefa falhar (a resposta
+    // já está salva acima) — mas registra no log pra não ficar invisível.
+    const created = await createTaskFromForm(
+      f.orgId,
+      f.targetListId,
+      f.fields ?? [],
+      clean,
+      f.title,
+      f.targetStatusId,
+    ).catch((e) => {
+      console.error(`[form ${f.id}] falha ao criar tarefa a partir de resposta:`, e);
+      return false;
+    });
+    if (!created) {
+      console.warn(`[form ${f.id}] resposta salva mas tarefa não foi criada (lista ${f.targetListId} não encontrada na org ${f.orgId}?)`);
     }
   }
   return true;
@@ -375,9 +386,13 @@ export async function submitLead(
       });
       created = true;
     });
+    if (!created) {
+      console.warn(`[form ${f.id}] lead salvo mas tarefa não foi criada (lista ${listId} não encontrada na org ${f.orgId}?)`);
+    }
     return { ok: true, listId, target: "list", created };
   }
   // target = 'list' mas sem lista configurada.
+  console.warn(`[form ${f.id}] lead salvo mas o form não tem lista de destino configurada`);
   return { ok: true, listId: null, target: "list", created: false };
 }
 
@@ -389,13 +404,13 @@ async function createTaskFromForm(
   answers: Record<string, string>,
   formTitle: string,
   targetStatusId?: string | null,
-): Promise<void> {
-  await withOrg(orgId, async (tx) => {
+): Promise<boolean> {
+  return withOrg(orgId, async (tx) => {
     // Garante que a lista pertence à org.
     const list = await tx.query.lists.findFirst({
       where: and(eq(lists.id, listId), eq(lists.orgId, orgId), isNull(lists.deletedAt)),
     });
-    if (!list) return;
+    if (!list) return false;
     const statusId = await resolveTargetStatus(tx, listId, targetStatusId);
 
     const firstVal = fields.map((fld) => answers[fld.id]).find((v) => v && v.trim());
@@ -416,6 +431,7 @@ async function createTaskFromForm(
       description,
       position,
     });
+    return true;
   });
 }
 

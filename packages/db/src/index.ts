@@ -8,17 +8,6 @@
 export * as schema from "./schema";
 export { getDb, closeDb, type Database } from "./client";
 export {
-  debugFindTasks,
-  debugFindForms,
-  debugFindFormResponses,
-  debugSimulateFormSubmit,
-  debugCallSubmitLead,
-  debugDeleteTasksByPrefix,
-  type DebugTaskRow,
-  type DebugFormRow,
-  type DebugFormResponseRow,
-} from "./debug";
-export {
   MODULE_KEYS,
   MODULE_LABELS,
   defaultModuleAccess,
