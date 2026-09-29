@@ -1,6 +1,6 @@
-import { and, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg } from "./client";
-import { forms, lists, spaces, tasks } from "./schema";
+import { forms, lists, spaces, statuses, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
 
 export interface DebugTaskRow {
@@ -146,6 +146,88 @@ export async function debugFindForms(email: string, q: string): Promise<DebugFor
     fieldCount: f.fields.length,
     ...(spaceIdOk ? {} : { errorReadingSpaceId: spaceIdErr }),
   }));
+}
+
+/**
+ * Reproduz a criação da tarefa a partir de um formulário, SEM engolir erros
+ * (ao contrário de submitFormResponse), pra diagnosticar por que uma
+ * submissão real não vira tarefa. Não insere formResponses (só simula).
+ */
+export async function debugSimulateFormSubmit(
+  formId: string,
+): Promise<{
+  step: string;
+  formOrgId?: string;
+  targetListId?: string | null;
+  listFound?: boolean;
+  listOrgId?: string | null;
+  statusCount?: number;
+  resolvedStatusId?: string | null;
+  taskId?: string;
+  error?: string;
+}> {
+  const db = getDb();
+  const f = await db.query.forms.findFirst({ where: eq(forms.id, formId) });
+  if (!f) return { step: "form_not_found" };
+  if (!f.targetListId) return { step: "no_target_list", formOrgId: f.orgId };
+
+  try {
+    return await withOrg(f.orgId, async (tx) => {
+      const list = await tx.query.lists.findFirst({
+        where: and(eq(lists.id, f.targetListId!), eq(lists.orgId, f.orgId), isNull(lists.deletedAt)),
+      });
+      if (!list) {
+        // Investiga com mais detalhe: a lista existe (fora do escopo da org)?
+        const anyList = await db.query.lists.findFirst({ where: eq(lists.id, f.targetListId!) });
+        return {
+          step: "list_not_found_in_org",
+          formOrgId: f.orgId,
+          targetListId: f.targetListId,
+          listFound: !!anyList,
+          listOrgId: anyList?.orgId ?? null,
+        };
+      }
+      const cols = await tx.query.statuses.findMany({
+        where: eq(statuses.listId, f.targetListId!),
+        orderBy: [asc(statuses.position)],
+      });
+      const statusId = cols[0]?.id ?? null;
+
+      const position = await tx.$count(
+        tasks,
+        and(eq(tasks.listId, f.targetListId!), isNull(tasks.deletedAt)),
+      );
+      const [created] = await tx
+        .insert(tasks)
+        .values({
+          orgId: f.orgId,
+          listId: f.targetListId!,
+          statusId,
+          title: "[DEBUG SIMULATE] " + f.title,
+          description: "Simulação de diagnóstico — pode apagar.",
+          position,
+        })
+        .returning({ id: tasks.id });
+
+      return {
+        step: "ok",
+        formOrgId: f.orgId,
+        targetListId: f.targetListId,
+        listFound: true,
+        listOrgId: list.orgId,
+        statusCount: cols.length,
+        resolvedStatusId: statusId,
+        taskId: created?.id,
+      };
+    });
+  } catch (e) {
+    return {
+      step: "exception",
+      formOrgId: f.orgId,
+      targetListId: f.targetListId,
+      error: String(e).slice(0, 500),
+    };
+  }
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */

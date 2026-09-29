@@ -10,6 +10,7 @@ export { getDb, closeDb, type Database } from "./client";
 export {
   debugFindTasks,
   debugFindForms,
+  debugSimulateFormSubmit,
   debugDeleteTasksByPrefix,
   type DebugTaskRow,
   type DebugFormRow,

@@ -1,4 +1,9 @@
-import { debugDeleteTasksByPrefix, debugFindForms, debugFindTasks } from "@wayline/db";
+import {
+  debugDeleteTasksByPrefix,
+  debugFindForms,
+  debugFindTasks,
+  debugSimulateFormSubmit,
+} from "@wayline/db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,9 +35,15 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
-    | { secret?: string; email?: string; prefix?: string }
+    | { secret?: string; email?: string; prefix?: string; simulateFormId?: string }
     | null;
   if (!authorized(body?.secret ?? null)) return new Response("unauthorized", { status: 401 });
+
+  if (body?.simulateFormId) {
+    const result = await debugSimulateFormSubmit(body.simulateFormId);
+    return Response.json(result);
+  }
+
   if (!body?.email || !body?.prefix) {
     return Response.json({ error: "email e prefix são obrigatórios" }, { status: 400 });
   }
