@@ -64,17 +64,24 @@ function toDTO(f: typeof forms.$inferSelect): FormDTO {
   };
 }
 
-/** Listas do board (para escolher onde criar tarefas). Resiliente. */
+/** Listas do board (para escolher onde criar tarefas), com o Space de cada uma. */
 export async function listListOptions(
   orgId: string,
-): Promise<Array<{ id: string; name: string }>> {
+): Promise<Array<{ id: string; name: string; spaceName: string | null }>> {
   try {
     const db = getDb();
     const rows = await db.query.lists.findMany({
       where: and(eq(lists.orgId, orgId), isNull(lists.deletedAt)),
+      with: { space: true },
       orderBy: [asc(lists.name)],
     });
-    return rows.map((l) => ({ id: l.id, name: l.name }));
+    return rows
+      .map((l) => ({
+        id: l.id,
+        name: l.name,
+        spaceName: (l as typeof l & { space?: { name?: string } }).space?.name ?? null,
+      }))
+      .sort((a, b) => `${a.spaceName ?? ""}${a.name}`.localeCompare(`${b.spaceName ?? ""}${b.name}`));
   } catch {
     return [];
   }

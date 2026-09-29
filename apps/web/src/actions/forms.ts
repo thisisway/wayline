@@ -68,7 +68,7 @@ export async function updateFormAction(
 
 export async function listListOptionsAction(
   orgId: string,
-): Promise<Array<{ id: string; name: string }>> {
+): Promise<Array<{ id: string; name: string; spaceName: string | null }>> {
   if (!(await assertMember(orgId))) return [];
   return listListOptions(orgId);
 }

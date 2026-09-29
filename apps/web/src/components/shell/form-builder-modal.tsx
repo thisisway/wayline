@@ -76,7 +76,9 @@ export function FormBuilderModal({
   const [published, setPublished] = React.useState(false);
   const [target, setTarget] = React.useState<"list" | "funnel">("list");
   const [targetListId, setTargetListId] = React.useState("");
-  const [lists, setLists] = React.useState<Array<{ id: string; name: string }>>([]);
+  const [lists, setLists] = React.useState<
+    Array<{ id: string; name: string; spaceName: string | null }>
+  >([]);
   const [saving, setSaving] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [responses, setResponses] = React.useState<FormResponseDTO[] | null>(null);
@@ -347,12 +349,13 @@ export function FormBuilderModal({
                   <option value="">Não criar tarefa</option>
                   {lists.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.name}
+                      {l.spaceName ? `${l.spaceName} › ${l.name}` : l.name}
                     </option>
                   ))}
                 </select>
                 <span className="mt-1 block text-[11px] text-subtle">
-                  Cada envio vira um card na 1ª coluna da lista (título = 1º campo preenchido).
+                  Cada envio vira um card na <strong>1ª coluna</strong> da lista (o seu "A fazer").
+                  Título = 1º campo preenchido.
                 </span>
               </label>
             ) : (
