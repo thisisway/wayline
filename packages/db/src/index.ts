@@ -414,6 +414,7 @@ export {
   deleteForm,
   getFormByToken,
   submitFormResponse,
+  submitLead,
   listFormResponses,
   listListOptions,
   type FormListItem,

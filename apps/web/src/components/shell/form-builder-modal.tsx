@@ -353,6 +353,56 @@ export function FormBuilderModal({
                 (Comercial → Funil), com as respostas nas notas internas.
               </span>
             )}
+
+            {loaded && (
+              <div className="rounded-lg border border-border bg-canvas p-3">
+                <span className="text-dense font-medium text-muted">
+                  Conectar landing page / sistema (API)
+                </span>
+                <p className="mt-0.5 text-[11px] text-subtle">
+                  Publique o formulário e faça sua página enviar um POST para o endpoint abaixo.
+                  Cada envio cria o lead no destino escolhido acima.
+                </p>
+                <input
+                  readOnly
+                  value={
+                    typeof window !== "undefined"
+                      ? `${window.location.origin}/api/forms/${loaded.token}`
+                      : ""
+                  }
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="mt-2 h-9 w-full rounded-md border border-border bg-surface px-2 font-mono text-[11px] text-foreground"
+                />
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-[11px] font-medium text-brand">
+                    Ver exemplo de código
+                  </summary>
+                  <pre className="mt-1 overflow-x-auto rounded-md bg-surface p-2 text-[10px] leading-relaxed text-muted">
+{`<!-- Form HTML nativo (redireciona após enviar) -->
+<form method="POST" action="${typeof window !== "undefined" ? window.location.origin : ""}/api/forms/${loaded.token}">
+  <input name="name" placeholder="Nome" required />
+  <input name="email" type="email" placeholder="E-mail" />
+  <input name="phone" placeholder="Telefone" />
+  <textarea name="message" placeholder="Mensagem"></textarea>
+  <input type="text" name="_hp" style="display:none" tabindex="-1" />
+  <input type="hidden" name="_redirect" value="https://seusite.com/obrigado" />
+  <button type="submit">Enviar</button>
+</form>
+
+// Ou via JavaScript (fetch)
+fetch("${typeof window !== "undefined" ? window.location.origin : ""}/api/forms/${loaded.token}", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ name, email, phone, message }),
+});`}
+                  </pre>
+                  <p className="mt-1 text-[10px] text-subtle">
+                    Campo oculto <code>_hp</code> = anti-spam (honeypot). <code>_redirect</code> =
+                    para onde o visitante vai após enviar (opcional).
+                  </p>
+                </details>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-5">

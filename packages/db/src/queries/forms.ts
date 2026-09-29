@@ -243,6 +243,67 @@ export async function submitFormResponse(
   return true;
 }
 
+/**
+ * Intake de lead vindo de fonte EXTERNA (landing page/sistema), field-agnostic.
+ * Aceita qualquer par chave→valor, guarda a resposta e cria a tarefa na 1ª coluna
+ * da lista-alvo do formulário (ou um lead no funil). Devolve o listId para poke.
+ */
+export async function submitLead(
+  token: string,
+  data: Record<string, string>,
+): Promise<{ ok: boolean; listId: string | null }> {
+  const db = getDb();
+  const f = await db.query.forms.findFirst({
+    where: and(eq(forms.token, token), isNull(forms.deletedAt)),
+  });
+  if (!f || f.status !== "published") return { ok: false, listId: null };
+
+  const clean: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (!k || k.startsWith("_")) continue; // ignora campos de controle (honeypot/redirect)
+    clean[String(k).slice(0, 80)] = String(v ?? "").slice(0, 5000);
+  }
+  await db.insert(formResponses).values({ orgId: f.orgId, formId: f.id, answers: clean });
+
+  const firstVal = Object.values(clean).find((v) => v && v.trim());
+  const title = (clean.name || clean.nome || clean.email || firstVal || f.title).slice(0, 200);
+  const description = Object.entries(clean)
+    .map(([k, v]) => `${k}: ${v || "—"}`)
+    .join("\n");
+
+  if (f.target === "funnel") {
+    await createLead(f.orgId, title, description).catch(() => {});
+    return { ok: true, listId: null };
+  }
+  if (f.targetListId) {
+    const listId = f.targetListId;
+    await withOrg(f.orgId, async (tx) => {
+      const list = await tx.query.lists.findFirst({
+        where: and(eq(lists.id, listId), eq(lists.orgId, f.orgId), isNull(lists.deletedAt)),
+      });
+      if (!list) return;
+      const firstStatus = await tx.query.statuses.findFirst({
+        where: eq(statuses.listId, listId),
+        orderBy: [asc(statuses.position)],
+      });
+      const position = await tx.$count(
+        tasks,
+        and(eq(tasks.listId, listId), isNull(tasks.deletedAt)),
+      );
+      await tx.insert(tasks).values({
+        orgId: f.orgId,
+        listId,
+        statusId: firstStatus?.id ?? null,
+        title,
+        description,
+        position,
+      });
+    });
+    return { ok: true, listId };
+  }
+  return { ok: true, listId: null };
+}
+
 /** Cria uma tarefa na 1ª coluna da lista a partir de uma resposta de formulário. */
 async function createTaskFromForm(
   orgId: string,
