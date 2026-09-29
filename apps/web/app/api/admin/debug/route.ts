@@ -1,11 +1,11 @@
-import { debugDeleteTasksByPrefix, debugFindTasks } from "@wayline/db";
+import { debugDeleteTasksByPrefix, debugFindForms, debugFindTasks } from "@wayline/db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // Diagnóstico pontual (uso único, remover depois). Protegido por CRON_SECRET.
-// GET  ?secret=&email=&q=       -> lista tarefas cujo título contém `q`
-// POST {secret, email, prefix}  -> exclui (soft) tarefas cujo título começa com `prefix`
+// GET  ?secret=&email=&q=&kind=tasks|forms  -> lista tarefas OU formulários (título contém `q`)
+// POST {secret, email, prefix}              -> exclui (soft) tarefas cujo título começa com `prefix`
 
 function authorized(secret: string | null): boolean {
   return !!process.env.CRON_SECRET && secret === process.env.CRON_SECRET;
@@ -18,7 +18,12 @@ export async function GET(req: Request) {
   }
   const email = url.searchParams.get("email") ?? "";
   const q = url.searchParams.get("q") ?? "";
+  const kind = url.searchParams.get("kind") ?? "tasks";
   if (!email) return Response.json({ error: "email obrigatório" }, { status: 400 });
+  if (kind === "forms") {
+    const rows = await debugFindForms(email, q);
+    return Response.json({ count: rows.length, rows });
+  }
   const rows = await debugFindTasks(email, q);
   return Response.json({ count: rows.length, rows });
 }

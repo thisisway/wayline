@@ -1,6 +1,6 @@
-import { and, eq, ilike, isNull } from "drizzle-orm";
-import { withOrg } from "./client";
-import { lists, spaces, tasks } from "./schema";
+import { and, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import { getDb, withOrg } from "./client";
+import { forms, lists, spaces, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
 
 export interface DebugTaskRow {
@@ -53,6 +53,99 @@ export async function debugFindTasks(email: string, q: string): Promise<DebugTas
     }
   }
   return out;
+}
+
+export interface DebugFormRow {
+  id: string;
+  orgName: string;
+  title: string;
+  status: string;
+  target: string;
+  targetListId: string | null;
+  targetStatusId: string | null;
+  spaceId: string | null;
+  fieldCount: number;
+  errorReadingSpaceId?: string;
+}
+
+/** Inspeciona os formulários de um usuário (config crua: target/targetListId/spaceId). */
+export async function debugFindForms(email: string, q: string): Promise<DebugFormRow[]> {
+  const user = await getUserByEmail(email);
+  if (!user) return [];
+  const orgs = await getUserOrgs(user.id);
+  const orgIds = orgs.map((o) => o.id);
+  if (orgIds.length === 0) return [];
+  const orgName = new Map(orgs.map((o) => [o.id, o.name]));
+
+  const db = getDb();
+  let spaceIdOk = true;
+  let spaceIdErr = "";
+  type Row = {
+    id: string;
+    orgId: string;
+    title: string;
+    status: string;
+    target: string;
+    targetListId: string | null;
+    targetStatusId: string | null;
+    spaceId: string | null;
+    fields: unknown[];
+  };
+  let rows: Row[];
+  try {
+    const found = await db.query.forms.findMany({
+      where: and(inArray(forms.orgId, orgIds), ilike(forms.title, `%${q}%`), isNull(forms.deletedAt)),
+    });
+    rows = found.map((f) => ({
+      id: f.id,
+      orgId: f.orgId,
+      title: f.title,
+      status: f.status,
+      target: f.target,
+      targetListId: f.targetListId,
+      targetStatusId: f.targetStatusId,
+      spaceId: f.spaceId ?? null,
+      fields: f.fields ?? [],
+    }));
+  } catch (e) {
+    // Provável coluna space_id ainda não migrada — tenta de novo sem ela via SQL cru.
+    spaceIdOk = false;
+    spaceIdErr = String(e).slice(0, 300);
+    const raw = await db.execute<{
+      id: string;
+      org_id: string;
+      title: string;
+      status: string;
+      target: string;
+      target_list_id: string | null;
+      target_status_id: string | null;
+    }>(sql`select id, org_id, title, status, target, target_list_id, target_status_id
+       from forms where org_id = any(${orgIds}) and title ilike ${`%${q}%`} and deleted_at is null`);
+    rows = raw.map((r) => ({
+      id: r.id,
+      orgId: r.org_id,
+      title: r.title,
+      status: r.status,
+      target: r.target,
+      targetListId: r.target_list_id,
+      targetStatusId: r.target_status_id,
+      spaceId: null,
+      fields: [],
+    }));
+  }
+
+  return rows.map((f) => ({
+    id: f.id,
+    orgName: orgName.get(f.orgId) ?? "?",
+    title: f.title,
+    status: f.status,
+    target: f.target,
+    targetListId: f.targetListId,
+    targetStatusId: f.targetStatusId,
+    spaceId: f.spaceId,
+    fieldCount: f.fields.length,
+    ...(spaceIdOk ? {} : { errorReadingSpaceId: spaceIdErr }),
+  }));
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */
