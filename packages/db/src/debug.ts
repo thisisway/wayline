@@ -159,17 +159,45 @@ export async function debugSimulateFormSubmit(
   step: string;
   formOrgId?: string;
   targetListId?: string | null;
+  fieldsRaw?: unknown;
+  fieldsIsArray?: boolean;
+  titleBuilt?: string;
+  descriptionBuilt?: string;
   listFound?: boolean;
   listOrgId?: string | null;
   statusCount?: number;
   resolvedStatusId?: string | null;
   taskId?: string;
   error?: string;
+  errorStack?: string;
 }> {
   const db = getDb();
   const f = await db.query.forms.findFirst({ where: eq(forms.id, formId) });
   if (!f) return { step: "form_not_found" };
   if (!f.targetListId) return { step: "no_target_list", formOrgId: f.orgId };
+
+  // Reproduz EXATAMENTE o processamento de campos de createTaskFromForm,
+  // com respostas fictícias (uma por campo), pra pegar erro de dado malformado.
+  let titleBuilt = "?";
+  let descriptionBuilt = "?";
+  try {
+    const fields = f.fields ?? [];
+    const fakeAnswers: Record<string, string> = {};
+    for (const fld of fields) fakeAnswers[fld.id] = `[valor de teste — ${fld.label}]`;
+    const firstVal = fields.map((fld) => fakeAnswers[fld.id]).find((v) => v && v.trim());
+    titleBuilt = (firstVal || f.title || "Resposta de formulário").slice(0, 200);
+    descriptionBuilt = fields.map((fld) => `${fld.label}: ${fakeAnswers[fld.id] ?? "—"}`).join("\n");
+  } catch (e) {
+    return {
+      step: "exception_processing_fields",
+      formOrgId: f.orgId,
+      targetListId: f.targetListId,
+      fieldsRaw: f.fields,
+      fieldsIsArray: Array.isArray(f.fields),
+      error: String(e).slice(0, 500),
+      errorStack: e instanceof Error ? (e.stack ?? "").slice(0, 800) : undefined,
+    };
+  }
 
   try {
     return await withOrg(f.orgId, async (tx) => {
@@ -177,12 +205,13 @@ export async function debugSimulateFormSubmit(
         where: and(eq(lists.id, f.targetListId!), eq(lists.orgId, f.orgId), isNull(lists.deletedAt)),
       });
       if (!list) {
-        // Investiga com mais detalhe: a lista existe (fora do escopo da org)?
         const anyList = await db.query.lists.findFirst({ where: eq(lists.id, f.targetListId!) });
         return {
           step: "list_not_found_in_org",
           formOrgId: f.orgId,
           targetListId: f.targetListId,
+          titleBuilt,
+          descriptionBuilt,
           listFound: !!anyList,
           listOrgId: anyList?.orgId ?? null,
         };
@@ -203,8 +232,8 @@ export async function debugSimulateFormSubmit(
           orgId: f.orgId,
           listId: f.targetListId!,
           statusId,
-          title: "[DEBUG SIMULATE] " + f.title,
-          description: "Simulação de diagnóstico — pode apagar.",
+          title: "[DEBUG SIMULATE] " + titleBuilt,
+          description: descriptionBuilt,
           position,
         })
         .returning({ id: tasks.id });
@@ -213,6 +242,8 @@ export async function debugSimulateFormSubmit(
         step: "ok",
         formOrgId: f.orgId,
         targetListId: f.targetListId,
+        titleBuilt,
+        descriptionBuilt,
         listFound: true,
         listOrgId: list.orgId,
         statusCount: cols.length,
@@ -222,10 +253,13 @@ export async function debugSimulateFormSubmit(
     });
   } catch (e) {
     return {
-      step: "exception",
+      step: "exception_creating_task",
       formOrgId: f.orgId,
       targetListId: f.targetListId,
+      titleBuilt,
+      descriptionBuilt,
       error: String(e).slice(0, 500),
+      errorStack: e instanceof Error ? (e.stack ?? "").slice(0, 800) : undefined,
     };
   }
 }
