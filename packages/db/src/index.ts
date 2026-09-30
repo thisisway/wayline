@@ -346,6 +346,8 @@ export {
   decideProposal,
   setProposalStage,
   createLead,
+  createQuickLead,
+  getProposalActivity,
   listClientOptions,
   PROPOSAL_STAGES,
   type ProposalStage,
@@ -356,6 +358,8 @@ export {
   type SchedulePhase,
   type PublicProposal,
   type ProposalPatch,
+  type CreateLeadInput,
+  type CreateQuickLeadInput,
 } from "./queries/proposals";
 export {
   listServices,

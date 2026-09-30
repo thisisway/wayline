@@ -2,19 +2,22 @@
 
 import {
   createProposal,
+  createQuickLead,
   deleteProposal,
   getProposal,
+  getProposalActivity,
   listClientOptions,
   listProposals,
   setProposalStage,
   updateProposal,
+  type ActivityDTO,
   type ProposalDTO,
   type ProposalListItem,
   type ProposalPatch,
   type ProposalStage,
 } from "@wayline/db";
 import { revalidatePath } from "next/cache";
-import { assertModule, getSessionUserId } from "@/lib/authz";
+import { assertModule, getSessionUser, getSessionUserId } from "@/lib/authz";
 import { pokeComercial } from "@/actions/live";
 import { aiEnabled, draftProposal } from "@/lib/ai";
 import { rateLimit, MIN } from "@/lib/rate-limit";
@@ -65,6 +68,12 @@ export interface ProposalPatchInput {
   clientId?: string | null;
   status?: string;
   validUntilIso?: string | null;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  ownerId?: string | null;
+  estimatedValueCents?: number;
+  expectedCloseAtIso?: string | null;
   items?: Array<{
     description: string;
     details: string;
@@ -98,9 +107,17 @@ export async function updateProposalAction(
     clientId: patch.clientId,
     status: patch.status,
     items: patch.items,
+    contactName: patch.contactName,
+    contactEmail: patch.contactEmail,
+    contactPhone: patch.contactPhone,
+    ownerId: patch.ownerId,
+    estimatedValueCents: patch.estimatedValueCents,
   };
   if (patch.validUntilIso !== undefined) {
     dbPatch.validUntil = patch.validUntilIso ? new Date(patch.validUntilIso) : null;
+  }
+  if (patch.expectedCloseAtIso !== undefined) {
+    dbPatch.expectedCloseAt = patch.expectedCloseAtIso ? new Date(patch.expectedCloseAtIso) : null;
   }
   await updateProposal(orgId, id, dbPatch);
   await pokeComercial(orgId);
@@ -112,12 +129,60 @@ export async function moveProposalStageAction(
   orgId: string,
   id: string,
   stage: ProposalStage,
+  lostReason?: string,
 ): Promise<boolean> {
   if (!(await assertModule(orgId, "comercial", "edit"))) return false;
-  await setProposalStage(orgId, id, stage);
+  const user = await getSessionUser();
+  const ok = await setProposalStage(orgId, id, stage, {
+    lostReason,
+    actorId: user?.id ?? null,
+    actorName: user?.name,
+  });
+  if (ok) {
+    await pokeComercial(orgId);
+    revalidatePath("/app");
+  }
+  return ok;
+}
+
+export interface CreateQuickLeadInput {
+  title: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  estimatedValueCents: number;
+  ownerId: string | null;
+  expectedCloseAtIso: string | null;
+}
+
+/** Cadastro rápido de lead (botão "Novo lead" no comercial). */
+export async function createQuickLeadAction(
+  orgId: string,
+  input: CreateQuickLeadInput,
+): Promise<string | null> {
+  if (!(await assertModule(orgId, "comercial", "edit"))) return null;
+  const uid = await getSessionUserId();
+  const id = await createQuickLead(orgId, {
+    title: input.title,
+    contactName: input.contactName,
+    contactEmail: input.contactEmail,
+    contactPhone: input.contactPhone,
+    estimatedValueCents: input.estimatedValueCents,
+    ownerId: input.ownerId,
+    expectedCloseAt: input.expectedCloseAtIso ? new Date(input.expectedCloseAtIso) : null,
+    createdBy: uid,
+  });
   await pokeComercial(orgId);
   revalidatePath("/app");
-  return true;
+  return id;
+}
+
+export async function listProposalActivityAction(
+  orgId: string,
+  id: string,
+): Promise<ActivityDTO[]> {
+  if (!(await assertModule(orgId, "comercial", "view"))) return [];
+  return getProposalActivity(orgId, id);
 }
 
 export async function deleteProposalAction(orgId: string, id: string): Promise<void> {

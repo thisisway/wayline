@@ -3,7 +3,9 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@wayline/ui";
+import { Avatar } from "@wayline/ui";
 import type { ProposalListItem, ProposalStage } from "@wayline/db";
+import { LOST_REASONS } from "@/lib/commercial";
 import { listProposalsAction, moveProposalStageAction } from "@/actions/proposals";
 
 /** Colunas do funil (rótulos/cores só do cliente; ordem = ordem visual). */
@@ -17,6 +19,9 @@ const STAGES: { key: ProposalStage; label: string; color: string }[] = [
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const fmtDate = (d: Date) =>
+  new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 
 export function SalesFunnel({
   orgId,
@@ -32,6 +37,9 @@ export function SalesFunnel({
   const [rows, setRows] = React.useState<ProposalListItem[] | null>(null);
   const [dragId, setDragId] = React.useState<string | null>(null);
   const [over, setOver] = React.useState<ProposalStage | null>(null);
+  const [pendingLoseId, setPendingLoseId] = React.useState<string | null>(null);
+  const [lostReason, setLostReason] = React.useState("");
+  const [lostReasonCustom, setLostReasonCustom] = React.useState("");
 
   const dragRef = React.useRef<string | null>(null);
   dragRef.current = dragId;
@@ -54,12 +62,29 @@ export function SalesFunnel({
     };
   }, [orgId, onClose]);
 
-  function move(id: string, stage: ProposalStage) {
+  async function move(id: string, stage: ProposalStage, reason?: string) {
+    const prev = rows;
     setRows((rs) => rs?.map((r) => (r.id === id ? { ...r, stage } : r)) ?? rs);
-    void moveProposalStageAction(orgId, id, stage).catch(() => {});
+    const ok = await moveProposalStageAction(orgId, id, stage, reason).catch(() => false);
+    if (!ok) setRows(prev); // reverte (ex.: motivo obrigatório faltando)
+  }
+
+  function requestLose(id: string) {
+    setPendingLoseId(id);
+    setLostReason(LOST_REASONS[0]!);
+    setLostReasonCustom("");
+  }
+
+  function confirmLose() {
+    if (!pendingLoseId) return;
+    const reason = lostReason === "outro" ? lostReasonCustom.trim() : lostReason;
+    if (!reason) return;
+    void move(pendingLoseId, "perdido", reason);
+    setPendingLoseId(null);
   }
 
   const byStage = (key: ProposalStage) => (rows ?? []).filter((r) => r.stage === key);
+  const pendingCard = pendingLoseId ? (rows ?? []).find((r) => r.id === pendingLoseId) : null;
 
   return (
     <div
@@ -105,7 +130,10 @@ export function SalesFunnel({
                 onDrop={(e) => {
                   e.preventDefault();
                   setOver(null);
-                  if (canEdit && dragId) move(dragId, st.key);
+                  if (canEdit && dragId) {
+                    if (st.key === "perdido") requestLose(dragId);
+                    else void move(dragId, st.key);
+                  }
                   setDragId(null);
                 }}
                 className={cn(
@@ -128,33 +156,53 @@ export function SalesFunnel({
                   ) : cards.length === 0 ? (
                     <p className="px-1 py-6 text-center text-[12px] text-subtle">Vazio</p>
                   ) : (
-                    cards.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        draggable={canEdit}
-                        onDragStart={() => setDragId(c.id)}
-                        onDragEnd={() => setDragId(null)}
-                        onClick={() => onOpenProposal(c.id)}
-                        className={cn(
-                          "rounded-lg border border-border bg-surface p-2.5 text-left transition-shadow hover:shadow-sm",
-                          canEdit && "cursor-grab active:cursor-grabbing",
-                          dragId === c.id && "opacity-50",
-                        )}
-                      >
-                        <p className="truncate text-dense font-medium text-foreground">
-                          #{c.number} · {c.title || "Sem título"}
-                        </p>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          <span className="truncate text-[11px] text-subtle">
-                            {c.clientName ?? "Sem cliente"}
-                          </span>
-                          <span className="shrink-0 text-[11px] font-semibold text-foreground">
-                            {brl(c.totalCents)}
-                          </span>
-                        </div>
-                      </button>
-                    ))
+                    cards.map((c) => {
+                      const overdue = c.expectedCloseAt && new Date(c.expectedCloseAt).getTime() < Date.now();
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          draggable={canEdit}
+                          onDragStart={() => setDragId(c.id)}
+                          onDragEnd={() => setDragId(null)}
+                          onClick={() => onOpenProposal(c.id)}
+                          className={cn(
+                            "rounded-lg border border-border bg-surface p-2.5 text-left transition-shadow hover:shadow-sm",
+                            canEdit && "cursor-grab active:cursor-grabbing",
+                            dragId === c.id && "opacity-50",
+                          )}
+                        >
+                          <p className="truncate text-dense font-medium text-foreground">
+                            #{c.number} · {c.title || "Sem título"}
+                          </p>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <span className="truncate text-[11px] text-subtle">
+                              {c.clientName ?? "Sem cliente"}
+                            </span>
+                            <span className="shrink-0 text-[11px] font-semibold text-foreground">
+                              {brl(c.totalCents)}
+                            </span>
+                          </div>
+                          {(c.ownerName || c.expectedCloseAt) && (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              {c.ownerName && (
+                                <Avatar name={c.ownerName} src={c.ownerAvatarUrl ?? undefined} size="xs" />
+                              )}
+                              {c.expectedCloseAt && (
+                                <span className={cn("text-[11px]", overdue ? "text-danger" : "text-subtle")}>
+                                  {fmtDate(c.expectedCloseAt)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {st.key === "perdido" && c.lostReason && (
+                            <p className="mt-1.5 truncate rounded-md bg-danger/10 px-1.5 py-0.5 text-[11px] text-danger">
+                              {c.lostReason}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -162,6 +210,63 @@ export function SalesFunnel({
           })}
         </div>
       </div>
+
+      {pendingCard && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 p-4"
+          onClick={() => setPendingLoseId(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-xl border border-border bg-surface p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-1 text-ui font-semibold text-foreground">Por que perdeu esse negócio?</h3>
+            <p className="mb-3 truncate text-dense text-subtle">
+              #{pendingCard.number} · {pendingCard.title || "Sem título"}
+            </p>
+            <select
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              className="mb-2 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+            >
+              {LOST_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+              <option value="outro">Outro…</option>
+            </select>
+            {lostReason === "outro" && (
+              <input
+                autoFocus
+                value={lostReasonCustom}
+                onChange={(e) => setLostReasonCustom(e.target.value)}
+                placeholder="Descreva o motivo"
+                className="mb-2 h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+              />
+            )}
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingLoseId(null)}
+                className="rounded-md px-3 py-1.5 text-dense font-medium text-muted hover:bg-elevated"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmLose}
+                disabled={lostReason === "outro" && !lostReasonCustom.trim()}
+                className="rounded-md bg-danger px-3 py-1.5 text-dense font-medium text-white disabled:opacity-50"
+              >
+                Marcar como perdido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

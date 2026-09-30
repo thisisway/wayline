@@ -5,7 +5,9 @@ import { memberships, notifications, tasks } from "../schema";
 export type CommercialEvent =
   | "proposal_accepted"
   | "proposal_rejected"
-  | "contract_signed";
+  | "contract_signed"
+  | "deal_won"
+  | "lead_lost";
 
 /**
  * Notifica owners/admins (e o criador, se houver) sobre um evento comercial

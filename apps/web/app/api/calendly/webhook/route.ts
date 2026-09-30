@@ -76,7 +76,13 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join("\n");
 
-    await createLead(orgId, `${name} — ${eventName}`, notes).catch(() => {});
+    await createLead(orgId, {
+      title: `${name} — ${eventName}`,
+      notes,
+      contactName: p.name ?? "",
+      contactEmail: p.email ?? "",
+      source: "api",
+    }).catch(() => {});
     send(`comercial:${orgId}`, "comercial", String(Date.now()));
   }
 

@@ -285,7 +285,14 @@ export async function submitFormResponse(
         "",
         ...fields.map((fld) => `${fld.label}: ${clean[fld.id] ?? "—"}`),
       ].join("\n");
-      await createLead(f.orgId, title, notes);
+      await createLead(f.orgId, {
+        title,
+        notes,
+        contactName: findByLabel(fields, clean, ["nome", "name"]),
+        contactEmail: findByLabel(fields, clean, ["email", "e-mail"]),
+        contactPhone: findByLabel(fields, clean, ["telefone", "whatsapp", "celular", "fone"]),
+        source: "form",
+      });
     } catch {
       /* segue o jogo */
     }
@@ -308,6 +315,18 @@ export async function submitFormResponse(
     }
   }
   return true;
+}
+
+/** Acha a resposta de um campo cujo label contenha um dos termos (case-insensitive). */
+function findByLabel(
+  fields: FormFieldSchema[],
+  clean: Record<string, string>,
+  terms: string[],
+): string | undefined {
+  const field = fields.find((f) =>
+    terms.some((t) => f.label.toLowerCase().includes(t)),
+  );
+  return field ? clean[field.id] : undefined;
 }
 
 /** Coluna de destino: o targetStatusId (se pertencer à lista) ou a 1ª coluna. */
@@ -358,9 +377,19 @@ export async function submitLead(
   const description = Object.entries(clean)
     .map(([k, v]) => `${k}: ${v || "—"}`)
     .join("\n");
+  const contactName = clean.name || clean.nome || "";
+  const contactEmail = clean.email || "";
+  const contactPhone = clean.phone || clean.whatsapp || clean.telefone || clean.celular || "";
 
   if (f.target === "funnel") {
-    await createLead(f.orgId, title, description).catch(() => {});
+    await createLead(f.orgId, {
+      title,
+      notes: description,
+      contactName,
+      contactEmail,
+      contactPhone,
+      source: "api",
+    }).catch(() => {});
     return { ok: true, listId: null, target: "funnel", created: true };
   }
   if (f.targetListId) {

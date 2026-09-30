@@ -43,6 +43,7 @@ import { WelcomeChecklist, type OnboardStep } from "@/components/shell/welcome-c
 import { CheckSquare, ClipboardList as ClipboardIcon, Briefcase as BriefcaseIcon, Settings as SettingsIcon } from "lucide-react";
 import { OverviewModal } from "@/components/shell/overview-modal";
 import { ClientsModal } from "@/components/shell/clients-modal";
+import { QuickLeadModal } from "@/components/shell/quick-lead-modal";
 import { ProposalsModal } from "@/components/shell/proposals-modal";
 import { SalesFunnel } from "@/components/shell/sales-funnel";
 import { ServicesModal } from "@/components/shell/services-modal";
@@ -69,7 +70,6 @@ import {
 import { boardToCsv, downloadCsv } from "@/lib/export-csv";
 import { supportAwaitingCountAction } from "@/actions/support";
 import { switchList } from "@/actions/org";
-import { createProposalAction } from "@/actions/proposals";
 import { pushRecentTask, getRecentTasks, type RecentTask } from "@/lib/recents";
 import type { PlanFlags } from "@/lib/plans";
 import { Lock } from "lucide-react";
@@ -185,6 +185,7 @@ export function AppView({
   const [trialHidden, setTrialHidden] = React.useState(false);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [clientsOpen, setClientsOpen] = React.useState(false);
+  const [quickLeadOpen, setQuickLeadOpen] = React.useState(false);
   const [proposalsOpen, setProposalsOpen] = React.useState(false);
   const [proposalsInitialId, setProposalsInitialId] = React.useState<string | null>(null);
   const [funnelOpen, setFunnelOpen] = React.useState(false);
@@ -370,6 +371,14 @@ export function AppView({
         <OverviewModal orgId={activeOrgId} onClose={() => setOverviewOpen(false)} />
       )}
       {clientsOpen && <ClientsModal orgId={activeOrgId} onClose={() => setClientsOpen(false)} />}
+      {quickLeadOpen && (
+        <QuickLeadModal
+          orgId={activeOrgId}
+          currentUserId={data?.currentUserId ?? null}
+          onClose={() => setQuickLeadOpen(false)}
+          onCreated={() => setFunnelOpen(true)}
+        />
+      )}
       {proposalsOpen && (
         <ProposalsModal
           orgId={activeOrgId}
@@ -588,13 +597,7 @@ export function AppView({
             <CommercialPage
               orgId={activeOrgId}
               salesEnabled={salesEnabled}
-              onNewLead={async () => {
-                const id = await createProposalAction(activeOrgId);
-                if (id) {
-                  setProposalsInitialId(id);
-                  setProposalsOpen(true);
-                }
-              }}
+              onNewLead={() => setQuickLeadOpen(true)}
               onOpenFunnel={() => setFunnelOpen(true)}
               onOpenOverview={() => setOverviewOpen(true)}
               onOpenClients={() => setClientsOpen(true)}

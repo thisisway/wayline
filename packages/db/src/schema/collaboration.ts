@@ -453,11 +453,33 @@ export const proposals = pgTable(
     decidedByName: text("decided_by_name"),
     decidedByDoc: text("decided_by_doc"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** Contato estruturado do lead (substitui o que caía solto em internalNotes). */
+    contactName: text("contact_name").notNull().default(""),
+    contactEmail: text("contact_email").notNull().default(""),
+    contactPhone: text("contact_phone").notNull().default(""),
+    /** Dono da negociação — reatribuível, aparece no Kanban e no leaderboard. */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    /** Valor manual do negócio. Preenche o funil antes de existir item de
+     *  proposta; quando há proposalItems, o total de itens prevalece. */
+    estimatedValueCents: integer("estimated_value_cents").notNull().default(0),
+    /** Data prevista de fechamento (opcional). */
+    expectedCloseAt: timestamp("expected_close_at", { withTimezone: true }),
+    /** Motivo de perda (texto livre; a UI oferece sugestões canônicas + "outro"). */
+    lostReason: text("lost_reason"),
+    /** Origem do lead: manual | form | api. */
+    source: text("source").notNull().default("manual"),
+    /** Lista de produção criada quando o negócio foi ganho (idempotência do
+     *  handoff, mesmo padrão de invoices.production_list_id). */
+    productionListId: uuid("production_list_id"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
     ...softDelete,
   },
-  (t) => [index("proposals_org_idx").on(t.orgId), index("proposals_token_idx").on(t.token)],
+  (t) => [
+    index("proposals_org_idx").on(t.orgId),
+    index("proposals_token_idx").on(t.token),
+    index("proposals_owner_idx").on(t.ownerId),
+  ],
 );
 
 /** Itens (linhas) da proposta. Valor em centavos. */
@@ -491,11 +513,41 @@ export const proposalsRelations = relations(proposals, ({ one, many }) => ({
     fields: [proposals.orgId],
     references: [organizations.id],
   }),
+  owner: one(users, { fields: [proposals.ownerId], references: [users.id] }),
   items: many(proposalItems),
+  activity: many(proposalActivity),
 }));
 
 export const proposalItemsRelations = relations(proposalItems, ({ one }) => ({
   proposal: one(proposals, { fields: [proposalItems.proposalId], references: [proposals.id] }),
+}));
+
+/** HISTÓRICO de atividade da negociação (mesmo padrão de activity_log, mas
+ *  acoplado a proposals). SEM RLS, como proposals — filtramos org_id manualmente. */
+export const proposalActivity = pgTable(
+  "proposal_activity",
+  {
+    id: idColumn(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    proposalId: uuid("proposal_id")
+      .notNull()
+      .references(() => proposals.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    actorName: text("actor_name").notNull(),
+    action: text("action").notNull(),
+    detail: text("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [
+    index("proposal_activity_proposal_idx").on(t.proposalId),
+    index("proposal_activity_org_idx").on(t.orgId),
+  ],
+);
+
+export const proposalActivityRelations = relations(proposalActivity, ({ one }) => ({
+  proposal: one(proposals, { fields: [proposalActivity.proposalId], references: [proposals.id] }),
 }));
 
 /**

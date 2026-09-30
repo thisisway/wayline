@@ -37,6 +37,8 @@ function message(n: NotificationDTO): string {
   if (n.type === "proposal_accepted") return `${n.actorName} aceitou a proposta`;
   if (n.type === "proposal_rejected") return `${n.actorName} recusou a proposta`;
   if (n.type === "contract_signed") return `${n.actorName} assinou o contrato`;
+  if (n.type === "deal_won") return `Negócio ganho:`;
+  if (n.type === "lead_lost") return `Negócio perdido:`;
   if (n.type === "support_reply") return `${n.actorName} respondeu seu chamado`;
   if (n.type === "support_resolved") return `${n.actorName} resolveu seu chamado`;
   return `${n.actorName} atualizou`;
@@ -132,7 +134,7 @@ export function InboxDrawer({
                 <span
                   className={cn(
                     "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
-                    n.type === "changes" || n.type === "proposal_rejected"
+                    n.type === "changes" || n.type === "proposal_rejected" || n.type === "lead_lost"
                       ? "bg-warning/15 text-warning"
                       : n.type === "comment" || n.type === "mention"
                         ? "bg-brand/15 text-brand"
@@ -141,13 +143,13 @@ export function InboxDrawer({
                 >
                   {n.type === "mention" ? (
                     <AtSign className="size-4" />
-                  ) : n.type === "approved" || n.type === "proposal_accepted" ? (
+                  ) : n.type === "approved" || n.type === "proposal_accepted" || n.type === "deal_won" ? (
                     <Handshake className="size-4" />
                   ) : n.type === "contract_signed" ? (
                     <FileSignature className="size-4" />
                   ) : n.type === "support_reply" || n.type === "support_resolved" ? (
                     <LifeBuoy className="size-4" />
-                  ) : n.type === "changes" || n.type === "proposal_rejected" ? (
+                  ) : n.type === "changes" || n.type === "proposal_rejected" || n.type === "lead_lost" ? (
                     <AlertTriangle className="size-4" />
                   ) : n.type === "comment" ? (
                     <MessageSquare className="size-4" />

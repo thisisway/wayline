@@ -20,7 +20,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@wayline/ui";
+import { Avatar, Button } from "@wayline/ui";
 import { commercialDashboardAction } from "@/actions/commercial";
 import { FUNNEL_STAGES, type CommercialDashboard, type FunnelStage } from "@/lib/commercial";
 
@@ -152,16 +152,35 @@ export function CommercialPage({
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-surface p-4">
               <h2 className="mb-1 text-ui font-semibold text-foreground">Como os leads chegam</h2>
-              <p className="mb-3 text-[11px] text-subtle">Cada lead cai na etapa <strong>Lead</strong> do funil.</p>
+              <p className="mb-3 text-[11px] text-subtle">Origem real de cada lead já cadastrado.</p>
               <div className="space-y-1">
                 <SourceRow icon={ClipboardList} color="#FFB800" label="Formulário / landing page"
-                  desc="Destino = Funil comercial" onClick={onOpenForms} />
-                <SourceRow icon={CalendarClock} color="#0EA5E9" label="Calendly"
-                  desc="Agendamento vira lead" onClick={onOpenIntegrations} />
+                  desc={`${d?.bySource.form.count ?? 0} lead${(d?.bySource.form.count ?? 0) === 1 ? "" : "s"}`}
+                  onClick={onOpenForms} />
+                <SourceRow icon={CalendarClock} color="#0EA5E9" label="API externa / Calendly"
+                  desc={`${d?.bySource.api.count ?? 0} lead${(d?.bySource.api.count ?? 0) === 1 ? "" : "s"}`}
+                  onClick={onOpenIntegrations} />
                 <SourceRow icon={Plus} color="#17C86A" label="Manual"
-                  desc="Botão “Novo lead” aqui" onClick={onNewLead} />
+                  desc={`${d?.bySource.manual.count ?? 0} lead${(d?.bySource.manual.count ?? 0) === 1 ? "" : "s"}`}
+                  onClick={onNewLead} />
               </div>
             </div>
+
+            {d && d.leaderboard.length > 0 && (
+              <div className="rounded-xl border border-border bg-surface p-4">
+                <h2 className="mb-2 text-ui font-semibold text-foreground">Por responsável</h2>
+                <div className="space-y-1.5">
+                  {d.leaderboard.slice(0, 5).map((o) => (
+                    <div key={o.ownerId ?? "sem-dono"} className="flex items-center gap-2 px-1">
+                      <Avatar name={o.ownerName} size="xs" />
+                      <span className="min-w-0 flex-1 truncate text-dense text-foreground">{o.ownerName}</span>
+                      <span className="shrink-0 text-[11px] text-subtle">{o.openCount} aberto{o.openCount === 1 ? "" : "s"}</span>
+                      <span className="shrink-0 text-[11px] font-semibold text-success">{brl(o.wonCents)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-xl border border-border bg-surface p-4">
               <div className="mb-2 flex items-center justify-between">
@@ -177,9 +196,13 @@ export function CommercialPage({
                   {d.recentLeads.map((l) => (
                     <button key={l.id} type="button" onClick={onOpenFunnel}
                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-elevated">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">
-                        {(l.clientName || l.title || "?").charAt(0).toUpperCase()}
-                      </span>
+                      {l.ownerName ? (
+                        <Avatar name={l.ownerName} src={l.ownerAvatarUrl ?? undefined} size="xs" />
+                      ) : (
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">
+                          {(l.clientName || l.title || "?").charAt(0).toUpperCase()}
+                        </span>
+                      )}
                       <span className="min-w-0 flex-1 truncate text-dense text-foreground">
                         {l.title || "Sem título"}
                         {l.clientName && <span className="text-subtle"> · {l.clientName}</span>}

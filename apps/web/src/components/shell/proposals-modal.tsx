@@ -3,18 +3,22 @@
 import * as React from "react";
 import { Check, Copy, FileText, Package, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type {
+  ActivityDTO,
   PortfolioItemDTO,
   ProposalDTO,
   ProposalListItem,
   ProposalStage,
   ServiceDTO,
+  WorkspaceMember,
 } from "@wayline/db";
-import { Badge, Button, Input, cn } from "@wayline/ui";
+import { Avatar, Badge, Button, Input, cn } from "@wayline/ui";
 import { toCents, toInput } from "@/lib/money";
+import { LOST_REASONS } from "@/lib/commercial";
 import { listServicesAction } from "@/actions/services";
 import { listPortfolioAction } from "@/actions/portfolio";
 import { contractFromProposalAction } from "@/actions/contracts";
 import { createClientAction } from "@/actions/clients";
+import { listMembersAction } from "@/actions/org";
 import {
   aiEnabledAction,
   clientOptionsAction,
@@ -22,6 +26,7 @@ import {
   deleteProposalAction,
   draftProposalAction,
   getProposalAction,
+  listProposalActivityAction,
   listProposalsAction,
   moveProposalStageAction,
   updateProposalAction,
@@ -45,6 +50,12 @@ const STATUS: Record<string, { label: string; variant: "neutral" | "brand" | "su
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const propNo = (n: number) => `PROP-${String(n).padStart(5, "0")}`;
+
+function activityPhrase(a: ActivityDTO): string {
+  if (a.action === "stage") return `${a.actorName} moveu: ${a.detail}`;
+  if (a.action === "lost_reason") return `${a.actorName} registrou o motivo: ${a.detail}`;
+  return `${a.actorName}: ${a.detail ?? a.action}`;
+}
 
 interface ItemRow {
   description: string;
@@ -125,6 +136,20 @@ export function ProposalsModal({
   const [copied, setCopied] = React.useState(false);
   const [genMsg, setGenMsg] = React.useState<string | null>(null);
 
+  // Contato, responsável e negócio
+  const [members, setMembers] = React.useState<WorkspaceMember[]>([]);
+  const [contactName, setContactName] = React.useState("");
+  const [contactEmail, setContactEmail] = React.useState("");
+  const [contactPhone, setContactPhone] = React.useState("");
+  const [ownerId, setOwnerId] = React.useState("");
+  const [estimatedValue, setEstimatedValue] = React.useState("");
+  const [expectedCloseAt, setExpectedCloseAt] = React.useState("");
+  const [lostReason, setLostReason] = React.useState<string | null>(null);
+  const [awaitingLostReason, setAwaitingLostReason] = React.useState(false);
+  const [pendingReasonSel, setPendingReasonSel] = React.useState(LOST_REASONS[0]!);
+  const [pendingReasonCustom, setPendingReasonCustom] = React.useState("");
+  const [activity, setActivity] = React.useState<ActivityDTO[]>([]);
+
   const [briefing, setBriefing] = React.useState("");
   const [aiBusy, setAiBusy] = React.useState(false);
   const [aiPanel, setAiPanel] = React.useState(false);
@@ -141,6 +166,7 @@ export function ProposalsModal({
     clientOptionsAction(orgId).then(setClients);
     listServicesAction(orgId).then(setCatalog);
     listPortfolioAction(orgId).then(setPortfolio);
+    listMembersAction(orgId).then(setMembers);
     aiEnabledAction().then(setAiOn);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -183,6 +209,16 @@ export function ProposalsModal({
           }))
         : [emptyItem()],
     );
+    setContactName(p.contactName);
+    setContactEmail(p.contactEmail);
+    setContactPhone(p.contactPhone);
+    setOwnerId(p.ownerId ?? "");
+    setEstimatedValue(toInput(p.estimatedValueCents));
+    setExpectedCloseAt(p.expectedCloseAt ? new Date(p.expectedCloseAt).toISOString().slice(0, 10) : "");
+    setLostReason(p.lostReason);
+    setAwaitingLostReason(false);
+    setActivity([]);
+    listProposalActivityAction(orgId, p.id).then(setActivity);
     setAiPanel(false);
   }
 
@@ -202,8 +238,31 @@ export function ProposalsModal({
     setNewClientName("");
   }
   function changeStage(next: string) {
+    if (next === "perdido") {
+      // Aguarda o motivo antes de confirmar — o select só reflete a troca
+      // depois de `confirmLostReason` (evita mover em silêncio pra "Perdido").
+      setAwaitingLostReason(true);
+      setPendingReasonSel(LOST_REASONS[0]!);
+      setPendingReasonCustom("");
+      return;
+    }
     setStage(next);
+    setAwaitingLostReason(false);
     if (selectedId) void moveProposalStageAction(orgId, selectedId, next as ProposalStage).catch(() => {});
+  }
+
+  async function confirmLostReason() {
+    if (!selectedId) return;
+    const reason = pendingReasonSel === "outro" ? pendingReasonCustom.trim() : pendingReasonSel;
+    if (!reason) return;
+    const ok = await moveProposalStageAction(orgId, selectedId, "perdido", reason).catch(() => false);
+    if (ok) {
+      setStage("perdido");
+      setLostReason(reason);
+      setAwaitingLostReason(false);
+      reload();
+      listProposalActivityAction(orgId, selectedId).then(setActivity);
+    }
   }
   async function createNew() {
     const id = await createProposalAction(orgId);
@@ -233,6 +292,12 @@ export function ProposalsModal({
       clientId: clientId || null,
       status,
       validUntilIso: validUntil ? new Date(validUntil).toISOString() : null,
+      contactName,
+      contactEmail,
+      contactPhone,
+      ownerId: ownerId || null,
+      estimatedValueCents: toCents(estimatedValue || "0"),
+      expectedCloseAtIso: expectedCloseAt ? new Date(expectedCloseAt).toISOString() : null,
       items: items
         .filter((i) => i.description.trim())
         .map((i) => ({
@@ -442,6 +507,53 @@ export function ProposalsModal({
                       ))}
                     </select>
                   </Field>
+                  {stage === "perdido" && lostReason && !awaitingLostReason && (
+                    <p className="rounded-md bg-danger/10 px-2 py-1 text-dense text-danger">
+                      Motivo: {lostReason}
+                    </p>
+                  )}
+                  {awaitingLostReason && (
+                    <div className="space-y-1.5 rounded-md border border-danger/30 bg-danger/5 p-2">
+                      <p className="text-dense font-medium text-danger">Por que perdeu esse negócio?</p>
+                      <select
+                        value={pendingReasonSel}
+                        onChange={(e) => setPendingReasonSel(e.target.value)}
+                        className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                      >
+                        {LOST_REASONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                        <option value="outro">Outro…</option>
+                      </select>
+                      {pendingReasonSel === "outro" && (
+                        <Input
+                          autoFocus
+                          value={pendingReasonCustom}
+                          onChange={(e) => setPendingReasonCustom(e.target.value)}
+                          placeholder="Descreva o motivo"
+                        />
+                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAwaitingLostReason(false)}
+                          className="rounded-md px-2.5 py-1 text-dense font-medium text-muted hover:bg-elevated"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void confirmLostReason()}
+                          disabled={pendingReasonSel === "outro" && !pendingReasonCustom.trim()}
+                          className="rounded-md bg-danger px-2.5 py-1 text-dense font-medium text-white disabled:opacity-50"
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Field label="Recorrência">
                   <select
@@ -467,6 +579,65 @@ export function ProposalsModal({
                     <option value="sent">Enviada</option>
                     {decided && <option value={status}>{STATUS[status]?.label}</option>}
                   </select>
+                </Field>
+              </div>
+
+              {/* Responsável, valor e previsão */}
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Responsável">
+                  <select
+                    value={ownerId}
+                    onChange={(e) => setOwnerId(e.target.value)}
+                    className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-ui text-foreground"
+                  >
+                    <option value="">Sem responsável</option>
+                    {members.map((m) => (
+                      <option key={m.userId} value={m.userId}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                  {ownerId && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-subtle">
+                      <Avatar
+                        name={members.find((m) => m.userId === ownerId)?.name ?? "?"}
+                        src={members.find((m) => m.userId === ownerId)?.avatarUrl ?? undefined}
+                        size="xs"
+                      />
+                      {members.find((m) => m.userId === ownerId)?.name}
+                    </div>
+                  )}
+                </Field>
+                <Field label="Valor estimado (R$)">
+                  <Input
+                    value={estimatedValue}
+                    onChange={(e) => setEstimatedValue(e.target.value)}
+                    placeholder="0,00"
+                    disabled={items.some((i) => i.description.trim())}
+                  />
+                  {items.some((i) => i.description.trim()) && (
+                    <p className="mt-1 text-[11px] text-subtle">O total dos itens abaixo prevalece.</p>
+                  )}
+                </Field>
+                <Field label="Previsão de fechamento">
+                  <Input
+                    type="date"
+                    value={expectedCloseAt}
+                    onChange={(e) => setExpectedCloseAt(e.target.value)}
+                  />
+                </Field>
+              </div>
+
+              {/* Contato do lead */}
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Nome do contato">
+                  <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                </Field>
+                <Field label="Email">
+                  <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                </Field>
+                <Field label="Telefone / WhatsApp">
+                  <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
                 </Field>
               </div>
 
@@ -745,6 +916,33 @@ export function ProposalsModal({
               <Field label="Notas internas (não vão para o cliente)">
                 <Area value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} className="h-14" />
               </Field>
+
+              {/* Atividade */}
+              <div>
+                <h3 className="mb-2 text-dense font-semibold text-muted">Atividade</h3>
+                {activity.length === 0 ? (
+                  <p className="text-dense text-subtle">Sem histórico ainda.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {activity.map((a) => (
+                      <li key={a.id} className="flex items-start gap-2 text-dense">
+                        <span className="mt-1.5 size-1 shrink-0 rounded-full bg-subtle" />
+                        <span className="min-w-0 flex-1 text-muted">
+                          {activityPhrase(a)}
+                          <span className="ml-1.5 text-[11px] text-subtle">
+                            {new Date(a.createdAt).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               {decided && d?.decidedByName && (
                 <div className="space-y-2 rounded-lg border border-success/30 bg-success/5 p-3 text-dense">

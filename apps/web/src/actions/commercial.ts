@@ -6,8 +6,11 @@ import {
   EMPTY_DASHBOARD,
   emptyByStage,
   FUNNEL_STAGES,
+  LEAD_SOURCES,
   type CommercialDashboard,
   type FunnelStage,
+  type LeadSource,
+  type OwnerStat,
 } from "@/lib/commercial";
 
 /** KPIs do funil (por etapa) + leads recentes. Resiliente. */
@@ -23,14 +26,40 @@ export async function commercialDashboardAction(orgId: string): Promise<Commerci
     byStage: emptyByStage(),
     clientCount: clients.length,
     recentLeads: [],
+    bySource: { form: { count: 0 }, api: { count: 0 }, manual: { count: 0 } },
+    leaderboard: [],
   };
 
+  const byOwner = new Map<string, OwnerStat>();
   for (const p of proposals) {
     const st = (FUNNEL_STAGES as readonly string[]).includes(p.stage)
       ? (p.stage as FunnelStage)
       : "lead";
     d.byStage[st].count += 1;
     d.byStage[st].valueCents += p.totalCents;
+
+    const src = (LEAD_SOURCES as readonly string[]).includes(p.source)
+      ? (p.source as LeadSource)
+      : "manual";
+    d.bySource[src].count += 1;
+
+    if (p.ownerId) {
+      const key = p.ownerId;
+      const stat = byOwner.get(key) ?? {
+        ownerId: p.ownerId,
+        ownerName: p.ownerName ?? "—",
+        wonCount: 0,
+        wonCents: 0,
+        openCount: 0,
+      };
+      if (st === "ganho") {
+        stat.wonCount += 1;
+        stat.wonCents += p.totalCents;
+      } else if (st !== "perdido") {
+        stat.openCount += 1;
+      }
+      byOwner.set(key, stat);
+    }
   }
 
   const open: FunnelStage[] = ["lead", "qualificado", "proposta"];
@@ -46,7 +75,16 @@ export async function commercialDashboardAction(orgId: string): Promise<Commerci
   d.recentLeads = proposals
     .filter((p) => p.stage === "lead")
     .slice(0, 6)
-    .map((p) => ({ id: p.id, title: p.title, clientName: p.clientName, valueCents: p.totalCents }));
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      clientName: p.clientName,
+      valueCents: p.totalCents,
+      ownerName: p.ownerName,
+      ownerAvatarUrl: p.ownerAvatarUrl,
+    }));
+
+  d.leaderboard = [...byOwner.values()].sort((a, b) => b.wonCents - a.wonCents);
 
   return d;
 }
