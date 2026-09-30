@@ -353,6 +353,35 @@ export async function debugCallSubmitLead(
   }
 }
 
+export interface DebugStatusRow {
+  id: string;
+  name: string;
+  position: number;
+  taskCount: number;
+}
+
+/** Lista as colunas (status) de uma lista, com nome e posição — pra achar qual é "A Fazer". */
+export async function debugFindStatuses(listId: string): Promise<DebugStatusRow[]> {
+  const db = getDb();
+  const list = await db.query.lists.findFirst({ where: eq(lists.id, listId) });
+  if (!list) return [];
+  return withOrg(list.orgId, async (tx) => {
+    const cols = await tx.query.statuses.findMany({
+      where: eq(statuses.listId, listId),
+      orderBy: [asc(statuses.position)],
+    });
+    const out: DebugStatusRow[] = [];
+    for (const c of cols) {
+      const count = await tx.$count(
+        tasks,
+        and(eq(tasks.statusId, c.id), isNull(tasks.deletedAt)),
+      );
+      out.push({ id: c.id, name: c.name, position: c.position, taskCount: count });
+    }
+    return out;
+  });
+}
+
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */
 export async function debugDeleteTasksByPrefix(email: string, prefix: string): Promise<number> {
   const user = await getUserByEmail(email);

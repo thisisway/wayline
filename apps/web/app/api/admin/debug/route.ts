@@ -3,6 +3,7 @@ import {
   debugDeleteTasksByPrefix,
   debugFindForms,
   debugFindFormResponses,
+  debugFindStatuses,
   debugFindTasks,
   debugSimulateFormSubmit,
 } from "@wayline/db";
@@ -33,6 +34,10 @@ export async function GET(req: Request) {
   }
   if (kind === "responses") {
     const rows = await debugFindFormResponses(email, q);
+    return Response.json({ count: rows.length, rows });
+  }
+  if (kind === "statuses") {
+    const rows = await debugFindStatuses(q);
     return Response.json({ count: rows.length, rows });
   }
   const rows = await debugFindTasks(email, q);
