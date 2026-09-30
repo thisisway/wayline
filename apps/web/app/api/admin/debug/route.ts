@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     return Response.json({ count: rows.length, rows });
   }
   if (kind === "statuses") {
-    const rows = await debugFindStatuses(q);
+    const rows = await debugFindStatuses(email, q);
     return Response.json({ count: rows.length, rows });
   }
   const rows = await debugFindTasks(email, q);
