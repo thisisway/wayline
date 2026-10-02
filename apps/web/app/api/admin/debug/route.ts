@@ -1,11 +1,13 @@
 import {
   debugCallSubmitLead,
+  debugCreateAccessEntry,
   debugDeleteTasksByPrefix,
   debugFindForms,
   debugFindFormResponses,
   debugFindStatuses,
   debugFindTasks,
   debugSimulateFormSubmit,
+  debugTableColumns,
 } from "@wayline/db";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +42,10 @@ export async function GET(req: Request) {
     const rows = await debugFindStatuses(email, q);
     return Response.json({ count: rows.length, rows });
   }
+  if (kind === "columns") {
+    const columns = await debugTableColumns(q);
+    return Response.json({ columns });
+  }
   const rows = await debugFindTasks(email, q);
   return Response.json({ count: rows.length, rows });
 }
@@ -53,6 +59,7 @@ export async function POST(req: Request) {
         simulateFormId?: string;
         submitLeadFormId?: string;
         submitLeadData?: Record<string, string>;
+        createAccessEntryTableId?: string;
       }
     | null;
   if (!authorized(body?.secret ?? null)) return new Response("unauthorized", { status: 401 });
@@ -64,6 +71,12 @@ export async function POST(req: Request) {
 
   if (body?.submitLeadFormId) {
     const result = await debugCallSubmitLead(body.submitLeadFormId, body.submitLeadData ?? {});
+    return Response.json(result);
+  }
+
+  if (body?.createAccessEntryTableId) {
+    if (!body.email) return Response.json({ error: "email obrigatório" }, { status: 400 });
+    const result = await debugCreateAccessEntry(body.email, body.createAccessEntryTableId);
     return Response.json(result);
   }
 

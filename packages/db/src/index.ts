@@ -15,6 +15,8 @@ export {
   debugCallSubmitLead,
   debugFindStatuses,
   debugDeleteTasksByPrefix,
+  debugTableColumns,
+  debugCreateAccessEntry,
   type DebugTaskRow,
   type DebugFormRow,
   type DebugFormResponseRow,

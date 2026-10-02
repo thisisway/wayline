@@ -1,6 +1,6 @@
 import { and, asc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, withOrg } from "./client";
-import { forms, formResponses, lists, spaces, statuses, tasks } from "./schema";
+import { accessEntries, accessTables, forms, formResponses, lists, spaces, statuses, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
 import { submitLead } from "./queries/forms";
 
@@ -386,6 +386,51 @@ export async function debugFindStatuses(email: string, listId: string): Promise<
     if (rows) return rows;
   }
   return [];
+}
+
+/** Lista as colunas reais de uma tabela em produção (bypassa o tipo do Drizzle). */
+export async function debugTableColumns(tableName: string): Promise<string[]> {
+  const db = getDb();
+  const rows = await db.execute<{ column_name: string }>(
+    sql`select column_name from information_schema.columns where table_name = ${tableName} order by ordinal_position`,
+  );
+  return rows.map((r) => r.column_name);
+}
+
+/** Tenta criar uma credencial de verdade (mesma lógica de createAccessEntry), SEM engolir erro. */
+export async function debugCreateAccessEntry(
+  email: string,
+  tableId: string,
+): Promise<{ ok: boolean; id?: string; error?: string; errorStack?: string }> {
+  const user = await getUserByEmail(email);
+  if (!user) return { ok: false, error: "user_not_found" };
+  const orgs = await getUserOrgs(user.id);
+  for (const org of orgs) {
+    try {
+      const result = await withOrg(org.id, async (tx) => {
+        const table = await tx.query.accessTables.findFirst({ where: eq(accessTables.id, tableId) });
+        if (!table) return null;
+        const [row] = await tx
+          .insert(accessEntries)
+          .values({
+            orgId: org.id,
+            spaceId: table.spaceId,
+            tableId,
+            name: "[DEBUG]",
+          })
+          .returning({ id: accessEntries.id });
+        return row?.id ?? null;
+      });
+      if (result) return { ok: true, id: result };
+    } catch (e) {
+      return {
+        ok: false,
+        error: String(e).slice(0, 500),
+        errorStack: e instanceof Error ? (e.stack ?? "").slice(0, 800) : undefined,
+      };
+    }
+  }
+  return { ok: false, error: "table_not_found_in_any_org" };
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */
