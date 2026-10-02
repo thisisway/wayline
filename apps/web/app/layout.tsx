@@ -42,7 +42,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: name,
     description: "Sistema operacional de trabalho para agências.",
-    icons: { icon: [{ url: favicon }], apple: [{ url: "/pwa-192.png" }] },
+    // "Fixar na barra de tarefas" do Windows/Edge não rasteriza bem favicon
+    // SVG em data URL — sem um PNG de fallback, o Windows gera um ícone
+    // genérico com a 1ª letra do título. O PNG real da marca resolve isso.
+    icons: {
+      icon: [{ url: favicon }, { url: "/pwa-192.png", sizes: "192x192", type: "image/png" }],
+      apple: [{ url: "/pwa-192.png" }],
+    },
     // App instalável (PWA): comportamento de app no iOS/Android.
     appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
     applicationName: name,
