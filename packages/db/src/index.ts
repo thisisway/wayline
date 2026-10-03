@@ -18,6 +18,7 @@ export {
   debugTableColumns,
   debugCreateAccessEntry,
   debugReencryptAccessSecrets,
+  debugRunDdl,
   type DebugTaskRow,
   type DebugFormRow,
   type DebugFormResponseRow,

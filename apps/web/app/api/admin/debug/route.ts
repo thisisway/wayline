@@ -7,6 +7,7 @@ import {
   debugFindStatuses,
   debugFindTasks,
   debugReencryptAccessSecrets,
+  debugRunDdl,
   debugSimulateFormSubmit,
   debugTableColumns,
 } from "@wayline/db";
@@ -62,9 +63,15 @@ export async function POST(req: Request) {
         submitLeadData?: Record<string, string>;
         createAccessEntryTableId?: string;
         reencryptAccessSecrets?: boolean;
+        runDdl?: string[];
       }
     | null;
   if (!authorized(body?.secret ?? null)) return new Response("unauthorized", { status: 401 });
+
+  if (body?.runDdl) {
+    const results = await debugRunDdl(body.runDdl);
+    return Response.json({ results });
+  }
 
   if (body?.reencryptAccessSecrets) {
     if (!body.email) return Response.json({ error: "email obrigatório" }, { status: 400 });

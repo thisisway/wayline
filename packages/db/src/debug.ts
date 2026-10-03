@@ -465,3 +465,26 @@ export async function debugDeleteTasksByPrefix(email: string, prefix: string): P
   }
   return count;
 }
+
+/**
+ * Roda statements DDL/SQL crus na conexão do app (uso único, pra aplicar
+ * migração sem precisar do console psql). Cada statement roda isolado — um
+ * erro num não impede os outros, e o chamador vê exatamente o que passou.
+ */
+export async function debugRunDdl(
+  statements: string[],
+): Promise<Array<{ sql: string; ok: boolean; error?: string }>> {
+  const db = getDb();
+  const out: Array<{ sql: string; ok: boolean; error?: string }> = [];
+  for (const stmt of statements) {
+    const trimmed = stmt.trim();
+    if (!trimmed) continue;
+    try {
+      await db.execute(sql.raw(trimmed));
+      out.push({ sql: trimmed.slice(0, 120), ok: true });
+    } catch (e) {
+      out.push({ sql: trimmed.slice(0, 120), ok: false, error: String(e).slice(0, 300) });
+    }
+  }
+  return out;
+}
