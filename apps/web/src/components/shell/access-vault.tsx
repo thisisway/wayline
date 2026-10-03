@@ -13,12 +13,13 @@ import {
   Mail,
   Pencil,
   Plus,
+  Search,
   Server,
   Trash2,
   Webhook,
   type LucideIcon,
 } from "lucide-react";
-import { Button, cn } from "@wayline/ui";
+import { Button, Input, cn } from "@wayline/ui";
 import type { AccessEntryDTO } from "@wayline/db";
 import {
   createAccessEntryAction,
@@ -44,6 +45,80 @@ const KIND_META = {
 } satisfies Record<string, { label: string; icon: LucideIcon }>;
 const ACCESS_KIND_KEYS = Object.keys(KIND_META) as (keyof typeof KIND_META)[];
 
+function kindMeta(kind: string) {
+  return KIND_META[kind as keyof typeof KIND_META] ?? KIND_META.other;
+}
+
+/** Botão com ícone que abre um popover pra trocar o tipo — substitui o <select> nativo. */
+function KindPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (kind: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const meta = kindMeta(value);
+  const Icon = meta.icon;
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  if (disabled) {
+    return (
+      <span title={meta.label} className="flex size-8 items-center justify-center text-muted">
+        <Icon className="size-4" />
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title={meta.label}
+        className="flex size-8 items-center justify-center rounded-md border border-border text-muted hover:border-brand-40 hover:text-foreground"
+      >
+        <Icon className="size-4" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-9 z-20 w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+          {ACCESS_KIND_KEYS.map((k) => {
+            const KIcon = KIND_META[k].icon;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  onChange(k);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-dense hover:bg-elevated",
+                  k === value ? "font-medium text-brand" : "text-foreground",
+                )}
+              >
+                <KIcon className="size-3.5" />
+                {KIND_META[k].label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AccessVault({
   orgId,
   tableId,
@@ -66,12 +141,19 @@ export function AccessVault({
   const [dragId, setDragId] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  const [search, setSearch] = React.useState("");
+  const [kindFilter, setKindFilter] = React.useState<string>("all");
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
+
   React.useEffect(() => {
     listAccessEntriesAction(orgId, tableId)
       .then(setRows)
       .catch(() => setRows([]));
     setRevealed({});
     setReveal({});
+    setSearch("");
+    setKindFilter("all");
+    setStatusFilter("all");
   }, [orgId, tableId]);
 
   function patch(id: string, field: keyof AccessEntryDTO, value: string) {
@@ -80,6 +162,10 @@ export function AccessVault({
   function save(id: string, field: string, value: string) {
     if (!isAdmin) return;
     void updateAccessEntryAction(orgId, id, { [field]: value }).catch(() => {});
+  }
+  function saveKind(id: string, kind: string) {
+    patch(id, "kind", kind);
+    save(id, "kind", kind);
   }
   /** Busca a senha decifrada uma vez e guarda localmente; reusa se já revelada. */
   async function ensureRevealed(id: string): Promise<string | null> {
@@ -152,6 +238,20 @@ export function AccessVault({
   }
 
   const cols = isAdmin ? 11 : 9;
+  const filtersActive = kindFilter !== "all" || statusFilter !== "all" || search.trim() !== "";
+  const visibleRows = React.useMemo(() => {
+    if (!rows) return [];
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (kindFilter !== "all" && r.kind !== kindFilter) return false;
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (q) {
+        const hay = `${r.name} ${r.url} ${r.login} ${r.note}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [rows, search, kindFilter, statusFilter]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -165,6 +265,67 @@ export function AccessVault({
             <p className="text-dense text-muted">{name}</p>
           </div>
         </div>
+
+        {rows !== null && rows.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="relative w-56 shrink-0">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-subtle" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar…"
+                className="h-8 pl-8"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setKindFilter("all")}
+                className={cn(
+                  "rounded-pill px-2.5 py-1 text-[11px] font-medium",
+                  kindFilter === "all" ? "bg-brand/15 text-brand" : "text-subtle hover:bg-elevated",
+                )}
+              >
+                Todos os tipos
+              </button>
+              {ACCESS_KIND_KEYS.map((k) => {
+                const Icon = KIND_META[k].icon;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setKindFilter((f) => (f === k ? "all" : k))}
+                    title={KIND_META[k].label}
+                    className={cn(
+                      "flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-medium",
+                      kindFilter === k ? "bg-brand/15 text-brand" : "text-subtle hover:bg-elevated",
+                    )}
+                  >
+                    <Icon className="size-3" />
+                    {KIND_META[k].label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="ml-auto flex items-center gap-0.5 rounded-pill border border-border p-0.5">
+              {(["all", "active", "inactive"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatusFilter(s)}
+                  className={cn(
+                    "rounded-pill px-2.5 py-1 text-[11px] font-medium",
+                    statusFilter === s ? "bg-brand/15 text-brand" : "text-subtle hover:bg-elevated",
+                  )}
+                >
+                  {s === "all" ? "Todas" : s === "active" ? "Ativa" : "Inativa"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {rows === null ? (
           <p className="py-10 text-center text-dense text-subtle">Carregando…</p>
@@ -187,10 +348,10 @@ export function AccessVault({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
+                {visibleRows.map((r) => {
                   const editing = editingId === r.id;
                   const shown = reveal[r.id];
-                  const draggable = isAdmin && !editing;
+                  const draggable = isAdmin && !editing && !filtersActive;
                   return (
                     <tr
                       key={r.id}
@@ -210,8 +371,11 @@ export function AccessVault({
                       {isAdmin && (
                         <td className="align-middle text-center">
                           <span
-                            className="inline-flex cursor-grab text-subtle active:cursor-grabbing"
-                            title="Arraste para reordenar"
+                            className={cn(
+                              "inline-flex text-subtle",
+                              draggable ? "cursor-grab active:cursor-grabbing" : "opacity-30",
+                            )}
+                            title={filtersActive ? "Limpe os filtros pra reordenar" : "Arraste para reordenar"}
                           >
                             <GripVertical className="size-4" />
                           </span>
@@ -220,32 +384,11 @@ export function AccessVault({
 
                       {/* Tipo */}
                       <td className="px-3 py-2 align-middle">
-                        {editing ? (
-                          <select
-                            value={r.kind}
-                            onChange={(e) => {
-                              patch(r.id, "kind", e.target.value);
-                              save(r.id, "kind", e.target.value);
-                            }}
-                            className="h-9 w-full rounded-md border border-border bg-canvas px-1.5 text-ui text-foreground"
-                          >
-                            {ACCESS_KIND_KEYS.map((k) => (
-                              <option key={k} value={k}>
-                                {KIND_META[k].label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          (() => {
-                            const meta = KIND_META[r.kind as keyof typeof KIND_META] ?? KIND_META.other;
-                            const Icon = meta.icon;
-                            return (
-                              <span title={meta.label} className="inline-flex text-muted">
-                                <Icon className="size-4" />
-                              </span>
-                            );
-                          })()
-                        )}
+                        <KindPicker
+                          value={r.kind}
+                          onChange={(k) => saveKind(r.id, k)}
+                          disabled={!isAdmin}
+                        />
                       </td>
 
                       {/* Nome */}
@@ -481,10 +624,10 @@ export function AccessVault({
                     </tr>
                   );
                 })}
-                {rows.length === 0 && (
+                {visibleRows.length === 0 && (
                   <tr>
                     <td colSpan={cols} className="px-3 py-8 text-center text-dense text-subtle">
-                      Nenhum acesso ainda.
+                      {rows.length === 0 ? "Nenhum acesso ainda." : "Nada encontrado com esses filtros."}
                     </td>
                   </tr>
                 )}
