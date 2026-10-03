@@ -3,6 +3,7 @@ import { getDb, withOrg } from "./client";
 import { accessEntries, accessTables, forms, formResponses, lists, spaces, statuses, tasks } from "./schema";
 import { getUserByEmail, getUserOrgs } from "./queries/auth";
 import { submitLead } from "./queries/forms";
+import { reencryptLegacyAccessSecrets } from "./queries/access";
 
 export interface DebugTaskRow {
   orgName: string;
@@ -431,6 +432,18 @@ export async function debugCreateAccessEntry(
     }
   }
   return { ok: false, error: "table_not_found_in_any_org" };
+}
+
+/** Recifra credenciais legadas em texto plano, em todas as orgs do email (uso único). */
+export async function debugReencryptAccessSecrets(email: string): Promise<number> {
+  const user = await getUserByEmail(email);
+  if (!user) return 0;
+  const orgs = await getUserOrgs(user.id);
+  let total = 0;
+  for (const org of orgs) {
+    total += await reencryptLegacyAccessSecrets(org.id).catch(() => 0);
+  }
+  return total;
 }
 
 /** Exclui (soft) tarefas cujo título comece com `prefix`, em todas as orgs do email. */

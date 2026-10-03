@@ -9,6 +9,7 @@ import {
   moveAccessTable,
   renameAccessTable,
   reorderAccessEntries,
+  revealAccessSecret,
   updateAccessEntry,
   type AccessEntryDTO,
   type AccessEntryInput,
@@ -22,6 +23,12 @@ export async function listAccessEntriesAction(
 ): Promise<AccessEntryDTO[]> {
   if (!(await assertMember(orgId))) return [];
   return listAccessEntries(orgId, tableId);
+}
+
+/** Revela a senha de uma credencial sob demanda (mesmo nível de acesso da listagem). */
+export async function revealAccessSecretAction(orgId: string, id: string): Promise<string | null> {
+  if (!(await assertMember(orgId))) return null;
+  return revealAccessSecret(orgId, id);
 }
 
 export async function createAccessEntryAction(

@@ -804,6 +804,7 @@ export const accessEntries = pgTable(
     tableId: uuid("table_id"),
     name: text("name").notNull().default("Acesso"),
     url: text("url").notNull().default(""),
+    port: text("port").notNull().default(""),
     login: text("login").notNull().default(""),
     secret: text("secret").notNull().default(""),
     /** 'active' | 'inactive' */

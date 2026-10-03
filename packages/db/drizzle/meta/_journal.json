@@ -484,6 +484,13 @@
       "when": 1790687015621,
       "tag": "0068_luxuriant_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791040638207,
+      "tag": "0069_fresh_terrax",
+      "breakpoints": true
     }
   ]
 }

@@ -42,8 +42,10 @@ export interface AccessEntryDTO {
   id: string;
   name: string;
   url: string;
+  port: string;
   login: string;
-  secret: string;
+  /** A senha NUNCA vai no payload de listagem — só se sabe se existe uma. */
+  hasSecret: boolean;
   status: string;
   pwdChanged: boolean;
   note: string;
@@ -52,6 +54,7 @@ export interface AccessEntryDTO {
 export interface AccessEntryInput {
   name?: string;
   url?: string;
+  port?: string;
   login?: string;
   secret?: string;
   status?: string;
@@ -64,12 +67,34 @@ function toDTO(r: typeof accessEntries.$inferSelect): AccessEntryDTO {
     id: r.id,
     name: r.name,
     url: r.url,
+    port: r.port,
     login: r.login,
-    secret: decryptSecret(r.secret),
+    hasSecret: r.secret !== "",
     status: r.status,
     pwdChanged: r.pwdChanged,
     note: r.note,
   };
+}
+
+/**
+ * Recifra em lote as credenciais ainda em texto plano (uso único, logo após
+ * configurar ACCESS_ENC_KEY pela 1ª vez — sem a chave, isso é um no-op).
+ * Retorna quantas linhas foram recifradas.
+ */
+export async function reencryptLegacyAccessSecrets(orgId: string): Promise<number> {
+  if (!ENC_KEY) return 0;
+  return withOrg(orgId, async (tx) => {
+    const rows = await tx.query.accessEntries.findMany({
+      where: isNull(accessEntries.deletedAt),
+    });
+    let count = 0;
+    for (const r of rows) {
+      if (r.secret === "" || r.secret.startsWith(ENC_PREFIX)) continue;
+      await tx.update(accessEntries).set({ secret: encryptSecret(r.secret) }).where(eq(accessEntries.id, r.id));
+      count++;
+    }
+    return count;
+  });
 }
 
 export async function listAccessEntries(orgId: string, tableId: string): Promise<AccessEntryDTO[]> {
@@ -83,6 +108,22 @@ export async function listAccessEntries(orgId: string, tableId: string): Promise
     });
   } catch {
     return [];
+  }
+}
+
+/**
+ * Revela a senha de UMA credencial sob demanda — só assim ela sai do banco,
+ * em vez de ir (já decifrada) no payload da listagem pra todo mundo que abre
+ * a Central de Acessos, mesmo sem clicar em "mostrar".
+ */
+export async function revealAccessSecret(orgId: string, id: string): Promise<string | null> {
+  try {
+    return await withOrg(orgId, async (tx) => {
+      const row = await tx.query.accessEntries.findFirst({ where: eq(accessEntries.id, id) });
+      return row ? decryptSecret(row.secret) : null;
+    });
+  } catch {
+    return null;
   }
 }
 
@@ -168,6 +209,7 @@ export async function createAccessEntry(
         tableId,
         name: input.name?.trim() || "Acesso",
         url: input.url ?? "",
+        port: input.port ?? "",
         login: input.login ?? "",
         secret: encryptSecret(input.secret ?? ""),
         status: input.status === "inactive" ? "inactive" : "active",
@@ -187,6 +229,7 @@ export async function updateAccessEntry(
   const set: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) set.name = input.name.trim() || "Acesso";
   if (input.url !== undefined) set.url = input.url;
+  if (input.port !== undefined) set.port = input.port;
   if (input.login !== undefined) set.login = input.login;
   if (input.secret !== undefined) set.secret = encryptSecret(input.secret);
   if (input.status !== undefined) set.status = input.status === "inactive" ? "inactive" : "active";

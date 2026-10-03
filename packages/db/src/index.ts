@@ -17,6 +17,7 @@ export {
   debugDeleteTasksByPrefix,
   debugTableColumns,
   debugCreateAccessEntry,
+  debugReencryptAccessSecrets,
   type DebugTaskRow,
   type DebugFormRow,
   type DebugFormResponseRow,
@@ -93,6 +94,8 @@ export {
 } from "./queries/templates";
 export {
   listAccessEntries,
+  revealAccessSecret,
+  reencryptLegacyAccessSecrets,
   createAccessEntry,
   updateAccessEntry,
   deleteAccessEntry,

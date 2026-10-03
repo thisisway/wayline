@@ -1,0 +1,1 @@
+ALTER TABLE "access_entries" ADD COLUMN "port" text DEFAULT '' NOT NULL;

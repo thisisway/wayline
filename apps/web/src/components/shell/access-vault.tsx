@@ -19,6 +19,7 @@ import {
   deleteAccessEntryAction,
   listAccessEntriesAction,
   reorderAccessEntriesAction,
+  revealAccessSecretAction,
   updateAccessEntryAction,
 } from "@/actions/access";
 
@@ -38,6 +39,10 @@ export function AccessVault({
 }) {
   const [rows, setRows] = React.useState<AccessEntryDTO[] | null>(null);
   const [reveal, setReveal] = React.useState<Record<string, boolean>>({});
+  // Senhas só existem aqui depois de reveladas sob demanda — nunca vêm na
+  // listagem inicial (ver revealAccessSecretAction).
+  const [revealed, setRevealed] = React.useState<Record<string, string>>({});
+  const [revealing, setRevealing] = React.useState<Record<string, boolean>>({});
   const [copied, setCopied] = React.useState<string | null>(null);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [dragId, setDragId] = React.useState<string | null>(null);
@@ -47,6 +52,8 @@ export function AccessVault({
     listAccessEntriesAction(orgId, tableId)
       .then(setRows)
       .catch(() => setRows([]));
+    setRevealed({});
+    setReveal({});
   }, [orgId, tableId]);
 
   function patch(id: string, field: keyof AccessEntryDTO, value: string) {
@@ -55,6 +62,19 @@ export function AccessVault({
   function save(id: string, field: string, value: string) {
     if (!isAdmin) return;
     void updateAccessEntryAction(orgId, id, { [field]: value }).catch(() => {});
+  }
+  /** Busca a senha decifrada uma vez e guarda localmente; reusa se já revelada. */
+  async function ensureRevealed(id: string): Promise<string | null> {
+    if (revealed[id] !== undefined) return revealed[id]!;
+    setRevealing((s) => ({ ...s, [id]: true }));
+    const secret = await revealAccessSecretAction(orgId, id).catch(() => null);
+    setRevealing((s) => ({ ...s, [id]: false }));
+    if (secret !== null) setRevealed((s) => ({ ...s, [id]: secret }));
+    return secret;
+  }
+  async function toggleReveal(id: string) {
+    if (!reveal[id]) await ensureRevealed(id);
+    setReveal((s) => ({ ...s, [id]: !s[id] }));
   }
   async function addRow() {
     if (busy) return;
@@ -90,6 +110,16 @@ export function AccessVault({
       setTimeout(() => setCopied((c) => (c === key ? null : c)), 1200);
     });
   }
+  async function copySecret(r: AccessEntryDTO) {
+    const secret = await ensureRevealed(r.id);
+    if (secret) copy(secret, `secret:${r.id}`);
+  }
+  /** Só salva se o admin digitou algo — em branco não apaga a senha por engano. */
+  function saveSecret(id: string, value: string) {
+    if (!isAdmin || !value) return;
+    setRevealed((s) => ({ ...s, [id]: value }));
+    void updateAccessEntryAction(orgId, id, { secret: value }).catch(() => {});
+  }
   function onDropRow(targetId: string) {
     if (!dragId || dragId === targetId || !rows) return setDragId(null);
     const from = rows.findIndex((r) => r.id === dragId);
@@ -103,7 +133,7 @@ export function AccessVault({
     void reorderAccessEntriesAction(orgId, next.map((r) => r.id)).catch(() => {});
   }
 
-  const cols = isAdmin ? 8 : 6;
+  const cols = isAdmin ? 10 : 8;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -122,16 +152,18 @@ export function AccessVault({
           <p className="py-10 text-center text-dense text-subtle">Carregando…</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[820px] border-collapse text-ui">
+            <table className="w-full min-w-[980px] border-collapse text-ui">
               <thead>
                 <tr className="border-b border-border bg-canvas text-left text-label uppercase text-subtle">
                   {isAdmin && <th className="w-8" />}
                   <th className="px-3 py-2.5 font-medium">Nome</th>
                   <th className="px-3 py-2.5 font-medium">URL</th>
+                  <th className="w-20 px-3 py-2.5 font-medium">Porta</th>
                   <th className="px-3 py-2.5 font-medium">E-mail / Acesso</th>
                   <th className="px-3 py-2.5 font-medium">Senha</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">Alteração de senha</th>
+                  <th className="px-3 py-2.5 font-medium">Observação</th>
                   {isAdmin && <th className="w-20 px-2 py-2.5 text-right font-medium">Ações</th>}
                 </tr>
               </thead>
@@ -206,6 +238,22 @@ export function AccessVault({
                         )}
                       </td>
 
+                      {/* Porta */}
+                      <td className="px-3 py-2 align-middle">
+                        {editing ? (
+                          <input
+                            className={editInput}
+                            value={r.port}
+                            placeholder="587"
+                            inputMode="numeric"
+                            onChange={(e) => patch(r.id, "port", e.target.value)}
+                            onBlur={(e) => save(r.id, "port", e.target.value)}
+                          />
+                        ) : (
+                          <span className="text-foreground">{r.port || "—"}</span>
+                        )}
+                      </td>
+
                       {/* E-mail / Acesso */}
                       <td className="px-3 py-2 align-middle">
                         {editing ? (
@@ -243,30 +291,37 @@ export function AccessVault({
                           <input
                             className={cn(editInput, "font-mono")}
                             type={shown ? "text" : "password"}
-                            value={r.secret}
-                            placeholder="••••••"
+                            value={revealed[r.id] ?? ""}
+                            placeholder={r.hasSecret ? "•••••• (deixe em branco p/ manter)" : "••••••"}
                             autoComplete="off"
-                            onChange={(e) => patch(r.id, "secret", e.target.value)}
-                            onBlur={(e) => save(r.id, "secret", e.target.value)}
+                            onChange={(e) =>
+                              setRevealed((s) => ({ ...s, [r.id]: e.target.value }))
+                            }
+                            onBlur={(e) => saveSecret(r.id, e.target.value)}
                           />
                         ) : (
                           <span className="inline-flex items-center gap-1.5">
                             <span className="font-mono text-foreground">
-                              {r.secret ? (shown ? r.secret : "••••••••") : "—"}
+                              {!r.hasSecret
+                                ? "—"
+                                : shown
+                                  ? (revealed[r.id] ?? "…")
+                                  : "••••••••"}
                             </span>
-                            {r.secret && (
+                            {r.hasSecret && (
                               <>
                                 <button
                                   type="button"
-                                  onClick={() => setReveal((s) => ({ ...s, [r.id]: !s[r.id] }))}
+                                  onClick={() => void toggleReveal(r.id)}
+                                  disabled={revealing[r.id]}
                                   title={shown ? "Ocultar" : "Mostrar"}
-                                  className="text-subtle hover:text-foreground"
+                                  className="text-subtle hover:text-foreground disabled:opacity-50"
                                 >
                                   {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => copy(r.secret, `secret:${r.id}`)}
+                                  onClick={() => void copySecret(r)}
                                   title="Copiar senha"
                                   className="text-subtle hover:text-brand"
                                 >
@@ -330,6 +385,23 @@ export function AccessVault({
                         </button>
                       </td>
 
+                      {/* Observação */}
+                      <td className="px-3 py-2 align-middle">
+                        {editing ? (
+                          <input
+                            className={editInput}
+                            value={r.note}
+                            placeholder="Observação"
+                            onChange={(e) => patch(r.id, "note", e.target.value)}
+                            onBlur={(e) => save(r.id, "note", e.target.value)}
+                          />
+                        ) : (
+                          <span className="block max-w-[220px] truncate text-muted" title={r.note}>
+                            {r.note || "—"}
+                          </span>
+                        )}
+                      </td>
+
                       {/* Ações */}
                       {isAdmin && (
                         <td className="px-2 py-2 align-middle">
@@ -379,7 +451,8 @@ export function AccessVault({
         )}
 
         <p className="mt-6 text-[11px] text-subtle">
-          Admin edita; membros veem e copiam. As senhas são cifradas em repouso quando a chave de
+          Admin edita; membros veem e copiam. As senhas só saem do banco quando alguém clica em
+          "mostrar" ou "copiar" — nunca vão na listagem. São cifradas em repouso quando a chave de
           criptografia está configurada.
         </p>
       </div>
