@@ -1,0 +1,1 @@
+ALTER TABLE "access_entries" ADD COLUMN "kind" text DEFAULT 'other' NOT NULL;

@@ -41,6 +41,8 @@ function decryptSecret(stored: string): string {
 export interface AccessEntryDTO {
   id: string;
   name: string;
+  /** ftp | smtp | database | api | hosting | other */
+  kind: string;
   url: string;
   port: string;
   login: string;
@@ -53,6 +55,7 @@ export interface AccessEntryDTO {
 
 export interface AccessEntryInput {
   name?: string;
+  kind?: string;
   url?: string;
   port?: string;
   login?: string;
@@ -62,10 +65,16 @@ export interface AccessEntryInput {
   note?: string;
 }
 
+export const ACCESS_KINDS = ["ftp", "smtp", "database", "api", "hosting", "other"] as const;
+function normalizeKind(kind: string | undefined): string {
+  return kind && (ACCESS_KINDS as readonly string[]).includes(kind) ? kind : "other";
+}
+
 function toDTO(r: typeof accessEntries.$inferSelect): AccessEntryDTO {
   return {
     id: r.id,
     name: r.name,
+    kind: r.kind,
     url: r.url,
     port: r.port,
     login: r.login,
@@ -208,6 +217,7 @@ export async function createAccessEntry(
         spaceId: table.spaceId,
         tableId,
         name: input.name?.trim() || "Acesso",
+        kind: normalizeKind(input.kind),
         url: input.url ?? "",
         port: input.port ?? "",
         login: input.login ?? "",
@@ -228,6 +238,7 @@ export async function updateAccessEntry(
 ): Promise<void> {
   const set: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) set.name = input.name.trim() || "Acesso";
+  if (input.kind !== undefined) set.kind = normalizeKind(input.kind);
   if (input.url !== undefined) set.url = input.url;
   if (input.port !== undefined) set.port = input.port;
   if (input.login !== undefined) set.login = input.login;

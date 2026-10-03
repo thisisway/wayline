@@ -498,6 +498,13 @@
       "when": 1791040788656,
       "tag": "0070_material_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1791042880575,
+      "tag": "0071_stiff_korvac",
+      "breakpoints": true
     }
   ]
 }

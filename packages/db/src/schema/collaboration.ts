@@ -855,6 +855,8 @@ export const accessEntries = pgTable(
     /** Cofre (access_tables) ao qual a credencial pertence. */
     tableId: uuid("table_id"),
     name: text("name").notNull().default("Acesso"),
+    /** Categoria: ftp | smtp | database | api | hosting | other. */
+    kind: text("kind").notNull().default("other"),
     url: text("url").notNull().default(""),
     port: text("port").notNull().default(""),
     login: text("login").notNull().default(""),

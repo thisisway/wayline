@@ -97,6 +97,7 @@ export {
   listAccessEntries,
   revealAccessSecret,
   reencryptLegacyAccessSecrets,
+  ACCESS_KINDS,
   createAccessEntry,
   updateAccessEntry,
   deleteAccessEntry,

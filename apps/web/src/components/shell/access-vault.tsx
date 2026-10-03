@@ -4,13 +4,19 @@ import * as React from "react";
 import {
   Check,
   Copy,
+  Database,
   Eye,
   EyeOff,
   GripVertical,
+  HardDrive,
   KeyRound,
+  Mail,
   Pencil,
   Plus,
+  Server,
   Trash2,
+  Webhook,
+  type LucideIcon,
 } from "lucide-react";
 import { Button, cn } from "@wayline/ui";
 import type { AccessEntryDTO } from "@wayline/db";
@@ -25,6 +31,18 @@ import {
 
 const editInput =
   "w-full min-w-0 rounded-md border border-border bg-surface px-2 py-1.5 text-ui text-foreground placeholder:text-subtle/60 focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+// Espelha ACCESS_KINDS de @wayline/db (não pode importar valor em runtime —
+// puxaria o client do banco pro bundle do browser).
+const KIND_META = {
+  ftp: { label: "FTP", icon: HardDrive },
+  smtp: { label: "SMTP", icon: Mail },
+  database: { label: "Banco de dados", icon: Database },
+  api: { label: "API", icon: Webhook },
+  hosting: { label: "Hospedagem", icon: Server },
+  other: { label: "Outro", icon: KeyRound },
+} satisfies Record<string, { label: string; icon: LucideIcon }>;
+const ACCESS_KIND_KEYS = Object.keys(KIND_META) as (keyof typeof KIND_META)[];
 
 export function AccessVault({
   orgId,
@@ -133,7 +151,7 @@ export function AccessVault({
     void reorderAccessEntriesAction(orgId, next.map((r) => r.id)).catch(() => {});
   }
 
-  const cols = isAdmin ? 10 : 8;
+  const cols = isAdmin ? 11 : 9;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -156,6 +174,7 @@ export function AccessVault({
               <thead>
                 <tr className="border-b border-border bg-canvas text-left text-label uppercase text-subtle">
                   {isAdmin && <th className="w-8" />}
+                  <th className="w-10 px-3 py-2.5 font-medium">Tipo</th>
                   <th className="px-3 py-2.5 font-medium">Nome</th>
                   <th className="px-3 py-2.5 font-medium">URL</th>
                   <th className="w-20 px-3 py-2.5 font-medium">Porta</th>
@@ -198,6 +217,36 @@ export function AccessVault({
                           </span>
                         </td>
                       )}
+
+                      {/* Tipo */}
+                      <td className="px-3 py-2 align-middle">
+                        {editing ? (
+                          <select
+                            value={r.kind}
+                            onChange={(e) => {
+                              patch(r.id, "kind", e.target.value);
+                              save(r.id, "kind", e.target.value);
+                            }}
+                            className="h-9 w-full rounded-md border border-border bg-canvas px-1.5 text-ui text-foreground"
+                          >
+                            {ACCESS_KIND_KEYS.map((k) => (
+                              <option key={k} value={k}>
+                                {KIND_META[k].label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          (() => {
+                            const meta = KIND_META[r.kind as keyof typeof KIND_META] ?? KIND_META.other;
+                            const Icon = meta.icon;
+                            return (
+                              <span title={meta.label} className="inline-flex text-muted">
+                                <Icon className="size-4" />
+                              </span>
+                            );
+                          })()
+                        )}
+                      </td>
 
                       {/* Nome */}
                       <td className="px-3 py-2 align-middle">
